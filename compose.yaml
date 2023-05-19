@@ -1,0 +1,15 @@
+name: "m"
+services:
+  mloader:
+    container_name: "mloader"
+    build:
+      context: "./docker-images/"
+      dockerfile: 'Dockerfile'
+    environment:
+      SECRET: ${SECRET?}
+      APP_VERSION: ${APP_VERSION?}
+    volumes:
+      - "${DOWNLOAD_DIR}:/mloader_downloads"
+      - "./script/download.sh:/download.sh"
+    entrypoint:
+      - "/download.sh"
