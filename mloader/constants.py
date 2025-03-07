@@ -2,25 +2,28 @@ from enum import Enum
 
 
 class Language(Enum):
-    eng = 0
-    spa = 1
-    fre = 2
-    ind = 3
-    por = 4
-    rus = 5
-    tha = 6
-    deu = 7
-    vie = 9
+    """Represents supported languages."""
+    ENGLISH = 0
+    SPANISH = 1
+    FRENCH = 2
+    INDONESIAN = 3
+    PORTUGUESE = 4
+    RUSSIAN = 5
+    THAI = 6
+    GERMAN = 7
+    VIETNAMESE = 8
 
 
 class ChapterType(Enum):
-    latest = 0
-    sequence = 1
-    nosequence = 2
+    """Represents different chapter types."""
+    LATEST = 0
+    SEQUENCE = 1
+    NO_SEQUENCE = 2
 
 
 class PageType(Enum):
-    single = 0
-    left = 1
-    right = 2
-    double = 3
+    """Represents different page display types."""
+    SINGLE = 0
+    LEFT = 1
+    RIGHT = 2
+    DOUBLE = 3

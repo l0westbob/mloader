@@ -2,6 +2,9 @@ syntax = "proto3";
 
 package manga;
 
+option optimize_for = SPEED;
+option go_package = "manga/proto"; // If using Go
+
 message Banner {
     string image_url = 1;
     TransitionAction action = 2;
@@ -42,8 +45,8 @@ message Comment {
     uint32 index = 2;
     string user_name = 3;
     string icon_url = 4;
-    bool is_my_comment = 6;
-    bool already_liked = 7;
+    optional bool is_my_comment = 6;
+    optional bool already_liked = 7;
     uint32 number_of_likes = 9;
     string body = 10;
     uint32 created = 11;
@@ -54,7 +57,6 @@ message AdNetworkList {
         message Facebook {
             string placement_id = 1;
         }
-
         message Admob {
             string unit_id = 1;
         }
@@ -78,7 +80,6 @@ message AdNetworkList {
     AdNetwork ad_networks = 1;
 }
 
-
 message Popup {
     message Button {
         string text = 1;
@@ -91,7 +92,6 @@ message Popup {
         Button ok_button = 3;
         Button neutral_button = 4;
         Button cancel_button = 5;
-
     }
 
     message AppDefault {
@@ -111,7 +111,6 @@ message Popup {
     MovieReward movie_reward = 3;
 }
 
-
 message LastPage {
     Chapter current_chapter = 1;
     Chapter next_chapter = 2;
@@ -123,7 +122,6 @@ message LastPage {
     Popup movie_reward = 8;
 }
 
-// MangaPage
 message MangaPage {
     string image_url = 1;
     uint32 width = 2;
@@ -132,7 +130,6 @@ message MangaPage {
     string encryption_key = 5;
 }
 
-// Page
 message Page {
     MangaPage manga_page = 1;
     BannerList banner_list = 2;
@@ -145,7 +142,6 @@ message Sns {
     string url = 2;
 }
 
-// MangaViewer
 message MangaViewer {
     repeated Page pages = 1;
     uint32 chapter_id = 2;

@@ -1,13 +1,16 @@
-"""
+__intro__ = r"""
             _                 _
   _ __ ___ | | ___   __ _  __| | ___ _ __
  | '_ ` _ \| |/ _ \ / _` |/ _` |/ _ \ '__|
  | | | | | | | (_) | (_| | (_| |  __/ |
  |_| |_| |_|_|\___/ \__,_|\__,_|\___|_|
+ 
+ Original by https://github.com/hurlenko/mloader
 """
 
 __title__ = "mloader"
 __description__ = "Command-line tool to download manga from mangaplus"
+#__url__ = "https://github.com/hurlenko/mloader"
 __url__ = "https://github.com/hurlenko/mloader"
-__version__ = "1.1.12"
+__version__ = "1.2.0"
 __license__ = "GPLv3"
