@@ -1,7 +1,5 @@
 # Mangaplus Downloader
 
-Rewritten and updated version of the original mloader.
-
 [![Latest Github release](https://img.shields.io/github/tag/hurlenko/mloader.svg)](https://github.com/hurlenko/mloader/releases/latest)
 ![Python](https://img.shields.io/badge/python-v3.12+-blue.svg)
 ![License](https://img.shields.io/badge/license-GPLv3-blue.svg)
