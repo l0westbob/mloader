@@ -8,5 +8,5 @@ AUTH_PARAMS = {
     "app_ver": os.getenv("APP_VER", "97"),
     "os": os.getenv("OS", "ios"),
     "os_ver": os.getenv("OS_VER", "18.1"),
-    "secret": os.getenv("SECRET"),
+    "secret": os.getenv("SECRET", "f40080bcb01a9a963912f46688d411a3"),
 }
