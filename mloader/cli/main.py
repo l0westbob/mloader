@@ -5,7 +5,7 @@ from typing import Optional, Set
 import click
 
 from mloader import __version__ as about
-from mloader.exporters.init import RawExporter, CBZExporter
+from mloader.exporters.init import RawExporter, CBZExporter, PDFExporter
 from mloader.manga_loader.init import MangaLoader
 from mloader.cli.validators import validate_urls, validate_ids
 
@@ -57,6 +57,15 @@ Examples:
     show_default=True,
     help="Save raw images",
     envvar="MLOADER_RAW",
+)
+@click.option(
+    "--format", "-f",
+    "output_format",
+    type=click.Choice(["cbz", "pdf"], case_sensitive=False),
+    default="cbz",
+    show_default=True,
+    help="Save as CBZ or PDF",
+    envvar="MLOADER_OUTPUT_FORMAT",
 )
 @click.option(
     "--quality", "-q",
@@ -129,6 +138,7 @@ def main(
         ctx: click.Context,
         out_dir: str,
         raw: bool,
+        output_format: str,
         quality: str,
         split: bool,
         begin: int,
@@ -149,6 +159,7 @@ def main(
         ctx (click.Context): Click context.
         out_dir (str): Output directory for downloads.
         raw (bool): Flag indicating whether to save raw images.
+        output_format (str): Flag indicating whether to save in cbz or pdf format.
         quality (str): Image quality setting.
         split (bool): Flag indicating whether to split combined images.
         begin (int): Minimal chapter number to download.
@@ -172,7 +183,12 @@ def main(
     log.info("Started export")
 
     # Choose exporter class based on the 'raw' flag.
-    exporter_class = RawExporter if raw else CBZExporter
+    if raw:
+        exporter_class = RawExporter
+    elif output_format == "pdf":
+        exporter_class = PDFExporter
+    else:
+        exporter_class = CBZExporter
 
     # Create a factory for the exporter with common parameters.
     exporter_factory = partial(

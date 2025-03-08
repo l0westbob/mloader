@@ -1,7 +1,7 @@
 from functools import lru_cache
 from typing import Union
 from mloader.config import AUTH_PARAMS
-from mloader.response_pb2 import Response
+from mloader.response_pb2 import Response # type: ignore
 
 
 def _parse_manga_viewer_response(content: bytes) -> 'MangaViewer':

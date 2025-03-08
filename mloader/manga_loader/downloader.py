@@ -70,6 +70,13 @@ class DownloadMixin:
             chapter_id: Unique identifier for the chapter.
         """
         viewer = self._load_pages(chapter_id)  # Provided by APILoaderMixin.
+
+        # Check if we have the expected last_page attribute. If not, assume a MAX subscription is needed.
+        if not viewer.pages or viewer.pages[-1] is None or not hasattr(viewer.pages[-1], 'last_page'):
+            log.info("A MAX subscription is required to download this chapter.")
+            import sys
+            sys.exit(1)
+
         last_page = viewer.pages[-1].last_page
         current_chapter = last_page.current_chapter
         next_chapter = last_page.next_chapter if last_page.next_chapter.chapter_id != 0 else None
