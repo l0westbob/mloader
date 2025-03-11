@@ -195,7 +195,7 @@ class DownloadMixin:
                 log.warning(f"    Chapter ID {chapter_id} not found in title dump!")
                 continue
 
-            expected_filename = self._build_expected_filename(title_detail.name, chapter_obj, sub_title)
+            expected_filename = self._build_expected_filename(escape_path(title_detail.name).title(), chapter_obj, sub_title)
 
             log.debug(f"    Checking if '{expected_filename}.pdf' exists...")
 
