@@ -9,7 +9,8 @@ class MangaLoader(APILoaderMixin, NormalizationMixin, DownloadMixin, DecryptionM
     Main class for downloading manga. Composes functionality from API calls,
     normalization, downloading, and decryption via mixins.
     """
-    def __init__(self, exporter, quality, split, session=Session(), api_url="https://jumpg-api.tokyo-cdn.com"):
+    def __init__(self, exporter, quality, split, meta=False, session=Session(), api_url="https://jumpg-api.tokyo-cdn.com"):
+        self.meta = meta
         self.exporter = exporter
         self.quality = quality
         self.split = split

@@ -2,6 +2,8 @@ from itertools import count
 import click
 import logging
 from mloader.constants import PageType
+import json
+from pathlib import Path
 
 log = logging.getLogger(__name__)
 
@@ -52,9 +54,16 @@ class DownloadMixin:
             title_id: Unique identifier for the manga title.
             chapter_ids: Collection of chapter IDs for the title.
         """
-        title_detail = self._get_title_details(title_id).title  # Provided by APILoaderMixin.
+        title_dump = self._get_title_details(title_id)
+        title_detail = title_dump.title
+
         log.info(f"{title_index}/{total_titles}) Manga: {title_detail.name}")
         log.info("    Author: %s", title_detail.author)
+
+        if self.meta:
+            export_path = f"{self.exporter.keywords['destination']}/{title_detail.name}"
+            self._dump_title_metadata(title_dump, export_path)
+
         total_chapters = len(chapter_ids)
         for chapter_index, chapter_id in enumerate(sorted(chapter_ids), 1):
             self._process_chapter(title_detail, chapter_index, total_chapters, chapter_id)
@@ -122,3 +131,55 @@ class DownloadMixin:
         response = self.session.get(url)
         response.raise_for_status()  # Raises an error for bad responses.
         return response.content
+
+    def _dump_title_metadata(self, title_dump, export_dir):
+        """
+        Dump title metadata to a JSON file in the given export directory.
+
+        Parameters:
+            title_dump (TitleDetailView): The protobuf title details object.
+            export_dir (str or Path): The directory where the JSON will be saved.
+        """
+
+        chapter_groups = title_dump.chapter_list_group  # This is fine!
+
+        chapter_data = {}
+
+        for group in chapter_groups:
+            for chapter in group.first_chapter_list:
+                chapter_data[chapter.sub_title] = {
+                    "thumbnail_url": chapter.thumbnail_url
+                }
+
+            for chapter in group.mid_chapter_list:
+                chapter_data[chapter.sub_title] = {
+                    "thumbnail_url": chapter.thumbnail_url
+                }
+
+            for chapter in group.last_chapter_list:
+                chapter_data[chapter.sub_title] = {
+                    "thumbnail_url": chapter.thumbnail_url
+                }
+
+        export_dir = Path(export_dir)
+        export_dir.mkdir(parents=True, exist_ok=True)
+
+        # Extract the fields you want
+        title_data = {
+            "non_appearance_info": title_dump.non_appearance_info,
+            "number_of_views": title_dump.number_of_views,
+            "overview": title_dump.overview,
+            "name": title_dump.title.name,
+            "author": title_dump.title.author,
+            "portrait_image_url": title_dump.title.portrait_image_url,
+            "chapters": chapter_data,
+        }
+
+        # JSON file path
+        metadata_file = export_dir / "title_metadata.json"
+
+        # Write the JSON file
+        with metadata_file.open('w', encoding='utf-8') as f:
+            json.dump(title_data, f, ensure_ascii=False, indent=4)
+
+        log.info(f"    Metadata for title '{title_data['name']}' exported")

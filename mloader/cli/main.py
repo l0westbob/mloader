@@ -132,6 +132,12 @@ Examples:
     show_default=True,
     help="Save raw images in subdirectories by chapter",
 )
+@click.option(
+    "--meta", "-m",
+    is_flag=True,
+    default=False,
+    help="Export additional metadata as JSON",
+)
 @click.argument("urls", nargs=-1, callback=validate_urls, expose_value=False)
 @click.pass_context
 def main(
@@ -146,6 +152,7 @@ def main(
         last: bool,
         chapter_title: bool,
         chapter_subdir: bool,
+        meta: bool,
         chapters: Optional[Set[int]] = None,
         titles: Optional[Set[int]] = None,
 ):
@@ -167,6 +174,7 @@ def main(
         last (bool): Flag to download only the last chapter of each title.
         chapter_title (bool): Flag to include chapter titles in filenames.
         chapter_subdir (bool): Flag to save raw images in subdirectories by chapter.
+        meta: (bool): Flag to save title_metadata JSON.
         chapters (Optional[Set[int]]): Set of chapter IDs.
         titles (Optional[Set[int]]): Set of title IDs.
     """
@@ -199,7 +207,7 @@ def main(
     )
 
     # Initialize the manga loader with the exporter factory, quality, and split options.
-    loader = MangaLoader(exporter_factory, quality, split)
+    loader = MangaLoader(exporter_factory, quality, split, meta)
     try:
         loader.download(
             title_ids=titles,
