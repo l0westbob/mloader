@@ -50,7 +50,7 @@ class DownloadMixin:
         log.info(f"{title_index}/{total_titles}) Manga: {title_detail.name}")
         log.info(f"    Author: {title_detail.author}")
 
-        export_path = Path(self.exporter.keywords['destination']) / escape_path(title_detail.name)
+        export_path = Path(self.exporter.keywords['destination']) / escape_path(title_detail.name).title()
 
         if self.meta:
             self._dump_title_metadata(title_dump, export_path)
