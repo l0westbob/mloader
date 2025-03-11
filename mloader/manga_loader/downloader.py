@@ -246,16 +246,18 @@ class DownloadMixin:
 
     def _prepare_filename(self, text: str) -> str:
         """
-        Fix mojibake and sanitize text for filename use.
+        Fix mojibake and sanitize text for filename use,
+        but preserve colons.
         """
-        # Step 1: Fix mojibake if needed
-        try:
-            text = text.encode('latin1').decode('utf8')
-        except UnicodeEncodeError:
-            # If it can't be encoded to latin1, it's likely fine
-            pass
+        fixed_text = text  # Default to the original text
 
-        # Step 2: Clean filename
-        sanitized = escape_path(text.strip())
+        try:
+            # Attempt to fix mojibake (common latin1 ➜ utf-8 issue)
+            fixed_text = text.encode('latin1').decode('utf8')
+        except (UnicodeEncodeError, UnicodeDecodeError):
+            log.warning(f"    Encoding fix skipped for: {text}")
+
+        # Now escape the path, allowing colons
+        sanitized = escape_path(fixed_text)
 
         return sanitized
