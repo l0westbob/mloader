@@ -87,6 +87,11 @@ class DownloadMixin:
         current_chapter = last_page.current_chapter
         next_chapter = last_page.next_chapter if last_page.next_chapter.chapter_id != 0 else None
 
+        # --- Fix and sanitize sub_title here ---
+        original_sub_title = current_chapter.sub_title
+        fixed_sub_title = self._prepare_filename(original_sub_title)
+        current_chapter.sub_title = fixed_sub_title
+
         log.info(f"    {chapter_index}/{total_chapters}) Chapter {viewer.chapter_name}: {current_chapter.sub_title}")
 
         exporter = self.exporter(title=title_detail, chapter=current_chapter, next_chapter=next_chapter)
@@ -238,3 +243,19 @@ class DownloadMixin:
         Check whether the viewer has a valid last page.
         """
         return viewer.pages and viewer.pages[-1] and hasattr(viewer.pages[-1], "last_page")
+
+    def _prepare_filename(self, text: str) -> str:
+        """
+        Fix mojibake and sanitize text for filename use.
+        """
+        # Step 1: Fix mojibake if needed
+        try:
+            text = text.encode('latin1').decode('utf8')
+        except UnicodeEncodeError:
+            # If it can't be encoded to latin1, it's likely fine
+            pass
+
+        # Step 2: Clean filename
+        sanitized = escape_path(text.strip())
+
+        return sanitized
