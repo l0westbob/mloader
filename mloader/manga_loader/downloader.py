@@ -164,7 +164,8 @@ class DownloadMixin:
                 group.last_chapter_list,
             ):
                 for chapter in chapter_list:
-                    chapter_data[chapter.sub_title] = {
+                    prepared_sub_title = self._prepare_filename(chapter.sub_title)
+                    chapter_data[prepared_sub_title] = {
                         "thumbnail_url": chapter.thumbnail_url,
                         "chapter_id": chapter.chapter_id,
                     }
