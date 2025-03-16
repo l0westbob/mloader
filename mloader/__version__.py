@@ -4,11 +4,11 @@ __intro__ = r"""
  | '_ ` _ \| |/ _ \ / _` |/ _` |/ _ \ '__|
  | | | | | | | (_) | (_| | (_| |  __/ |
  |_| |_| |_|_|\___/ \__,_|\__,_|\___|_|
- 
+
 """
 
 __title__ = "mloader"
 __description__ = "Command-line tool to download manga from mangaplus"
 __url__ = "https://github.com/hurlenko/mloader"
-__version__ = "1.2.2"
+__version__ = "1.2.3"
 __license__ = "GPLv3"

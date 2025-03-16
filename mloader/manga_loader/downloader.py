@@ -129,7 +129,10 @@ class DownloadMixin:
         """
         Export title metadata as JSON.
         """
-        chapter_data = self._extract_chapter_data(title_dump)
+        chapter_data = {
+            escape_path(key).title(): value
+            for key, value in self._extract_chapter_data(title_dump).items()
+        }
         export_dir = Path(export_dir)
         export_dir.mkdir(parents=True, exist_ok=True)
 
