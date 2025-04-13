@@ -7,6 +7,9 @@ from mloader.constants import Language
 from mloader.response_pb2 import Title, Chapter
 from mloader.utils import escape_path, is_oneshot, chapter_name_to_int, is_windows
 
+import logging
+log = logging.getLogger(__name__)
+
 
 def _is_extra(chapter_name: str) -> bool:
     """
@@ -54,6 +57,10 @@ class ExporterBase(metaclass=ABCMeta):
             add_chapter_title (bool): If True, include the chapter subtitle in the output.
             add_chapter_subdir (bool): If True, create a separate subdirectory for the chapter.
         """
+
+        # log.info(f"chapter: {chapter}")
+        # log.info(f"title: {title}")
+
         self.destination = destination
 
         # Adjust the destination path for Windows (using extended-length path prefix).
@@ -70,6 +77,10 @@ class ExporterBase(metaclass=ABCMeta):
         # Determine if this is a oneshot and if it is marked as extra.
         self.is_oneshot = is_oneshot(chapter.name, chapter.sub_title)
         self.is_extra = _is_extra(chapter.name)
+        self.language = title.language
+        self.author = title.author
+        self.chapter_title = chapter.sub_title
+        self.chapter_number = chapter.name
 
         # Build extra information strings for naming.
         self._extra_info = []
@@ -163,6 +174,30 @@ class ExporterBase(metaclass=ABCMeta):
         """
         # Always append "[Unknown]" to indicate an unspecified part.
         return " ".join(chain(self._extra_info, ["[Unknown]"]))
+
+    def _iso_language(self) -> str:
+
+        l = Language(self.language)
+        if l == Language.ENGLISH:
+                return 'en'
+        elif l == Language.SPANISH:
+                return 'es'
+        elif l == Language.FRENCH:
+                return 'fr'
+        elif l == Language.INDONESIAN:
+                return 'id'
+        elif l == Language.PORTUGUESE:
+                return 'pt'
+        elif l == Language.RUSSIAN:
+                return 'ru'
+        elif l == Language.THAI:
+                return 'th'
+        elif l == Language.GERMAN:
+                return 'de'
+        elif l == Language.VIETNAMESE:
+                return 'vi'
+        else:
+                return 'en'
 
     def format_page_name(self, page: Union[int, range], ext: str = ".jpg") -> str:
         """

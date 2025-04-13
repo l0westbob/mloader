@@ -2,7 +2,11 @@ import zipfile
 from io import BytesIO
 from pathlib import Path
 from typing import Union
+
 from mloader.exporters.exporter_base import ExporterBase
+
+import logging
+log = logging.getLogger(__name__)
 
 
 class CBZExporter(ExporterBase):
@@ -63,8 +67,39 @@ class CBZExporter(ExporterBase):
         """
         Finalize the CBZ export by writing the archive to disk.
         """
+
+        log.info(f"close")
+
         if self.skip_all_images:
             return
+
+        # Generate and write ComicInfo.xml to the archive
+        comicinfo_xml = self._generate_comicinfo_xml()
+        xml_path = Path(self.chapter_name, "ComicInfo.xml")
+        self.archive.writestr(xml_path.as_posix(), comicinfo_xml)
+
+        # Finalize archive
         self.archive.close()
         # Write the complete archive to the destination file.
         self.path.write_bytes(self.archive_buffer.getvalue())
+
+    def _generate_comicinfo_xml(self) -> str:
+        """
+        Generate a basic ComicInfo.xml metadata file.
+        See: https://github.com/anansi-project/comicinfo
+        Returns:
+            str: The ComicInfo.xml content as a string.
+        """
+
+        return f"""<?xml version="1.0" encoding="utf-8"?>
+    <ComicInfo>
+        <Series>{self.title_name}</Series>
+        <Number>{self.chapter_number}</Number>
+        <Title>{self.chapter_title}</Title>
+        <Writer>{self.author}</Writer>
+        <LanguageISO>{self._iso_language()}</LanguageISO>
+        <Manga>YesAndRightToLeft</Manga>
+        <Publisher>Shueisha</Publisher>
+        <Genre>Manga</Genre>
+    </ComicInfo>
+    """
