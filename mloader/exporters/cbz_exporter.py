@@ -5,9 +5,6 @@ from typing import Union
 
 from mloader.exporters.exporter_base import ExporterBase
 
-import logging
-log = logging.getLogger(__name__)
-
 
 class CBZExporter(ExporterBase):
     """
@@ -67,8 +64,6 @@ class CBZExporter(ExporterBase):
         """
         Finalize the CBZ export by writing the archive to disk.
         """
-
-        log.info(f"close")
 
         if self.skip_all_images:
             return
