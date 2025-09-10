@@ -35,13 +35,13 @@ class ExporterBase(metaclass=ABCMeta):
     FORMAT_REGISTRY = {}
 
     def __init__(
-        self,
-        destination: str,
-        title: Title,
-        chapter: Chapter,
-        next_chapter: Optional[Chapter] = None,
-        add_chapter_title: bool = False,
-        add_chapter_subdir: bool = False,
+            self,
+            destination: str,
+            title: Title,
+            chapter: Chapter,
+            next_chapter: Optional[Chapter] = None,
+            add_chapter_title: bool = False,
+            add_chapter_subdir: bool = False,
     ):
         """
         Initialize the exporter with destination path, title/chapter metadata, and options.
@@ -67,7 +67,13 @@ class ExporterBase(metaclass=ABCMeta):
         # Clean up and format the manga title.
         self.title_name = escape_path(title.name).title()
 
-        # Determine if this is a oneshot and if it is marked as extra.
+        # Add meta data
+        self.language = title.language
+        self.author = title.author
+        self.chapter_title = chapter.sub_title
+        self.chapter_number = chapter.name
+
+        # Determine if this is an oneshot and if it is marked as extra.
         self.is_oneshot = is_oneshot(chapter.name, chapter.sub_title)
         self.is_extra = _is_extra(chapter.name)
 
@@ -90,11 +96,11 @@ class ExporterBase(metaclass=ABCMeta):
         self.chapter_name = f"{self._chapter_prefix} {self._chapter_suffix}"
 
     def _format_chapter_prefix(
-        self,
-        title_name: str,
-        chapter_name: str,
-        language: int,
-        next_chapter_name: Optional[str] = None,
+            self,
+            title_name: str,
+            chapter_name: str,
+            language: int,
+            next_chapter_name: Optional[str] = None,
     ) -> str:
         """
         Format the prefix for the chapter name based on a naming scheme.
@@ -163,6 +169,32 @@ class ExporterBase(metaclass=ABCMeta):
         """
         # Always append "[Unknown]" to indicate an unspecified part.
         return " ".join(chain(self._extra_info, ["[Unknown]"]))
+
+    def _iso_language(self) -> str:
+        """
+        Convert the stored language into its ISO 639-1 code.
+
+        This method maps the internal `Language` enumeration to the standard
+        two-letter ISO 639-1 language codes. If the language is not recognized,
+        English (`"en"`) is returned as the default.
+
+        Returns:
+            str: The ISO 639-1 language code corresponding to the manga's language.
+        """
+        language_map = {
+            Language.ENGLISH: "en",
+            Language.SPANISH: "es",
+            Language.FRENCH: "fr",
+            Language.INDONESIAN: "id",
+            Language.PORTUGUESE: "pt",
+            Language.RUSSIAN: "ru",
+            Language.THAI: "th",
+            Language.GERMAN: "de",
+            Language.VIETNAMESE: "vi",
+        }
+
+        selected_language = Language(self.language)
+        return language_map.get(selected_language, "en")
 
     def format_page_name(self, page: Union[int, range], ext: str = ".jpg") -> str:
         """
