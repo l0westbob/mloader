@@ -78,3 +78,17 @@ def test_normalize_ids_merges_chapter_and_title_requests():
     result = normalizer._normalize_ids([10], [101, 201], min_chapter=0, max_chapter=999)
 
     assert result == {10: {101, 102}, 20: {201}}
+
+
+def test_prepare_normalized_manga_list_delegates_to_normalize_ids(monkeypatch):
+    normalizer = DummyNormalizer({}, {})
+    sentinel = {1: {10}}
+
+    monkeypatch.setattr(
+        normalizer,
+        "_normalize_ids",
+        lambda *args: sentinel,
+    )
+
+    result = normalizer._prepare_normalized_manga_list([1], [10], 0, 999, False)
+    assert result is sentinel

@@ -216,10 +216,11 @@ def main(
             max_chapter=end,
             last_chapter=last,
         )
-    except Exception:
+    except Exception as exc:
         log.exception("Failed to download manga")
+        raise click.ClickException("Download failed") from exc
     log.info("SUCCESS")
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     main(prog_name=about.__title__)

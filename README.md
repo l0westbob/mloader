@@ -1,7 +1,7 @@
 # Mangaplus Downloader
 
 [![Latest Github release](https://img.shields.io/github/tag/hurlenko/mloader.svg)](https://github.com/hurlenko/mloader/releases/latest)
-![Python](https://img.shields.io/badge/python-v3.12+-blue.svg)
+![Python](https://img.shields.io/badge/python-v3.14+-blue.svg)
 ![License](https://img.shields.io/badge/license-GPLv3-blue.svg)
 
 ## **mloader** - download manga from mangaplus.shueisha.co.jp
@@ -9,8 +9,11 @@
 ## 🚩 Table of Contents
 
 -   [Installation](#-installation)
+-   [Development](#-development)
+-   [Testing](#-testing)
 -   [Usage](#-usage)
 -   [Command line interface](#%EF%B8%8F-command-line-interface)
+-   [Extending mloader](#-extending-mloader)
 
 ## 💾 Installation
 
@@ -21,6 +24,22 @@ pip install mloader
 ```
 
 After installation, the `mloader` command will be available. Check the [command line](%EF%B8%8F-command-line-interface) section for supported commands.
+
+## 🛠 Development
+
+```bash
+git clone https://github.com/hurlenko/mloader.git
+cd mloader
+python3.14 -m venv .venv
+source .venv/bin/activate
+pip install -e .[dev]
+```
+
+## ✅ Testing
+
+```bash
+pytest
+```
 
 ## 📙 Usage
 
@@ -58,3 +77,14 @@ Options:
   --chapter-title                 Include chapter titles in filenames
   --help                          Show this message and exit.
 ```
+
+## 🧩 Extending mloader
+
+`mloader` is designed around composable mixins and exporter classes.
+
+-   Add a new exporter by subclassing `ExporterBase`.
+-   Set `format = "<name>"` in your exporter.
+-   Implement `add_image` and `skip_image`.
+
+See `CONTRIBUTING.md` for architecture and extension details.
+Detailed architecture notes are in `docs/ARCHITECTURE.md`.

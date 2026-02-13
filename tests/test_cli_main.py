@@ -27,6 +27,11 @@ class DummyPdfExporter:
     pass
 
 
+class FailingLoader(DummyLoader):
+    def download(self, **kwargs):
+        raise RuntimeError("boom")
+
+
 def test_cli_uses_raw_exporter_when_raw_flag_is_set(monkeypatch):
     monkeypatch.setattr(cli_main, "MangaLoader", DummyLoader)
     monkeypatch.setattr(cli_main, "RawExporter", DummyRawExporter)
@@ -49,3 +54,21 @@ def test_cli_uses_pdf_exporter_when_requested(monkeypatch):
     assert result.exit_code == 0
     assert DummyLoader.init_args["exporter_factory"].func is DummyPdfExporter
     assert DummyLoader.download_args["chapter_ids"] == {55}
+
+
+def test_cli_returns_error_when_download_fails(monkeypatch):
+    monkeypatch.setattr(cli_main, "MangaLoader", FailingLoader)
+
+    runner = CliRunner()
+    result = runner.invoke(cli_main.main, ["--chapter", "55"])
+
+    assert result.exit_code != 0
+    assert "Download failed" in result.output
+
+
+def test_cli_without_ids_prints_help_and_exits_cleanly():
+    runner = CliRunner()
+    result = runner.invoke(cli_main.main, [])
+
+    assert result.exit_code == 0
+    assert "Usage:" in result.output

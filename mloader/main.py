@@ -1,9 +1,9 @@
 # Ensure logging is set up early
-from cli.config import setup_logging
+from mloader.cli.config import setup_logging
 setup_logging()
 
 # Import the main CLI command.
-from cli.main import main
+from mloader.cli.main import main
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     main()

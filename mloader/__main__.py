@@ -7,5 +7,5 @@ setup_logging()  # This ensures all logging settings are in place.
 # Now import the main CLI command.
 from mloader.cli.main import main
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     main()

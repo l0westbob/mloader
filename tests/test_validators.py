@@ -29,6 +29,19 @@ def test_validate_urls_rejects_invalid_url():
         validate_urls(ctx, None, ("not-a-url",))
 
 
+def test_validate_urls_rejects_unsupported_segment():
+    ctx = click.Context(click.Command("mloader"))
+
+    with pytest.raises(click.BadParameter):
+        validate_urls(ctx, None, ("https://mangaplus.shueisha.co.jp/chapter/123",))
+
+
+def test_validate_urls_accepts_empty_input():
+    ctx = click.Context(click.Command("mloader"))
+
+    assert validate_urls(ctx, None, ()) == ()
+
+
 def test_validate_ids_updates_context_for_chapter_and_title():
     ctx = click.Context(click.Command("mloader"))
 
@@ -37,3 +50,8 @@ def test_validate_ids_updates_context_for_chapter_and_title():
 
     assert ctx.params["chapters"] == {1, 2}
     assert ctx.params["titles"] == {10}
+
+
+def test_validate_ids_accepts_empty_input():
+    ctx = click.Context(click.Command("mloader"))
+    assert validate_ids(ctx, SimpleNamespace(name="chapter"), ()) == ()
