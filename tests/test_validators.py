@@ -17,7 +17,7 @@ def test_validate_urls_collects_chapters_and_titles() -> None:
     value = (
         "https://mangaplus.shueisha.co.jp/viewer/123",
         "https://mangaplus.shueisha.co.jp/titles/456",
-        "https://example.com/viewer/999",
+        "viewer/999",
     )
 
     returned = validate_urls(ctx, None, value)
@@ -33,6 +33,13 @@ def test_validate_urls_rejects_invalid_url() -> None:
 
     with pytest.raises(click.BadParameter):
         validate_urls(ctx, None, ("not-a-url",))
+
+
+def test_validate_urls_rejects_invalid_host() -> None:
+    """Verify URLs outside allowed MangaPlus hosts are rejected."""
+    ctx = click.Context(click.Command("mloader"))
+    with pytest.raises(click.BadParameter):
+        validate_urls(ctx, None, ("https://example.com/viewer/123",))
 
 
 def test_validate_urls_rejects_unsupported_segment() -> None:

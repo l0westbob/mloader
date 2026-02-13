@@ -1,5 +1,9 @@
 """Image decryption helpers used for encrypted page payloads."""
 
+from __future__ import annotations
+
+from mloader.types import SessionLike
+
 def _convert_hex_to_bytes(hex_str: str) -> bytes:
     """
     Convert a hexadecimal string to bytes.
@@ -20,6 +24,9 @@ def _xor_decrypt(data: bytearray, key: bytes) -> bytearray:
 class DecryptionMixin:
     """Provide image retrieval and XOR decryption behavior."""
 
+    session: SessionLike
+    request_timeout: tuple[float, float]
+
     def _decrypt_image(self, url: str, encryption_hex: str) -> bytearray:
         """
         Retrieve and decrypt an image using XOR decryption with a repeating key.
@@ -32,5 +39,6 @@ class DecryptionMixin:
         """
         Fetch encrypted image data from the provided URL.
         """
-        response = self.session.get(url)
+        response = self.session.get(url, timeout=self.request_timeout)
+        response.raise_for_status()
         return bytearray(response.content)

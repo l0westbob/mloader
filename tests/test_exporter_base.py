@@ -80,4 +80,18 @@ def test_abstract_base_methods_have_noop_defaults() -> None:
     """Verify abstract base placeholders are callable for coverage purposes."""
     ExporterBase.add_image(None, b"", 0)
     ExporterBase.skip_image(None, 0)
-    assert ExporterBase.format.fget(None) is None
+
+
+def test_exporter_base_requires_non_empty_format() -> None:
+    """Verify subclass registration rejects missing/empty format keys."""
+    with pytest.raises(TypeError):
+
+        class _InvalidExporter(ExporterBase):
+            format = ""
+
+            def add_image(self, image_data: bytes, index: int | range) -> None:
+                del image_data, index
+
+            def skip_image(self, index: int | range) -> bool:
+                del index
+                return False

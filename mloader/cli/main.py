@@ -2,11 +2,13 @@
 
 import logging
 from functools import partial
-from typing import Optional, Set
+from typing import Literal, Optional, Set
 
 import click
 
 from mloader import __version__ as about
+from mloader.errors import SubscriptionRequiredError
+from mloader.exporters.exporter_base import ExporterBase
 from mloader.exporters.init import RawExporter, CBZExporter, PDFExporter
 from mloader.manga_loader.init import MangaLoader
 from mloader.cli.validators import validate_urls, validate_ids
@@ -31,6 +33,8 @@ Examples:
     $ mloader https://mangaplus.shueisha.co.jp/viewer/1 
     https://mangaplus.shueisha.co.jp/titles/2 -r -q low
 """
+
+OutputFormat = Literal["raw", "cbz", "pdf"]
 
 
 @click.command(
@@ -168,16 +172,21 @@ def main(
         return
 
     # Set maximum chapter to infinity if not provided.
-    end = end or float("inf")
+    max_chapter = end if end is not None else 2_147_483_647
     log.info("Started export")
 
     # Choose exporter class based on the 'raw' flag.
+    exporter_class: type[ExporterBase]
+    effective_output_format: OutputFormat
     if raw:
         exporter_class = RawExporter
+        effective_output_format = "raw"
     elif output_format == "pdf":
         exporter_class = PDFExporter
+        effective_output_format = "pdf"
     else:
         exporter_class = CBZExporter
+        effective_output_format = "cbz"
 
     # Create a factory for the exporter with common parameters.
     exporter_factory = partial(
@@ -188,15 +197,24 @@ def main(
     )
 
     # Initialize the manga loader with the exporter factory, quality, and split options.
-    loader = MangaLoader(exporter_factory, quality, split, meta)
+    loader = MangaLoader(
+        exporter_factory,
+        quality,
+        split,
+        meta,
+        destination=out_dir,
+        output_format=effective_output_format,
+    )
     try:
         loader.download(
             title_ids=titles,
             chapter_ids=chapters,
             min_chapter=begin,
-            max_chapter=end,
+            max_chapter=max_chapter,
             last_chapter=last,
         )
+    except SubscriptionRequiredError as exc:
+        raise click.ClickException(str(exc)) from exc
     except Exception as exc:
         log.exception("Failed to download manga")
         raise click.ClickException("Download failed") from exc

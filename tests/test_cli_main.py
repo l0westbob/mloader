@@ -8,6 +8,7 @@ import pytest
 from click.testing import CliRunner
 
 from mloader.cli import main as cli_main
+from mloader.errors import SubscriptionRequiredError
 
 
 class DummyLoader:
@@ -16,13 +17,23 @@ class DummyLoader:
     init_args: ClassVar[dict[str, Any] | None] = None
     download_args: ClassVar[dict[str, Any] | None] = None
 
-    def __init__(self, exporter_factory: Any, quality: str, split: bool, meta: bool) -> None:
+    def __init__(
+        self,
+        exporter_factory: Any,
+        quality: str,
+        split: bool,
+        meta: bool,
+        destination: str,
+        output_format: str,
+    ) -> None:
         """Record initialization arguments for assertions."""
         type(self).init_args = {
             "exporter_factory": exporter_factory,
             "quality": quality,
             "split": split,
             "meta": meta,
+            "destination": destination,
+            "output_format": output_format,
         }
 
     def download(self, **kwargs: Any) -> None:
@@ -47,6 +58,15 @@ class FailingLoader(DummyLoader):
         raise RuntimeError("boom")
 
 
+class SubscriptionLoader(DummyLoader):
+    """Loader test double that raises subscription-required error."""
+
+    def download(self, **kwargs: Any) -> None:
+        """Raise a subscription-required error to test CLI messaging."""
+        del kwargs
+        raise SubscriptionRequiredError("A MAX subscription is required to download this chapter.")
+
+
 def test_cli_uses_raw_exporter_when_raw_flag_is_set(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -61,6 +81,7 @@ def test_cli_uses_raw_exporter_when_raw_flag_is_set(
     assert DummyLoader.init_args is not None
     assert DummyLoader.download_args is not None
     assert DummyLoader.init_args["exporter_factory"].func is DummyRawExporter
+    assert DummyLoader.init_args["output_format"] == "raw"
     assert DummyLoader.download_args["chapter_ids"] == {123}
 
 
@@ -76,6 +97,7 @@ def test_cli_uses_pdf_exporter_when_requested(monkeypatch: pytest.MonkeyPatch) -
     assert DummyLoader.init_args is not None
     assert DummyLoader.download_args is not None
     assert DummyLoader.init_args["exporter_factory"].func is DummyPdfExporter
+    assert DummyLoader.init_args["output_format"] == "pdf"
     assert DummyLoader.download_args["chapter_ids"] == {55}
 
 
@@ -97,3 +119,14 @@ def test_cli_without_ids_prints_help_and_exits_cleanly() -> None:
 
     assert result.exit_code == 0
     assert "Usage:" in result.output
+
+
+def test_cli_returns_subscription_message(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify CLI exposes subscription requirement failures from downloader."""
+    monkeypatch.setattr(cli_main, "MangaLoader", SubscriptionLoader)
+
+    runner = CliRunner()
+    result = runner.invoke(cli_main.main, ["--chapter", "55"])
+
+    assert result.exit_code != 0
+    assert "A MAX subscription is required to download this chapter." in result.output

@@ -18,10 +18,16 @@ class DummySession:
         self.content = content
         self.calls: list[tuple[str, dict[str, Any] | None]] = []
 
-    def get(self, url: str, params: dict[str, Any] | None = None) -> SimpleNamespace:
+    def get(
+        self,
+        url: str,
+        params: dict[str, Any] | None = None,
+        timeout: tuple[float, float] | None = None,
+    ) -> SimpleNamespace:
         """Record request details and return a simple response object."""
+        del timeout
         self.calls.append((url, params))
-        return SimpleNamespace(content=self.content)
+        return SimpleNamespace(content=self.content, raise_for_status=lambda: None)
 
 
 class DummyLoader(api.APILoaderMixin):
@@ -32,6 +38,7 @@ class DummyLoader(api.APILoaderMixin):
         self._api_url = "https://api.example"
         self.split = split
         self.quality = quality
+        self.request_timeout = (1.0, 2.0)
         self.session = DummySession()
 
 

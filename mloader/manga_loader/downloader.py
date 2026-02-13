@@ -2,16 +2,26 @@
 
 from __future__ import annotations
 
-import json
 import logging
-import sys
 from itertools import count
 from pathlib import Path
-from typing import Any, Collection, Mapping
+from typing import Collection, Literal, Mapping
 
 import click
 
 from mloader.constants import PageType
+from mloader.errors import SubscriptionRequiredError
+from mloader.manga_loader.services import ChapterMetadata, ChapterPlanner, MetadataWriter
+from mloader.types import (
+    ChapterLike,
+    ExporterFactoryLike,
+    ExporterLike,
+    MangaPageLike,
+    MangaViewerLike,
+    SessionLike,
+    TitleDumpLike,
+    TitleLike,
+)
 from mloader.utils import escape_path
 
 log = logging.getLogger(__name__)
@@ -19,6 +29,32 @@ log = logging.getLogger(__name__)
 
 class DownloadMixin:
     """Provide download and export orchestration for manga content."""
+
+    meta: bool
+    destination: str
+    output_format: Literal["raw", "cbz", "pdf"]
+    exporter: ExporterFactoryLike
+    session: SessionLike
+    request_timeout: tuple[float, float]
+
+    def _prepare_normalized_manga_list(
+        self,
+        title_ids: Collection[int] | None,
+        chapter_ids: Collection[int] | None,
+        min_chapter: int,
+        max_chapter: int,
+        last_chapter: bool,
+    ) -> Mapping[int, Collection[int]]:
+        """Normalize title/chapter filters into a concrete download mapping."""
+        raise NotImplementedError
+
+    def _get_title_details(self, title_id: str | int) -> TitleDumpLike:
+        """Load title details for ``title_id``."""
+        raise NotImplementedError
+
+    def _load_pages(self, chapter_id: str | int) -> MangaViewerLike:
+        """Load chapter viewer payload for ``chapter_id``."""
+        raise NotImplementedError
 
     def download(
         self,
@@ -59,14 +95,12 @@ class DownloadMixin:
         log.info(f"{title_index}/{total_titles}) Manga: {title_detail.name}")
         log.info(f"    Author: {title_detail.author}")
 
-        export_path = Path(self.exporter.keywords["destination"]) / escape_path(
-            title_detail.name
-        ).title()
+        export_path = Path(self.destination) / escape_path(title_detail.name).title()
+        chapter_data = self._extract_chapter_data(title_dump)
 
         if self.meta:
-            self._dump_title_metadata(title_dump, export_path)
+            self._dump_title_metadata(title_dump, chapter_data, export_path)
 
-        chapter_data = self._extract_chapter_data(title_dump)
         existing_files = self._get_existing_files(export_path)
         chapters_to_download = self._filter_chapters_to_download(
             chapter_data,
@@ -87,7 +121,7 @@ class DownloadMixin:
 
     def _process_chapter(
         self,
-        title_detail: Any,
+        title_detail: TitleLike,
         chapter_index: int,
         total_chapters: int,
         chapter_id: int,
@@ -95,8 +129,7 @@ class DownloadMixin:
         """Download and export a single chapter."""
         viewer = self._load_pages(chapter_id)
         if not self._has_last_page(viewer):
-            log.info("A MAX subscription is required to download this chapter.")
-            sys.exit(1)
+            raise SubscriptionRequiredError("A MAX subscription is required to download this chapter.")
 
         last_page = viewer.pages[-1].last_page
         current_chapter = last_page.current_chapter
@@ -122,139 +155,109 @@ class DownloadMixin:
 
     def _process_chapter_pages(
         self,
-        pages: Collection[Any],
+        pages: Collection[MangaPageLike],
         chapter_name: str,
-        exporter: Any,
+        exporter: ExporterLike,
     ) -> None:
         """Download all chapter pages and pass them to the exporter."""
         with click.progressbar(pages, label=chapter_name, show_pos=True) as progress_bar:
             page_counter = count()
             for page_index, page in zip(page_counter, progress_bar):
+                output_index: int | range = page_index
                 if PageType(page.type) == PageType.DOUBLE:
-                    page_index = range(page_index, next(page_counter))
+                    output_index = range(page_index, next(page_counter))
 
-                if exporter.skip_image(page_index):
+                if exporter.skip_image(output_index):
                     continue
 
                 image_blob = self._download_image(page.image_url)
-                exporter.add_image(image_blob, page_index)
+                exporter.add_image(image_blob, output_index)
 
     def _download_image(self, url: str) -> bytes:
         """Download an image blob from ``url``."""
-        response = self.session.get(url)
+        response = self.session.get(url, timeout=self.request_timeout)
         response.raise_for_status()
         return response.content
 
-    def _dump_title_metadata(self, title_dump: Any, export_dir: str | Path) -> None:
+    def _dump_title_metadata(
+        self,
+        title_dump: TitleDumpLike,
+        chapter_data_or_export_dir: Mapping[str, ChapterMetadata | Mapping[str, object]] | str | Path,
+        export_dir: str | Path | None = None,
+    ) -> None:
         """Write title-level metadata JSON into ``export_dir``."""
-        chapter_data = {
-            escape_path(key).title(): value
-            for key, value in self._extract_chapter_data(title_dump).items()
-        }
-        export_dir_path = Path(export_dir)
-        export_dir_path.mkdir(parents=True, exist_ok=True)
+        resolved_chapter_data: Mapping[str, ChapterMetadata | Mapping[str, object]]
+        resolved_export_dir: str | Path
+        if export_dir is None:
+            if isinstance(chapter_data_or_export_dir, Mapping):
+                raise TypeError("Expected export directory when chapter metadata is omitted.")
+            resolved_chapter_data = self._extract_chapter_data(title_dump)
+            resolved_export_dir = chapter_data_or_export_dir
+        else:
+            if not isinstance(chapter_data_or_export_dir, Mapping):
+                raise TypeError("Expected chapter metadata mapping when export_dir is provided.")
+            resolved_chapter_data = chapter_data_or_export_dir
+            resolved_export_dir = export_dir
 
-        title_data = {
-            "non_appearance_info": title_dump.non_appearance_info,
-            "number_of_views": title_dump.number_of_views,
-            "overview": title_dump.overview,
-            "name": title_dump.title.name,
-            "author": title_dump.title.author,
-            "portrait_image_url": title_dump.title.portrait_image_url,
-            "chapters": chapter_data,
-        }
+        MetadataWriter.dump_title_metadata(title_dump, resolved_chapter_data, resolved_export_dir)
+        log.info(f"    Metadata for title '{title_dump.title.name}' exported")
 
-        metadata_file = export_dir_path / "title_metadata.json"
-        with metadata_file.open("w", encoding="utf-8") as file_obj:
-            json.dump(title_data, file_obj, ensure_ascii=False, indent=4)
-
-        log.info(f"    Metadata for title '{title_data['name']}' exported")
-
-    def _extract_chapter_data(self, title_dump: Any) -> dict[str, dict[str, Any]]:
+    def _extract_chapter_data(self, title_dump: TitleDumpLike) -> dict[str, ChapterMetadata]:
         """Collect chapter metadata from all chapter groups into one mapping."""
-        chapter_data: dict[str, dict[str, Any]] = {}
-        for group in title_dump.chapter_list_group:
-            for chapter_list in (
-                group.first_chapter_list,
-                group.mid_chapter_list,
-                group.last_chapter_list,
-            ):
-                for chapter in chapter_list:
-                    prepared_sub_title = self._prepare_filename(chapter.sub_title)
-                    chapter_data[prepared_sub_title] = {
-                        "thumbnail_url": chapter.thumbnail_url,
-                        "chapter_id": chapter.chapter_id,
-                    }
-        return chapter_data
+        return ChapterPlanner.extract_chapter_data(title_dump, self._prepare_filename)
 
     def _get_existing_files(self, export_path: Path) -> list[str]:
-        """Return already exported PDF chapter stems in ``export_path``."""
+        """Return existing chapter stems for single-file output formats."""
         if not export_path.exists():
             return []
 
-        existing_files = [file.stem for file in export_path.glob("*.pdf")]
+        extension = self._chapter_output_extension()
+        if extension is None:
+            return []
+
+        existing_files = [file.stem for file in export_path.glob(f"*.{extension}")]
         log.info(f"    Found {len(existing_files)} existing chapter files in '{export_path}'.")
         log.debug(f"    Existing files: {existing_files}")
         return existing_files
 
+    def _chapter_output_extension(self) -> str | None:
+        """Return chapter-level output extension, or ``None`` for raw image mode."""
+        if self.output_format in {"pdf", "cbz"}:
+            return self.output_format
+        return None
+
     def _filter_chapters_to_download(
         self,
-        chapter_data: Mapping[str, Mapping[str, Any]],
-        title_dump: Any,
-        title_detail: Any,
+        chapter_data: Mapping[str, ChapterMetadata],
+        title_dump: TitleDumpLike,
+        title_detail: TitleLike,
         existing_files: Collection[str],
         requested_chapter_ids: Collection[int],
     ) -> list[int]:
         """Return chapter IDs that are requested and not already exported."""
-        chapters_to_download: list[int] = []
-        for sub_title, data in chapter_data.items():
-            chapter_id = int(data["chapter_id"])
-            chapter_obj = self._find_chapter_by_id(title_dump, chapter_id)
-
-            if not chapter_obj:
-                log.warning(f"    Chapter ID {chapter_id} not found in title dump!")
-                continue
-
-            expected_filename = self._build_expected_filename(
-                escape_path(title_detail.name).title(),
-                chapter_obj,
-                sub_title,
-            )
-            log.debug(f"    Checking if '{expected_filename}.pdf' exists...")
-
-            if expected_filename in existing_files:
-                log.info(f"    Skipping Chapter '{chapter_obj.name}': Already exists.")
-            else:
-                chapters_to_download.append(chapter_id)
-
-        return [cid for cid in chapters_to_download if cid in requested_chapter_ids]
+        return ChapterPlanner.filter_chapters_to_download(
+            chapter_data,
+            title_dump,
+            title_detail,
+            existing_files,
+            requested_chapter_ids,
+        )
 
     def _build_expected_filename(
         self,
         title_name: str,
-        chapter_obj: Any,
+        chapter_obj: ChapterLike,
         sub_title: str,
     ) -> str:
-        """Build the normalized filename stem expected for a chapter PDF."""
-        sanitized_title = escape_path(title_name)
-        sanitized_chapter_name = escape_path(chapter_obj.name.lstrip("#").strip())
-        sanitized_sub_title = escape_path(sub_title)
-        return f"{sanitized_title} - {sanitized_chapter_name} - {sanitized_sub_title}"
+        """Build normalized filename stem expected for chapter-level outputs."""
+        del self
+        return ChapterPlanner.build_expected_filename(title_name, chapter_obj, sub_title)
 
-    def _find_chapter_by_id(self, title_dump: Any, chapter_id: int) -> Any | None:
+    def _find_chapter_by_id(self, title_dump: TitleDumpLike, chapter_id: int) -> ChapterLike | None:
         """Find and return a chapter object by ``chapter_id`` if available."""
-        for group in title_dump.chapter_list_group:
-            for chapter_list in (
-                group.first_chapter_list,
-                group.mid_chapter_list,
-                group.last_chapter_list,
-            ):
-                for chapter in chapter_list:
-                    if chapter.chapter_id == chapter_id:
-                        return chapter
-        return None
+        return ChapterPlanner.find_chapter_by_id(title_dump, chapter_id)
 
-    def _has_last_page(self, viewer: Any) -> bool:
+    def _has_last_page(self, viewer: MangaViewerLike) -> bool:
         """Return whether ``viewer`` includes a valid terminal page payload."""
         return bool(viewer.pages and viewer.pages[-1] and hasattr(viewer.pages[-1], "last_page"))
 

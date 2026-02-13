@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from abc import ABCMeta, abstractmethod
 from pathlib import Path
-from typing import Optional, Union
+from typing import ClassVar, Optional, Union
 
 from mloader.constants import Language
 from mloader.response_pb2 import Chapter, Title  # type: ignore
@@ -20,6 +20,7 @@ class ExporterBase(metaclass=ABCMeta):
     """Define the interface and shared behavior for all exporters."""
 
     FORMAT_REGISTRY: dict[str, type["ExporterBase"]] = {}
+    format: ClassVar[str]
 
     def __init__(
         self,
@@ -90,7 +91,10 @@ class ExporterBase(metaclass=ABCMeta):
 
     def __init_subclass__(cls, **kwargs: object) -> None:
         """Register subclasses by their declared ``format`` key."""
-        cls.FORMAT_REGISTRY[cls.format] = cls
+        format_name = getattr(cls, "format", "")
+        if not isinstance(format_name, str) or not format_name:
+            raise TypeError("Exporter subclasses must define a non-empty string 'format'.")
+        cls.FORMAT_REGISTRY[format_name] = cls
         super().__init_subclass__(**kwargs)
 
     @abstractmethod
@@ -100,8 +104,3 @@ class ExporterBase(metaclass=ABCMeta):
     @abstractmethod
     def skip_image(self, index: Union[int, range]) -> bool:
         """Return whether writing ``index`` can be skipped."""
-
-    @property
-    @abstractmethod
-    def format(self) -> str:
-        """Return output format key used in registry lookup."""

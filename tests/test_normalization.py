@@ -115,3 +115,12 @@ def test_prepare_normalized_manga_list_delegates_to_normalize_ids(
 
     result = normalizer._prepare_normalized_manga_list([1], [10], 0, 999, False)
     assert result is sentinel
+
+
+def test_normalization_mixin_placeholders_raise_not_implemented() -> None:
+    """Verify default data-loading placeholders raise ``NotImplementedError``."""
+    with pytest.raises(NotImplementedError):
+        NormalizationMixin._load_pages(None, 1)  # type: ignore[arg-type]
+
+    with pytest.raises(NotImplementedError):
+        NormalizationMixin._get_title_details(None, 1)  # type: ignore[arg-type]

@@ -12,7 +12,9 @@ import click
 import pytest
 
 from mloader.constants import PageType
+from mloader.errors import SubscriptionRequiredError
 from mloader.manga_loader.downloader import DownloadMixin
+from mloader.manga_loader.services import ChapterMetadata
 
 
 class DummyDownloader(DownloadMixin):
@@ -21,6 +23,9 @@ class DummyDownloader(DownloadMixin):
     def __init__(self, destination: str = "/tmp/out") -> None:
         """Initialize downloader with a fake exporter destination."""
         self.exporter = SimpleNamespace(keywords={"destination": destination})
+        self.destination = destination
+        self.output_format = "pdf"
+        self.request_timeout = (0.1, 0.1)
         self.meta = False
 
     def _extract_chapter_data(self, title_dump: Any) -> dict[str, dict[str, Any]]:
@@ -38,6 +43,9 @@ class FullDownloader(DownloadMixin):
     def __init__(self, destination: str = "/tmp/out") -> None:
         """Initialize downloader with a fake exporter destination and session."""
         self.exporter = SimpleNamespace(keywords={"destination": destination})
+        self.destination = destination
+        self.output_format = "pdf"
+        self.request_timeout = (0.1, 0.1)
         self.meta = False
         self.session = DummySession(DummyResponse(content=b"default"))
 
@@ -63,8 +71,9 @@ class DummySession:
         self.response = response
         self.calls: list[str] = []
 
-    def get(self, url: str) -> DummyResponse:
+    def get(self, url: str, timeout: tuple[float, float]) -> DummyResponse:
         """Record URL requests and return the configured response."""
+        del timeout
         self.calls.append(url)
         return self.response
 
@@ -129,6 +138,44 @@ def test_dump_title_metadata_writes_expected_json(tmp_path: Path) -> None:
     assert content["name"] == "my manga"
     assert content["author"] == "author"
     assert content["chapters"]["Hello World"]["chapter_id"] == 1
+
+
+def test_dump_title_metadata_rejects_mapping_without_export_dir() -> None:
+    """Verify two-argument mode requires an export directory as second value."""
+    downloader = DummyDownloader()
+    title_dump = SimpleNamespace(chapter_data={})
+
+    with pytest.raises(TypeError, match="Expected export directory"):
+        downloader._dump_title_metadata(title_dump, {"a": {"chapter_id": 1}})
+
+
+def test_dump_title_metadata_rejects_non_mapping_when_export_dir_is_provided(
+    tmp_path: Path,
+) -> None:
+    """Verify three-argument mode requires chapter metadata mapping as second value."""
+    downloader = DummyDownloader()
+    title_dump = SimpleNamespace(chapter_data={})
+
+    with pytest.raises(TypeError, match="Expected chapter metadata mapping"):
+        downloader._dump_title_metadata(title_dump, str(tmp_path), tmp_path)
+
+
+def test_dump_title_metadata_supports_explicit_chapter_mapping(tmp_path: Path) -> None:
+    """Verify explicit ``chapter_data`` + ``export_dir`` writes metadata output."""
+    downloader = DummyDownloader(destination=str(tmp_path))
+    title_dump = SimpleNamespace(
+        non_appearance_info="n/a",
+        number_of_views=1,
+        overview="overview",
+        title=SimpleNamespace(name="my manga", author="author", portrait_image_url="http://img"),
+    )
+    chapter_data = {"A": ChapterMetadata(thumbnail_url="t1", chapter_id=10)}
+    export_dir = tmp_path / "My Manga"
+
+    downloader._dump_title_metadata(title_dump, chapter_data, export_dir)
+
+    content = json.loads((export_dir / "title_metadata.json").read_text(encoding="utf-8"))
+    assert content["chapters"]["A"]["chapter_id"] == 10
 
 
 def test_process_chapter_pages_handles_double_pages(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -303,13 +350,15 @@ def test_process_title_dumps_metadata_when_enabled(
     assert calls["metadata"] == 1
 
 
-def test_process_chapter_exits_without_last_page(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Verify _process_chapter exits when viewer payload lacks last_page."""
+def test_process_chapter_raises_when_subscription_required(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify _process_chapter raises subscription error without last_page payload."""
     downloader = FullDownloader()
     viewer = SimpleNamespace(chapter_name="C1", pages=[SimpleNamespace()])
     monkeypatch.setattr(downloader, "_load_pages", lambda _cid: viewer, raising=False)
 
-    with pytest.raises(SystemExit):
+    with pytest.raises(SubscriptionRequiredError):
         downloader._process_chapter(SimpleNamespace(name="t"), 1, 1, 10)
 
 
@@ -454,6 +503,29 @@ def test_get_existing_files_returns_empty_when_missing(tmp_path: Path) -> None:
     assert downloader._get_existing_files(tmp_path / "missing") == []
 
 
+def test_get_existing_files_uses_cbz_extension(tmp_path: Path) -> None:
+    """Verify existing chapter lookup uses cbz extension in CBZ mode."""
+    downloader = DummyDownloader()
+    downloader.output_format = "cbz"
+    export_path = tmp_path / "manga"
+    export_path.mkdir()
+    (export_path / "a.cbz").write_bytes(b"1")
+    (export_path / "b.pdf").write_bytes(b"2")
+
+    assert downloader._get_existing_files(export_path) == ["a"]
+
+
+def test_get_existing_files_is_disabled_for_raw_mode(tmp_path: Path) -> None:
+    """Verify raw mode disables chapter-level existing-file prefiltering."""
+    downloader = DummyDownloader()
+    downloader.output_format = "raw"
+    export_path = tmp_path / "manga"
+    export_path.mkdir()
+    (export_path / "a.pdf").write_bytes(b"1")
+
+    assert downloader._get_existing_files(export_path) == []
+
+
 def test_filter_chapters_warns_when_chapter_missing(caplog: Any) -> None:
     """Verify missing chapter IDs log a warning and are excluded."""
     downloader = DummyDownloader()
@@ -472,6 +544,46 @@ def test_filter_chapters_warns_when_chapter_missing(caplog: Any) -> None:
 
     assert result == []
     assert "not found in title dump" in caplog.text
+
+
+def test_filter_chapters_accepts_dataclass_metadata_values() -> None:
+    """Verify chapter filtering accepts ``ChapterMetadata`` objects directly."""
+    downloader = DummyDownloader()
+    chapter = _chapter(5, "#5")
+    title_dump = SimpleNamespace(chapter_list_group=[_group([chapter])])
+    title_detail = SimpleNamespace(name="My Manga")
+    chapter_data = {"Sub": ChapterMetadata(thumbnail_url="t5", chapter_id=5)}
+
+    result = downloader._filter_chapters_to_download(
+        chapter_data,
+        title_dump,
+        title_detail,
+        existing_files=[],
+        requested_chapter_ids={5},
+    )
+
+    assert result == [5]
+
+
+def test_download_mixin_placeholders_raise_not_implemented() -> None:
+    """Verify abstract data-loader placeholders raise ``NotImplementedError``."""
+    with pytest.raises(NotImplementedError):
+        DownloadMixin._prepare_normalized_manga_list(None, None, None, 0, 0, False)  # type: ignore[arg-type]
+
+    with pytest.raises(NotImplementedError):
+        DownloadMixin._get_title_details(None, 1)  # type: ignore[arg-type]
+
+    with pytest.raises(NotImplementedError):
+        DownloadMixin._load_pages(None, 1)  # type: ignore[arg-type]
+
+
+def test_chapter_metadata_mapping_access_and_key_error() -> None:
+    """Verify compatibility mapping access on ``ChapterMetadata``."""
+    metadata = ChapterMetadata(thumbnail_url="thumb", chapter_id=7)
+
+    assert metadata["thumbnail_url"] == "thumb"
+    with pytest.raises(KeyError):
+        _ = metadata["unknown"]
 
 
 def test_find_chapter_by_id_returns_match_and_none() -> None:

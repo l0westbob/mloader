@@ -1,20 +1,38 @@
 """Normalization helpers that map input IDs to downloadable chapter sets."""
 
-from collections import namedtuple
+from dataclasses import dataclass
 from itertools import chain
-from typing import Collection, Dict, Set
+from typing import Collection
+
+from mloader.types import MangaViewerLike, TitleDumpLike
 from mloader.utils import chapter_name_to_int
 
-MangaList = Dict[int, Set[int]]
+MangaList = dict[int, set[int]]
+
+
+@dataclass(frozen=True)
+class ChapterMetadata:
+    """Temporary chapter metadata used during normalization filtering."""
+
+    id: int
+    name: str
 
 
 class NormalizationMixin:
     """Provide chapter/title normalization logic for loader input."""
 
+    def _load_pages(self, chapter_id: str | int) -> MangaViewerLike:
+        """Load chapter viewer payload for ``chapter_id``."""
+        raise NotImplementedError
+
+    def _get_title_details(self, title_id: str | int) -> TitleDumpLike:
+        """Load title detail payload for ``title_id``."""
+        raise NotImplementedError
+
     def _normalize_ids(
             self,
-            title_ids: Collection[int],
-            chapter_ids: Collection[int],
+            title_ids: Collection[int] | None,
+            chapter_ids: Collection[int] | None,
             min_chapter: int,
             max_chapter: int,
             last_chapter: bool = False,
@@ -30,8 +48,7 @@ class NormalizationMixin:
 
         remaining_title_ids = set(title_ids or [])
         provided_chapter_ids = set(chapter_ids or [])
-        manga_mapping = {}
-        ChapterMetadata = namedtuple("ChapterMetadata", "id name")
+        manga_mapping: dict[int, list[ChapterMetadata]] = {}
 
         for chapter_id in provided_chapter_ids:
             viewer = self._load_pages(chapter_id)
@@ -56,6 +73,7 @@ class NormalizationMixin:
                 )
             ]
 
+        normalized_mapping: MangaList = {}
         for title_id, chapters in manga_mapping.items():
             if last_chapter:
                 filtered_chapters = chapters[-1:]
@@ -64,14 +82,14 @@ class NormalizationMixin:
                     ch for ch in chapters
                     if min_chapter <= (chapter_name_to_int(ch.name) or 0) <= max_chapter
                 ]
-            manga_mapping[title_id] = {ch.id for ch in filtered_chapters}
+            normalized_mapping[title_id] = {ch.id for ch in filtered_chapters}
 
-        return manga_mapping
+        return normalized_mapping
 
     def _prepare_normalized_manga_list(
             self,
-            title_ids: Collection[int],
-            chapter_ids: Collection[int],
+            title_ids: Collection[int] | None,
+            chapter_ids: Collection[int] | None,
             min_chapter: int,
             max_chapter: int,
             last_chapter: bool,

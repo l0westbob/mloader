@@ -12,7 +12,10 @@ class DummyDecryptor(decryption.DecryptionMixin):
 
     def __init__(self, payload: bytes) -> None:
         """Store a fake session returning ``payload`` for any URL."""
-        self.session = SimpleNamespace(get=lambda _url: SimpleNamespace(content=payload))
+        self.request_timeout = (1.0, 2.0)
+        self.session = SimpleNamespace(
+            get=lambda _url, timeout: SimpleNamespace(content=payload, raise_for_status=lambda: None),
+        )
 
 
 def test_convert_hex_to_bytes_and_xor_decrypt_roundtrip() -> None:

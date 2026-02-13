@@ -31,6 +31,7 @@ dev = [
     "pytest>=8.4.0",
     "pytest-cov>=6.2.0",
     "ruff>=0.13.0",
+    "mypy>=1.18.0",
 ]
 
 [tool.hatch.build.targets.wheel]
@@ -65,7 +66,28 @@ select = [
 
 [tool.ruff.lint.per-file-ignores]
 "mloader/__main__.py" = ["E402"]
-"mloader/main.py" = ["E402"]
+
+[tool.mypy]
+python_version = "3.14"
+strict = true
+warn_unused_ignores = true
+show_error_codes = true
+exclude = [
+    "^mloader/response_pb2\\.py$",
+]
+
+[[tool.mypy.overrides]]
+module = [
+    "requests",
+    "requests.*",
+    "google.protobuf",
+    "google.protobuf.*",
+]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["mloader.response_pb2"]
+ignore_errors = true
 
 [tool.coverage.run]
 source = ["mloader"]

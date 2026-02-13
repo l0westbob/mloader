@@ -23,9 +23,6 @@ def setup_logging() -> None:
     )
 
 
-setup_logging()
-
-
 def get_logger(name: str | None = None) -> logging.Logger:
     """Return a logger for ``name`` or the root logger when omitted."""
     return logging.getLogger(name)
