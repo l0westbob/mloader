@@ -2,7 +2,7 @@
 
 import logging
 from functools import partial
-from typing import Literal, Optional, Set
+from typing import Callable, Literal, Optional, Set
 
 import click
 
@@ -10,7 +10,11 @@ from mloader import __version__ as about
 from mloader.errors import SubscriptionRequiredError
 from mloader.exporters.exporter_base import ExporterBase
 from mloader.exporters.init import RawExporter, CBZExporter, PDFExporter
-from mloader.manga_loader.capture_verify import CaptureVerificationError, verify_capture_schema
+from mloader.manga_loader.capture_verify import (
+    CaptureVerificationError,
+    verify_capture_schema,
+    verify_capture_schema_against_baseline,
+)
 from mloader.manga_loader.init import MangaLoader
 from mloader.cli.validators import validate_urls, validate_ids
 
@@ -36,6 +40,7 @@ Examples:
 """
 
 OutputFormat = Literal["raw", "cbz", "pdf"]
+ExporterClass = Callable[..., ExporterBase]
 
 
 @click.command(
@@ -63,6 +68,13 @@ OutputFormat = Literal["raw", "cbz", "pdf"]
     type=click.Path(exists=True, file_okay=False, readable=True),
     metavar="<directory>",
     help="Verify captured API payloads against required response schema fields and exit",
+)
+@click.option(
+    "--verify-capture-baseline",
+    "verify_capture_baseline_dir",
+    type=click.Path(exists=True, file_okay=False, readable=True),
+    metavar="<directory>",
+    help="Compare verified capture schema signatures against a baseline capture directory",
 )
 @click.option(
     "--raw", "-r",
@@ -166,6 +178,7 @@ def main(
         ctx: click.Context,
         out_dir: str,
         verify_capture_schema_dir: str | None,
+        verify_capture_baseline_dir: str | None,
         raw: bool,
         output_format: str,
         capture_api_dir: str | None,
@@ -184,19 +197,34 @@ def main(
     # Display application description.
     click.echo(click.style(about.__intro__, fg="blue"))
 
+    if verify_capture_baseline_dir and not verify_capture_schema_dir:
+        raise click.ClickException("--verify-capture-baseline requires --verify-capture-schema.")
+
     if verify_capture_schema_dir:
         try:
-            summary = verify_capture_schema(verify_capture_schema_dir)
+            if verify_capture_baseline_dir:
+                summary = verify_capture_schema_against_baseline(
+                    verify_capture_schema_dir,
+                    verify_capture_baseline_dir,
+                )
+            else:
+                summary = verify_capture_schema(verify_capture_schema_dir)
         except CaptureVerificationError as exc:
             raise click.ClickException(str(exc)) from exc
 
         endpoint_overview = ", ".join(
             f"{name}={count}" for name, count in sorted(summary.endpoint_counts.items())
         )
-        click.echo(
-            f"Verified {summary.total_records} capture payload(s) in "
-            f"{verify_capture_schema_dir} ({endpoint_overview})"
-        )
+        if verify_capture_baseline_dir:
+            click.echo(
+                f"Verified {summary.total_records} capture payload(s) in {verify_capture_schema_dir} "
+                f"against baseline {verify_capture_baseline_dir} ({endpoint_overview})"
+            )
+        else:
+            click.echo(
+                f"Verified {summary.total_records} capture payload(s) in "
+                f"{verify_capture_schema_dir} ({endpoint_overview})"
+            )
         return
 
     # If neither chapter nor title IDs are provided, show help text.
@@ -209,7 +237,7 @@ def main(
     log.info("Started export")
 
     # Choose exporter class based on the 'raw' flag.
-    exporter_class: type[ExporterBase]
+    exporter_class: ExporterClass
     effective_output_format: OutputFormat
     if raw:
         exporter_class = RawExporter

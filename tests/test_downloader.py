@@ -36,6 +36,10 @@ class DummyDownloader(DownloadMixin):
         """Return deterministic bytes for a given image URL."""
         return f"img:{url}".encode("utf-8")
 
+    def _decrypt_image(self, url: str, encryption_hex: str) -> bytearray:
+        """Return deterministic decrypted bytes for encrypted page URLs."""
+        return bytearray(f"dec:{url}:{encryption_hex}".encode("utf-8"))
+
 
 class FullDownloader(DownloadMixin):
     """DownloadMixin harness using real mixin internals where possible."""
@@ -465,6 +469,44 @@ def test_process_chapter_pages_skips_when_exporter_requests(
     downloader._process_chapter_pages(pages, chapter_name="#1", exporter=SkipExporter())
 
 
+def test_process_chapter_pages_uses_decrypt_for_encrypted_pages(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify encrypted pages route through decrypt path before export."""
+    downloader = DummyDownloader()
+
+    @contextmanager
+    def fake_progressbar(items: list[Any], **kwargs: Any) -> Iterator[list[Any]]:
+        """Yield given items without rendering a real progress bar."""
+        del kwargs
+        yield items
+
+    monkeypatch.setattr(click, "progressbar", fake_progressbar)
+
+    captured: list[bytes] = []
+
+    class CapturingExporter:
+        """Exporter test double collecting written image bytes."""
+
+        def skip_image(self, index: int | range) -> bool:
+            """Never skip pages in this test."""
+            del index
+            return False
+
+        def add_image(self, blob: bytes, index: int | range) -> None:
+            """Store output image blobs for assertion."""
+            del index
+            captured.append(blob)
+
+    pages = [
+        SimpleNamespace(type=PageType.SINGLE.value, image_url="u1", encryption_key="abcd"),
+        SimpleNamespace(type=PageType.SINGLE.value, image_url="u2", encryption_key=""),
+    ]
+    downloader._process_chapter_pages(pages, chapter_name="#1", exporter=CapturingExporter())
+
+    assert captured == [b"dec:u1:abcd", b"img:u2"]
+
+
 def test_extract_chapter_data_from_all_groups() -> None:
     """Verify chapter metadata extraction includes first/mid/last chapter groups."""
     downloader = FullDownloader()
@@ -575,6 +617,9 @@ def test_download_mixin_placeholders_raise_not_implemented() -> None:
 
     with pytest.raises(NotImplementedError):
         DownloadMixin._load_pages(None, 1)  # type: ignore[arg-type]
+
+    with pytest.raises(NotImplementedError):
+        DownloadMixin._decrypt_image(None, "http://img", "ab")  # type: ignore[arg-type]
 
 
 def test_chapter_metadata_mapping_access_and_key_error() -> None:

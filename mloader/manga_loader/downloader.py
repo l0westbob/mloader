@@ -56,6 +56,10 @@ class DownloadMixin:
         """Load chapter viewer payload for ``chapter_id``."""
         raise NotImplementedError
 
+    def _decrypt_image(self, url: str, encryption_hex: str) -> bytearray:
+        """Download and decrypt one image payload."""
+        raise NotImplementedError
+
     def download(
         self,
         *,
@@ -170,7 +174,7 @@ class DownloadMixin:
                 if exporter.skip_image(output_index):
                     continue
 
-                image_blob = self._download_image(page.image_url)
+                image_blob = self._fetch_page_image(page)
                 exporter.add_image(image_blob, output_index)
 
     def _download_image(self, url: str) -> bytes:
@@ -178,6 +182,13 @@ class DownloadMixin:
         response = self.session.get(url, timeout=self.request_timeout)
         response.raise_for_status()
         return response.content
+
+    def _fetch_page_image(self, page: MangaPageLike) -> bytes:
+        """Return raw or decrypted image bytes for one manga page."""
+        encryption_key = str(getattr(page, "encryption_key", ""))
+        if encryption_key:
+            return bytes(self._decrypt_image(page.image_url, encryption_key))
+        return self._download_image(page.image_url)
 
     def _dump_title_metadata(
         self,

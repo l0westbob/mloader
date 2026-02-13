@@ -70,6 +70,10 @@ Options:
                                   Verify captured API payloads
                                   against required response schema fields and
                                   exit
+  --verify-capture-baseline <directory>
+                                  Compare verified capture schema
+                                  signatures against a baseline capture
+                                  directory
   -r, --raw                       Save raw images
   -f, --format [cbz|pdf]          Save as CBZ or PDF  [default: cbz]
   --capture-api <directory>       Dump raw API payload captures (protobuf +
@@ -93,6 +97,12 @@ Verify your recorded payload set:
 
 ```bash
 mloader --verify-capture-schema ./capture
+```
+
+Compare a new capture run against your committed baseline:
+
+```bash
+mloader --verify-capture-schema ./capture --verify-capture-baseline ./tests/fixtures/api_captures/baseline
 ```
 
 ## 🧩 Extending mloader

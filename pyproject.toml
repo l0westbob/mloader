@@ -100,5 +100,5 @@ omit = [
 show_missing = true
 
 [tool.black]
-target_version = ["py313"]
+target_version = ["py314"]
 line-length = 100

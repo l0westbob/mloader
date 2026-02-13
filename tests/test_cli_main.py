@@ -161,10 +161,53 @@ def test_cli_verifies_capture_schema_and_exits_without_download(
     )
 
     runner = CliRunner()
-    result = runner.invoke(cli_main.main, ["--verify-capture-schema", "capture"])
+    result = runner.invoke(
+        cli_main.main,
+        ["--verify-capture-schema", "tests/fixtures/api_captures/baseline"],
+    )
 
     assert result.exit_code == 0
-    assert "Verified 3 capture payload(s) in capture" in result.output
+    assert "Verified 3 capture payload(s) in tests/fixtures/api_captures/baseline" in result.output
+
+
+def test_cli_verifies_capture_schema_against_baseline(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify baseline comparison mode calls baseline verification path."""
+    monkeypatch.setattr(
+        cli_main,
+        "verify_capture_schema_against_baseline",
+        lambda _capture, _baseline: CaptureVerificationSummary(
+            total_records=3,
+            endpoint_counts={"manga_viewer": 2, "title_detailV3": 1},
+        ),
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli_main.main,
+        [
+            "--verify-capture-schema",
+            "tests/fixtures/api_captures/baseline",
+            "--verify-capture-baseline",
+            "tests/fixtures/api_captures/baseline",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert "against baseline tests/fixtures/api_captures/baseline" in result.output
+
+
+def test_cli_rejects_baseline_option_without_capture_schema() -> None:
+    """Verify baseline option requires a capture directory option."""
+    runner = CliRunner()
+    result = runner.invoke(
+        cli_main.main,
+        ["--verify-capture-baseline", "tests/fixtures/api_captures/baseline"],
+    )
+
+    assert result.exit_code != 0
+    assert "--verify-capture-baseline requires --verify-capture-schema." in result.output
 
 
 def test_cli_verify_capture_schema_returns_click_error(
@@ -178,7 +221,10 @@ def test_cli_verify_capture_schema_returns_click_error(
     monkeypatch.setattr(cli_main, "verify_capture_schema", _raise_error)
 
     runner = CliRunner()
-    result = runner.invoke(cli_main.main, ["--verify-capture-schema", "capture"])
+    result = runner.invoke(
+        cli_main.main,
+        ["--verify-capture-schema", "tests/fixtures/api_captures/baseline"],
+    )
 
     assert result.exit_code != 0
     assert "schema drift" in result.output

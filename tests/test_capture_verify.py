@@ -10,9 +10,13 @@ import pytest
 
 from mloader.manga_loader.capture_verify import (
     CaptureVerificationError,
+    _as_dict,
+    _as_list,
+    _build_schema_signature,
     _load_metadata,
     _verify_manga_viewer_payload,
     _verify_title_detail_payload,
+    verify_capture_schema_against_baseline,
     verify_capture_schema,
 )
 from mloader.response_pb2 import Response  # type: ignore
@@ -42,6 +46,39 @@ def test_verify_capture_schema_with_real_fixture_set() -> None:
 
     assert summary.total_records == 3
     assert summary.endpoint_counts == {"manga_viewer": 2, "title_detailV3": 1}
+
+
+def test_verify_capture_schema_against_baseline_with_real_fixture_set() -> None:
+    """Verify baseline comparison passes for matching capture and baseline sets."""
+    summary = verify_capture_schema_against_baseline(FIXTURE_CAPTURE_DIR, FIXTURE_CAPTURE_DIR)
+    assert summary.total_records == 3
+
+
+def test_verify_capture_schema_against_baseline_detects_drift(tmp_path: Path) -> None:
+    """Verify baseline comparison fails when capture signature keys drift."""
+    _copy_fixture_set(tmp_path)
+    meta_path = tmp_path / "0002_manga_viewer_1000311.meta.json"
+    metadata = json.loads(meta_path.read_text(encoding="utf-8"))
+    metadata["params"]["extra_param"] = "1"
+    meta_path.write_text(json.dumps(metadata, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    with pytest.raises(CaptureVerificationError, match="Schema drift detected"):
+        verify_capture_schema_against_baseline(tmp_path, FIXTURE_CAPTURE_DIR)
+
+
+def test_verify_capture_schema_against_baseline_rejects_unknown_capture_endpoint(
+    tmp_path: Path,
+) -> None:
+    """Verify comparison fails when capture has endpoint absent from baseline set."""
+    capture_dir = tmp_path / "capture"
+    baseline_dir = tmp_path / "baseline"
+    _copy_fixture_set(capture_dir)
+    baseline_dir.mkdir(parents=True, exist_ok=True)
+    for fixture_file in FIXTURE_CAPTURE_DIR.glob("0001_title_detailV3_100010.*"):
+        (baseline_dir / fixture_file.name).write_bytes(fixture_file.read_bytes())
+
+    with pytest.raises(CaptureVerificationError, match="Unknown endpoint"):
+        verify_capture_schema_against_baseline(capture_dir, baseline_dir)
 
 
 def test_verify_capture_schema_fails_without_metadata_files(tmp_path: Path) -> None:
@@ -243,3 +280,88 @@ def test_verify_manga_viewer_payload_rejects_missing_last_page_chapter() -> None
     page.manga_page.image_url = "http://img"
     with pytest.raises(CaptureVerificationError, match="Missing last_page.current_chapter"):
         _verify_manga_viewer_payload(parsed, "sample")
+
+
+def test_build_schema_signature_rejects_unknown_endpoint() -> None:
+    """Verify schema-signature builder rejects unsupported endpoint names."""
+    parsed = Response()
+    parsed.success.title_detail_view.title.title_id = 1
+    parsed.success.title_detail_view.title.name = "title"
+    group = parsed.success.title_detail_view.chapter_list_group.add()
+    group.first_chapter_list.add().chapter_id = 1
+    with pytest.raises(CaptureVerificationError, match="Unsupported endpoint"):
+        _build_schema_signature(
+            endpoint="unknown",
+            metadata={"params": {}, "url": "https://example.invalid"},
+            parsed=parsed,
+        )
+
+
+def test_as_dict_rejects_non_dict() -> None:
+    """Verify dict coercion helper rejects non-object values."""
+    with pytest.raises(CaptureVerificationError, match="Expected object at"):
+        _as_dict([], "ctx")
+
+
+def test_as_list_rejects_non_list() -> None:
+    """Verify list coercion helper rejects non-list values."""
+    with pytest.raises(CaptureVerificationError, match="Expected list at"):
+        _as_list({}, "ctx")
+
+
+def test_build_schema_signature_rejects_empty_pages_list(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify schema signature rejects manga_viewer payloads with explicit empty pages list."""
+    monkeypatch.setattr(
+        "mloader.manga_loader.capture_verify.MessageToDict",
+        lambda *_args, **_kwargs: {"success": {"manga_viewer": {"pages": []}}},
+    )
+
+    with pytest.raises(CaptureVerificationError, match="Expected at least one page"):
+        _build_schema_signature(
+            endpoint="manga_viewer",
+            metadata={"params": {}, "url": "https://example.invalid"},
+            parsed=Response(),
+        )
+
+
+def test_build_schema_signature_rejects_empty_title_detail_group_list(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify schema signature rejects title_detail payloads with no groups."""
+    monkeypatch.setattr(
+        "mloader.manga_loader.capture_verify.MessageToDict",
+        lambda *_args, **_kwargs: {"success": {"title_detail_view": {"title": {}, "chapter_list_group": []}}},
+    )
+
+    with pytest.raises(CaptureVerificationError, match="Expected at least one group"):
+        _build_schema_signature(
+            endpoint="title_detailV3",
+            metadata={"params": {}, "url": "https://example.invalid"},
+            parsed=Response(),
+        )
+
+
+def test_build_schema_signature_rejects_empty_first_chapter_list(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify schema signature rejects title_detail payloads with empty first_chapter_list."""
+    monkeypatch.setattr(
+        "mloader.manga_loader.capture_verify.MessageToDict",
+        lambda *_args, **_kwargs: {
+            "success": {
+                "title_detail_view": {
+                    "title": {},
+                    "chapter_list_group": [{"first_chapter_list": []}],
+                }
+            }
+        },
+    )
+
+    with pytest.raises(CaptureVerificationError, match="Expected at least one chapter in first_chapter_list"):
+        _build_schema_signature(
+            endpoint="title_detailV3",
+            metadata={"params": {}, "url": "https://example.invalid"},
+            parsed=Response(),
+        )
