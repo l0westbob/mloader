@@ -122,3 +122,18 @@ class ExporterFactoryLike(Protocol):
         next_chapter: ChapterLike | None,
     ) -> ExporterLike:
         """Create and return an exporter instance."""
+
+
+class PayloadCaptureLike(Protocol):
+    """Contract for persisting API payload captures."""
+
+    def capture(
+        self,
+        *,
+        endpoint: str,
+        identifier: str | int,
+        url: str,
+        params: Mapping[str, object],
+        response_content: bytes,
+    ) -> None:
+        """Persist payload capture artifacts."""

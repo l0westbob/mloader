@@ -10,6 +10,7 @@ from mloader import __version__ as about
 from mloader.errors import SubscriptionRequiredError
 from mloader.exporters.exporter_base import ExporterBase
 from mloader.exporters.init import RawExporter, CBZExporter, PDFExporter
+from mloader.manga_loader.capture_verify import CaptureVerificationError, verify_capture_schema
 from mloader.manga_loader.init import MangaLoader
 from mloader.cli.validators import validate_urls, validate_ids
 
@@ -57,6 +58,13 @@ OutputFormat = Literal["raw", "cbz", "pdf"]
     envvar="MLOADER_EXTRACT_OUT_DIR",
 )
 @click.option(
+    "--verify-capture-schema",
+    "verify_capture_schema_dir",
+    type=click.Path(exists=True, file_okay=False, readable=True),
+    metavar="<directory>",
+    help="Verify captured API payloads against required response schema fields and exit",
+)
+@click.option(
     "--raw", "-r",
     is_flag=True,
     default=False,
@@ -72,6 +80,14 @@ OutputFormat = Literal["raw", "cbz", "pdf"]
     show_default=True,
     help="Save as CBZ or PDF",
     envvar="MLOADER_OUTPUT_FORMAT",
+)
+@click.option(
+    "--capture-api",
+    "capture_api_dir",
+    type=click.Path(file_okay=False, writable=True),
+    metavar="<directory>",
+    help="Dump raw API payload captures (protobuf + metadata) to this directory",
+    envvar="MLOADER_CAPTURE_API_DIR",
 )
 @click.option(
     "--quality", "-q",
@@ -149,8 +165,10 @@ OutputFormat = Literal["raw", "cbz", "pdf"]
 def main(
         ctx: click.Context,
         out_dir: str,
+        verify_capture_schema_dir: str | None,
         raw: bool,
         output_format: str,
+        capture_api_dir: str | None,
         quality: str,
         split: bool,
         begin: int,
@@ -165,6 +183,21 @@ def main(
     """Run the CLI command and start the configured download flow."""
     # Display application description.
     click.echo(click.style(about.__intro__, fg="blue"))
+
+    if verify_capture_schema_dir:
+        try:
+            summary = verify_capture_schema(verify_capture_schema_dir)
+        except CaptureVerificationError as exc:
+            raise click.ClickException(str(exc)) from exc
+
+        endpoint_overview = ", ".join(
+            f"{name}={count}" for name, count in sorted(summary.endpoint_counts.items())
+        )
+        click.echo(
+            f"Verified {summary.total_records} capture payload(s) in "
+            f"{verify_capture_schema_dir} ({endpoint_overview})"
+        )
+        return
 
     # If neither chapter nor title IDs are provided, show help text.
     if not any((chapters, titles)):
@@ -204,6 +237,7 @@ def main(
         meta,
         destination=out_dir,
         output_format=effective_output_format,
+        capture_api_dir=capture_api_dir,
     )
     try:
         loader.download(

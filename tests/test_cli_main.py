@@ -9,6 +9,7 @@ from click.testing import CliRunner
 
 from mloader.cli import main as cli_main
 from mloader.errors import SubscriptionRequiredError
+from mloader.manga_loader.capture_verify import CaptureVerificationError, CaptureVerificationSummary
 
 
 class DummyLoader:
@@ -25,6 +26,7 @@ class DummyLoader:
         meta: bool,
         destination: str,
         output_format: str,
+        capture_api_dir: str | None,
     ) -> None:
         """Record initialization arguments for assertions."""
         type(self).init_args = {
@@ -34,6 +36,7 @@ class DummyLoader:
             "meta": meta,
             "destination": destination,
             "output_format": output_format,
+            "capture_api_dir": capture_api_dir,
         }
 
     def download(self, **kwargs: Any) -> None:
@@ -130,3 +133,52 @@ def test_cli_returns_subscription_message(monkeypatch: pytest.MonkeyPatch) -> No
 
     assert result.exit_code != 0
     assert "A MAX subscription is required to download this chapter." in result.output
+
+
+def test_cli_forwards_capture_directory(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify --capture-api forwards directory to loader initialization."""
+    monkeypatch.setattr(cli_main, "MangaLoader", DummyLoader)
+
+    runner = CliRunner()
+    result = runner.invoke(cli_main.main, ["--chapter", "7", "--capture-api", "/tmp/captures"])
+
+    assert result.exit_code == 0
+    assert DummyLoader.init_args is not None
+    assert DummyLoader.init_args["capture_api_dir"] == "/tmp/captures"
+
+
+def test_cli_verifies_capture_schema_and_exits_without_download(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify schema-verification mode runs and exits without invoking downloads."""
+    monkeypatch.setattr(
+        cli_main,
+        "verify_capture_schema",
+        lambda _path: CaptureVerificationSummary(
+            total_records=3,
+            endpoint_counts={"manga_viewer": 2, "title_detailV3": 1},
+        ),
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(cli_main.main, ["--verify-capture-schema", "capture"])
+
+    assert result.exit_code == 0
+    assert "Verified 3 capture payload(s) in capture" in result.output
+
+
+def test_cli_verify_capture_schema_returns_click_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify verification failures are exposed as click exceptions."""
+
+    def _raise_error(_path: str) -> None:
+        raise CaptureVerificationError("schema drift")
+
+    monkeypatch.setattr(cli_main, "verify_capture_schema", _raise_error)
+
+    runner = CliRunner()
+    result = runner.invoke(cli_main.main, ["--verify-capture-schema", "capture"])
+
+    assert result.exit_code != 0
+    assert "schema drift" in result.output

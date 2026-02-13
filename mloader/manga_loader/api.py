@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 from functools import lru_cache
-from typing import Union, cast
+from typing import Mapping, Union, cast
 
 from mloader.config import AUTH_PARAMS
 from mloader.response_pb2 import Response  # type: ignore
-from mloader.types import MangaViewerLike, SessionLike, TitleDumpLike
+from mloader.types import MangaViewerLike, PayloadCaptureLike, SessionLike, TitleDumpLike
 
 
 def _parse_manga_viewer_response(content: bytes) -> MangaViewerLike:
@@ -35,6 +35,7 @@ class APILoaderMixin:
     quality: str
     split: bool
     request_timeout: tuple[float, float]
+    payload_capture: PayloadCaptureLike | None
 
     @lru_cache(None)
     def _load_pages(self, chapter_id: Union[str, int]) -> MangaViewerLike:
@@ -45,6 +46,13 @@ class APILoaderMixin:
         params = self._build_manga_viewer_params(chapter_id)
         response = self.session.get(url, params=params, timeout=self.request_timeout)
         response.raise_for_status()
+        self._capture_payload(
+            endpoint="manga_viewer",
+            identifier=chapter_id,
+            url=url,
+            params=params,
+            response_content=response.content,
+        )
         return _parse_manga_viewer_response(response.content)
 
     def _build_manga_viewer_url(self) -> str:
@@ -61,6 +69,27 @@ class APILoaderMixin:
             "img_quality": self.quality,
         }
 
+    def _capture_payload(
+        self,
+        *,
+        endpoint: str,
+        identifier: str | int,
+        url: str,
+        params: Mapping[str, object],
+        response_content: bytes,
+    ) -> None:
+        """Write API payload capture data when capture mode is enabled."""
+        if self.payload_capture is None:
+            return
+
+        self.payload_capture.capture(
+            endpoint=endpoint,
+            identifier=identifier,
+            url=url,
+            params=params,
+            response_content=response_content,
+        )
+
     @lru_cache(None)
     def _get_title_details(self, title_id: Union[str, int]) -> TitleDumpLike:
         """
@@ -70,6 +99,13 @@ class APILoaderMixin:
         params = _build_title_detail_params(title_id)
         response = self.session.get(url, params=params, timeout=self.request_timeout)
         response.raise_for_status()
+        self._capture_payload(
+            endpoint="title_detailV3",
+            identifier=title_id,
+            url=url,
+            params=params,
+            response_content=response.content,
+        )
         return _parse_title_detail_response(response.content)
 
     def _build_title_detail_url(self) -> str:

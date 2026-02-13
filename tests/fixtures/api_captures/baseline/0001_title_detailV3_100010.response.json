@@ -1,0 +1,2187 @@
+{
+  "success": {
+    "title_detail_view": {
+      "chapter_list_group": [
+        {
+          "chapter_numbers": "50",
+          "first_chapter_list": [
+            {
+              "already_viewed": true,
+              "chapter_id": 1000310,
+              "end_timestamp": 2145884400,
+              "name": "#001",
+              "start_timestamp": 1547996400,
+              "sub_title": "Z=1: Stone World",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1000310/chapter_thumbnail/1684.webp?hash=fe6O3XCjdfpoXhVqDxIWig&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "already_viewed": true,
+              "chapter_id": 1000311,
+              "end_timestamp": 2145884400,
+              "name": "#002",
+              "start_timestamp": 1547996400,
+              "sub_title": "Z=2: Fantasy vs. Science",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1000311/chapter_thumbnail/1687.webp?hash=EJshh-GXRNlpObwvngdhUQ&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "already_viewed": true,
+              "chapter_id": 1000312,
+              "end_timestamp": 2145884400,
+              "name": "#003",
+              "start_timestamp": 1547996400,
+              "sub_title": "Z=3: King of the Stone World",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1000312/chapter_thumbnail/1690.webp?hash=BuOcAlWOqonXQB9MTojnNg&expires=1771027200",
+              "title_id": 100010
+            }
+          ],
+          "mid_chapter_list": [
+            {
+              "already_viewed": true,
+              "chapter_id": 1000313,
+              "end_timestamp": 2145884400,
+              "name": "#004",
+              "start_timestamp": 1547996400,
+              "sub_title": "Z=4: Pure White Seashells",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1000313/chapter_thumbnail/1693.webp?hash=l0MeH1w8JRGi_3c-58R5EQ&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "already_viewed": true,
+              "chapter_id": 1000314,
+              "end_timestamp": 2145884400,
+              "name": "#005",
+              "start_timestamp": 1547996400,
+              "sub_title": "Z=5: Yuzuriha",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1000314/chapter_thumbnail/1696.webp?hash=snyg3Xasnralvi4WqK2bjw&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "already_viewed": true,
+              "chapter_id": 1000315,
+              "end_timestamp": 2145884400,
+              "name": "#006",
+              "start_timestamp": 1547996400,
+              "sub_title": "Z=6: Taiju vs. Tsukasa",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1000315/chapter_thumbnail/1699.webp?hash=zT4Tnjjmr_ukPo7p5Nserg&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "already_viewed": true,
+              "chapter_id": 1000316,
+              "end_timestamp": 2145884400,
+              "name": "#007",
+              "start_timestamp": 1640962800,
+              "sub_title": "Z=7: The Gunpowder Adventure",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1000316/chapter_thumbnail/1702.webp?hash=xXVp2f_vzU28UY3GWIMUiA&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012263,
+              "end_timestamp": 2145884400,
+              "name": "#008",
+              "start_timestamp": 1640962800,
+              "sub_title": "Z=8: Raise the Smoke Signal",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012263/chapter_thumbnail/201808.webp?hash=zttiXU1fZ7tg7erIhExpAg&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012264,
+              "end_timestamp": 2145884400,
+              "name": "#009",
+              "start_timestamp": 1640962800,
+              "sub_title": "Z=9: Senku Vs. Tsukasa",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012264/chapter_thumbnail/201811.webp?hash=npf9EWyqOGjopInMFnhJ1g&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012265,
+              "end_timestamp": 2145884400,
+              "name": "#010",
+              "start_timestamp": 1640962800,
+              "sub_title": "Z=10: Student Of Science",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012265/chapter_thumbnail/201814.webp?hash=6CZzFncusSiRzArdUv7T7w&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012266,
+              "end_timestamp": 2145884400,
+              "name": "#011",
+              "start_timestamp": 1640962800,
+              "sub_title": "Z=11: Weapon Of Science",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012266/chapter_thumbnail/201817.webp?hash=ijZbAeSWddBCSsU1noADoA&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012267,
+              "end_timestamp": 2145884400,
+              "name": "#012",
+              "start_timestamp": 1640962800,
+              "sub_title": "Z=12: Epilogue Of Prologue (End of Part 0)",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012267/chapter_thumbnail/201820.webp?hash=1QT9hCZ87lFmYO5oVfZlZw&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012268,
+              "end_timestamp": 2145884400,
+              "name": "#013",
+              "start_timestamp": 1640962800,
+              "sub_title": "Z=13: Part 1: Stone World-The Beginning",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012268/chapter_thumbnail/201823.webp?hash=s4346hVbLbZgtoJXhfmQqg&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012269,
+              "end_timestamp": 2145884400,
+              "name": "#014",
+              "start_timestamp": 1640962800,
+              "sub_title": "Z=14: Those Who Have Faith",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012269/chapter_thumbnail/201826.webp?hash=sSqahMCL0QzZY2teIIsIQg&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012270,
+              "end_timestamp": 2145884400,
+              "name": "#015",
+              "start_timestamp": 1640962800,
+              "sub_title": "Z=15: Two Kingdoms Of The Stone World",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012270/chapter_thumbnail/201829.webp?hash=WjT6eA5ASPntjxU7n3buBg&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012271,
+              "end_timestamp": 2145884400,
+              "name": "#016",
+              "start_timestamp": 1640962800,
+              "sub_title": "Z=16: Kohaku",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012271/chapter_thumbnail/201832.webp?hash=CpLmHACVngEP21smaXk7nQ&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012272,
+              "end_timestamp": 2145884400,
+              "name": "#017",
+              "start_timestamp": 1640962800,
+              "sub_title": "Z=17: Nasty Looks",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012272/chapter_thumbnail/201835.webp?hash=sh7_pYx7HVnNyuyw-XOvDA&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012273,
+              "end_timestamp": 2145884400,
+              "name": "#018",
+              "start_timestamp": 1640962800,
+              "sub_title": "Z=18: Sorcery Showdown",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012273/chapter_thumbnail/201838.webp?hash=8TNQSxfwBhAi2tQzGrul7g&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012274,
+              "end_timestamp": 2145884400,
+              "name": "#019",
+              "start_timestamp": 1640962800,
+              "sub_title": "Z=19: Two Million Years Of Being",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012274/chapter_thumbnail/201841.webp?hash=orDvfmkoHneRUeQCASfNMA&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012275,
+              "end_timestamp": 2145884400,
+              "name": "#020",
+              "start_timestamp": 1640962800,
+              "sub_title": "Z=20: Stone Road",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012275/chapter_thumbnail/201844.webp?hash=WKnCIXNZaBm_hRWNt9yo3g&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012276,
+              "end_timestamp": 2145884400,
+              "name": "#021",
+              "start_timestamp": 1640962800,
+              "sub_title": "Z=21: Dawn of Iron",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012276/chapter_thumbnail/201847.webp?hash=v9kuKnMKfSTGmSoC4Oh7_Q&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012277,
+              "end_timestamp": 2145884400,
+              "name": "#022",
+              "start_timestamp": 1640962800,
+              "sub_title": "Z=22: Survival Gourmet",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012277/chapter_thumbnail/201850.webp?hash=TK2RNXFaMIz4S9V-T-w0kg&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012278,
+              "end_timestamp": 2145884400,
+              "name": "#023",
+              "start_timestamp": 1640962800,
+              "sub_title": "Z=23: The Smooth Talker",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012278/chapter_thumbnail/201853.webp?hash=K1x2L9ZmpHmkAWGGBB8HUg&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012279,
+              "end_timestamp": 2145884400,
+              "name": "#024",
+              "start_timestamp": 1640962800,
+              "sub_title": "Z=24: Lightning Speed!!",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012279/chapter_thumbnail/201856.webp?hash=2KE2phCOLFBoXkRn3O-azQ&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012280,
+              "end_timestamp": 2145884400,
+              "name": "#025",
+              "start_timestamp": 1640962800,
+              "sub_title": "Z=25: By These Hands, The Light Of Science",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012280/chapter_thumbnail/201859.webp?hash=EJC23_vAHOfFXxoE_8xMSA&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012281,
+              "end_timestamp": 2145884400,
+              "name": "#026",
+              "start_timestamp": 1640962800,
+              "sub_title": "Z=26: A Shallow Alliance",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012281/chapter_thumbnail/201862.webp?hash=yyxKO8Zjt5W3JWMHpNUg5w&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012282,
+              "end_timestamp": 2145884400,
+              "name": "#027",
+              "start_timestamp": 1640962800,
+              "sub_title": "Z=27: A Certain Scientist's Wish",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012282/chapter_thumbnail/201865.webp?hash=MdRmcfccZyZoSdKkMIomcA&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012283,
+              "end_timestamp": 2145884400,
+              "name": "#028",
+              "start_timestamp": 1640962800,
+              "sub_title": "Z=28: Clear World",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012283/chapter_thumbnail/201868.webp?hash=paVUp29ppUUeKBxKxNtH6A&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012284,
+              "end_timestamp": 2145884400,
+              "name": "#029",
+              "start_timestamp": 1640962800,
+              "sub_title": "Z=29: Senku's Lab",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012284/chapter_thumbnail/201871.webp?hash=X7ZipXRw3a9Sz_aOFjM7BQ&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012285,
+              "end_timestamp": 2145884400,
+              "name": "#030",
+              "start_timestamp": 1640962800,
+              "sub_title": "Z=30: Death Green",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012285/chapter_thumbnail/201874.webp?hash=RH9UOm5XStbQ8Zo5M9TMrg&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012286,
+              "end_timestamp": 2145884400,
+              "name": "#031",
+              "start_timestamp": 1640962800,
+              "sub_title": "Z=31: Friends Have Each Other's Backs",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012286/chapter_thumbnail/201877.webp?hash=hUIXpe6YdDfXwbPLHKr-ug&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012287,
+              "end_timestamp": 2145884400,
+              "name": "#032",
+              "start_timestamp": 1640962800,
+              "sub_title": "Z=32: Brains & Heart",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012287/chapter_thumbnail/201880.webp?hash=hzyMRERQpA_0AyF1xgm9YA&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012288,
+              "end_timestamp": 2145884400,
+              "name": "#033",
+              "start_timestamp": 1640962800,
+              "sub_title": "Z=33: Baaad Chemicals",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012288/chapter_thumbnail/201883.webp?hash=b4e2A2KdQSpNl_JTeNjwCg&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012289,
+              "end_timestamp": 2145884400,
+              "name": "#034",
+              "start_timestamp": 1640962800,
+              "sub_title": "Z=34: Sneaky Grand Bout Strategy",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012289/chapter_thumbnail/201886.webp?hash=Mok_ZJtvH7CYR4kZU59gbQ&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012290,
+              "end_timestamp": 2145884400,
+              "name": "#035",
+              "start_timestamp": 1640962800,
+              "sub_title": "Z=35: The Masked Warrior",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012290/chapter_thumbnail/201889.webp?hash=3W6ZpWLxvNZ7H2E7S_42Uw&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012291,
+              "end_timestamp": 2145884400,
+              "name": "#036",
+              "start_timestamp": 1640962800,
+              "sub_title": "Z=36: Kinro And Ginro",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012291/chapter_thumbnail/201892.webp?hash=mEzUiizwNru882Ikcp4p9Q&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012292,
+              "end_timestamp": 2145884400,
+              "name": "#037",
+              "start_timestamp": 1640962800,
+              "sub_title": "Z=37: Science-User Chrome",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012292/chapter_thumbnail/201895.webp?hash=L6OJ5f_Qt9S3LRlBKzMNqA&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012293,
+              "end_timestamp": 2145884400,
+              "name": "#038",
+              "start_timestamp": 1640962800,
+              "sub_title": "Z=38: Master Of Flame",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012293/chapter_thumbnail/201898.webp?hash=dkWbMBVCzracvD8iu1a72A&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012294,
+              "end_timestamp": 2145884400,
+              "name": "#039",
+              "start_timestamp": 1640962800,
+              "sub_title": "Z=39: And The Winner Is...",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012294/chapter_thumbnail/201901.webp?hash=oFE65a9KlBpFl0DN8PGS7A&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012295,
+              "end_timestamp": 2145884400,
+              "name": "#040",
+              "start_timestamp": 1640962800,
+              "sub_title": "Z=40: Two Million Years In The Making",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012295/chapter_thumbnail/201904.webp?hash=I_5pApl8wB0_6EpBzby8rA&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012296,
+              "end_timestamp": 2145884400,
+              "name": "#041",
+              "start_timestamp": 1640962800,
+              "sub_title": "Z=41: Doctor Stone",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012296/chapter_thumbnail/201907.webp?hash=7eaqtV3IwXOw5vDUc-oWew&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012297,
+              "end_timestamp": 2145884400,
+              "name": "#042",
+              "start_timestamp": 1640962800,
+              "sub_title": "Z=42: Tale For The Ages",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012297/chapter_thumbnail/201910.webp?hash=auXaCozKyPxPb61azRvcNw&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012298,
+              "end_timestamp": 2145884400,
+              "name": "#043",
+              "start_timestamp": 1640962800,
+              "sub_title": "Z=43: Humanity's Final Six",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012298/chapter_thumbnail/201913.webp?hash=MbWRqyFvogAAVrhsCX82IQ&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012299,
+              "end_timestamp": 2145884400,
+              "name": "#044",
+              "start_timestamp": 1640962800,
+              "sub_title": "Z=44: One Hundred Nights, One Thousand Skies",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012299/chapter_thumbnail/201916.webp?hash=eWHkso7FUn2JOkjiYSaytA&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012300,
+              "end_timestamp": 2145884400,
+              "name": "#045",
+              "start_timestamp": 1640962800,
+              "sub_title": "Z=45: Epilogue Of Part 1 (End Of Part 1)",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012300/chapter_thumbnail/201919.webp?hash=cAeDPeVgJQIJSXHWxMALAw&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012301,
+              "end_timestamp": 2145884400,
+              "name": "#046",
+              "start_timestamp": 1640962800,
+              "sub_title": "Z=46: Stone Wars",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012301/chapter_thumbnail/201922.webp?hash=1xE9sxvdM30G32GWocR3Ag&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012302,
+              "end_timestamp": 2145884400,
+              "name": "#047",
+              "start_timestamp": 1640962800,
+              "sub_title": "Z=47: Science Vs. Power",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012302/chapter_thumbnail/201925.webp?hash=WQUWB3miiCTCqEg3_QhcTQ&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012303,
+              "end_timestamp": 2145884400,
+              "name": "#048",
+              "start_timestamp": 1640962800,
+              "sub_title": "Z=48: Blades Of Science",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012303/chapter_thumbnail/201928.webp?hash=ywvuUgCrChAHHW3E2c9n7A&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012304,
+              "end_timestamp": 2145884400,
+              "name": "#049",
+              "start_timestamp": 1640962800,
+              "sub_title": "Z=49: To The Present",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012304/chapter_thumbnail/201931.webp?hash=7U0HoBXN1bihVYop5OWM3Q&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012305,
+              "end_timestamp": 2145884400,
+              "name": "#050",
+              "start_timestamp": 1640962800,
+              "sub_title": "Z=50: Humanity's Greatest Weapon",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012305/chapter_thumbnail/201934.webp?hash=vFwz1urY0PNezwlZqu7nPA&expires=1771027200",
+              "title_id": 100010
+            }
+          ]
+        },
+        {
+          "chapter_numbers": "100",
+          "mid_chapter_list": [
+            {
+              "chapter_id": 1012306,
+              "end_timestamp": 2145884400,
+              "name": "#051",
+              "start_timestamp": 1640962800,
+              "sub_title": "Z=51: Sweets For The Stone World",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012306/chapter_thumbnail/201937.webp?hash=kk-_5wWmMWgAGFvpapNkaQ&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012307,
+              "end_timestamp": 2145884400,
+              "name": "#052",
+              "start_timestamp": 1640962800,
+              "sub_title": "Z=52: Age Of Energy",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012307/chapter_thumbnail/201940.webp?hash=kFGantaUp9Hh6nKMNd5QeA&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012308,
+              "end_timestamp": 2145884400,
+              "name": "#053",
+              "start_timestamp": 1640962800,
+              "sub_title": "Z=53: Hard Knocks Crafting Club",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012308/chapter_thumbnail/201943.webp?hash=L0zjXkLHeP1ZIJc_JVMCuw&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012309,
+              "end_timestamp": 2145884400,
+              "name": "#054",
+              "start_timestamp": 1640962800,
+              "sub_title": "Z=54: Flickering Blue Jewel",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012309/chapter_thumbnail/201946.webp?hash=MwGgsxmzIZMiNYFrjzCLag&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012310,
+              "end_timestamp": 2145884400,
+              "name": "#055",
+              "start_timestamp": 1640962800,
+              "sub_title": "Z=55: Treasure Dungeon",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012310/chapter_thumbnail/201949.webp?hash=T0DOY1HduVaYJgOHkRLlMQ&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012311,
+              "end_timestamp": 2145884400,
+              "name": "#056",
+              "start_timestamp": 1640962800,
+              "sub_title": "Z=56: The Treasure",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012311/chapter_thumbnail/201952.webp?hash=W5y4XiNWhFLo1oPho-tHfw&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012312,
+              "end_timestamp": 2145884400,
+              "name": "#057",
+              "start_timestamp": 1640962800,
+              "sub_title": "Z=57: Heat Heart",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012312/chapter_thumbnail/201955.webp?hash=wMRcd0i9PQoWBJpae6NJrw&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012313,
+              "end_timestamp": 2145884400,
+              "name": "#058",
+              "start_timestamp": 1640962800,
+              "sub_title": "Z=58: Wave Of Science",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012313/chapter_thumbnail/201958.webp?hash=Gu3wSWazqWAfGdhseg_e3Q&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012314,
+              "end_timestamp": 2145884400,
+              "name": "#059",
+              "start_timestamp": 1640962800,
+              "sub_title": "Z=59: Voices from Here To Infinity",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012314/chapter_thumbnail/201961.webp?hash=Xx8QRMLpxEmhG8_PTQFiIQ&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012315,
+              "end_timestamp": 2145884400,
+              "name": "#060",
+              "start_timestamp": 1640962800,
+              "sub_title": "Z=60: Angel's Song, Devil's Whisper",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012315/chapter_thumbnail/201964.webp?hash=bCb_5RYQtB2WvJW1pVruQA&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012316,
+              "end_timestamp": 2145884400,
+              "name": "#061",
+              "start_timestamp": 1640962800,
+              "sub_title": "Z=61: Stone Wars Begin",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012316/chapter_thumbnail/201967.webp?hash=Ykl0AMTFUJCHUdwauJMNQw&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012317,
+              "end_timestamp": 2145884400,
+              "name": "#062",
+              "start_timestamp": 1640962800,
+              "sub_title": "Z=62: Double Chase",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012317/chapter_thumbnail/201970.webp?hash=9b3XnfO9nqpyWu_1IpwYTg&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012318,
+              "end_timestamp": 2145884400,
+              "name": "#063",
+              "start_timestamp": 1640962800,
+              "sub_title": "Z=63: Information Warfare",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012318/chapter_thumbnail/201973.webp?hash=x0ZLgEGhVOQofLzMTyzhXQ&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012319,
+              "end_timestamp": 2145884400,
+              "name": "#064",
+              "start_timestamp": 1640962800,
+              "sub_title": "Z=64: Hotline",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012319/chapter_thumbnail/201976.webp?hash=TomITaHUTDv-C13li0OpXQ&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012320,
+              "end_timestamp": 2145884400,
+              "name": "#065",
+              "start_timestamp": 1640962800,
+              "sub_title": "Z=65: Call From The Dead",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012320/chapter_thumbnail/201979.webp?hash=iKLbYkXKiNeJCaixalxjOw&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012321,
+              "end_timestamp": 2145884400,
+              "name": "#066",
+              "start_timestamp": 1640962800,
+              "sub_title": "Z=66: Liars And Truth-Tellers",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012321/chapter_thumbnail/201982.webp?hash=bIpfeaIFsh9LsMpPt70N_g&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012322,
+              "end_timestamp": 2145884400,
+              "name": "#067",
+              "start_timestamp": 1640962800,
+              "sub_title": "Z=67: Full Mobilization",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012322/chapter_thumbnail/201985.webp?hash=RRQh0wAgOMoyeJ1Hv15btQ&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012323,
+              "end_timestamp": 2145884400,
+              "name": "#068",
+              "start_timestamp": 1640962800,
+              "sub_title": "Z=68: Flames Of Revolution",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012323/chapter_thumbnail/201988.webp?hash=jMCMAeyHfVKexlHbiKL6cg&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012324,
+              "end_timestamp": 2145884400,
+              "name": "#069",
+              "start_timestamp": 1640962800,
+              "sub_title": "Z=69: Steam Gorilla",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012324/chapter_thumbnail/201991.webp?hash=-Xs-bUQK7ASdjnRc7aJiwQ&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012325,
+              "end_timestamp": 2145884400,
+              "name": "#070",
+              "start_timestamp": 1640962800,
+              "sub_title": "Z=70: Paper Shield",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012325/chapter_thumbnail/201994.webp?hash=YeaVuHG-IJUmqsE6N6oTAQ&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012326,
+              "end_timestamp": 2145884400,
+              "name": "#071",
+              "start_timestamp": 1640962800,
+              "sub_title": "Z=71: Prison Break",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012326/chapter_thumbnail/201997.webp?hash=b0_wn--zDV5QjqgzahgG8Q&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012327,
+              "end_timestamp": 2145884400,
+              "name": "#072",
+              "start_timestamp": 1640962800,
+              "sub_title": "Z=72: Experience Points",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012327/chapter_thumbnail/202000.webp?hash=JildIlYAVAjDfBZHonqy-A&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012328,
+              "end_timestamp": 2145884400,
+              "name": "#073",
+              "start_timestamp": 1640962800,
+              "sub_title": "Z=73: Top-Secret Mission",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012328/chapter_thumbnail/202003.webp?hash=p5UifDyCDOQ1dxRXn2ApXA&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012329,
+              "end_timestamp": 2145884400,
+              "name": "#074",
+              "start_timestamp": 1640962800,
+              "sub_title": "Z=74: Fateful 20 Seconds",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012329/chapter_thumbnail/202006.webp?hash=lESOj-9g1VSSh86vW8a5qQ&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012330,
+              "end_timestamp": 2145884400,
+              "name": "#075",
+              "start_timestamp": 1640962800,
+              "sub_title": "Z=75: 20-Second Countdown",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012330/chapter_thumbnail/202009.webp?hash=Y23TqpsDKwX2xy1lKAoDlA&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012331,
+              "end_timestamp": 2145884400,
+              "name": "#076",
+              "start_timestamp": 1640962800,
+              "sub_title": "Z=76: Final Battle",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012331/chapter_thumbnail/202012.webp?hash=qNIN_X--fLZz8EhpgGr3jg&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012332,
+              "end_timestamp": 2145884400,
+              "name": "#077",
+              "start_timestamp": 1640962800,
+              "sub_title": "Z=77: The Power Of Science",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012332/chapter_thumbnail/202015.webp?hash=L9YTYGRdTxRZUOa32oRudw&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012333,
+              "end_timestamp": 2145884400,
+              "name": "#078",
+              "start_timestamp": 1640962800,
+              "sub_title": "Z=78: That Which Destroys Or Saves",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012333/chapter_thumbnail/202018.webp?hash=ZG2g4eSNYXar88JbbcRyTQ&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012334,
+              "end_timestamp": 2145884400,
+              "name": "#079",
+              "start_timestamp": 1640962800,
+              "sub_title": "Z=79: For This Very Moment",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012334/chapter_thumbnail/202021.webp?hash=xN_0e7WT_KYPvJhv2yvVGg&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012335,
+              "end_timestamp": 2145884400,
+              "name": "#080",
+              "start_timestamp": 1640962800,
+              "sub_title": "Z=80: Humanity's Strongest Tag Team",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012335/chapter_thumbnail/202024.webp?hash=spBBVjJgbmNdEtZZJNksmQ&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012336,
+              "end_timestamp": 2145884400,
+              "name": "#081",
+              "start_timestamp": 1640962800,
+              "sub_title": "Z=81: Fingertip",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012336/chapter_thumbnail/202027.webp?hash=8jwiKem9oJq2bJIdSdDWlQ&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012337,
+              "end_timestamp": 2145884400,
+              "name": "#082",
+              "start_timestamp": 1640962800,
+              "sub_title": "Z=82: Epilogue of Stone Wars (End Of Part 2)",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012337/chapter_thumbnail/202030.webp?hash=GJB1fpuADj_439UW7AR7CQ&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012338,
+              "end_timestamp": 2145884400,
+              "name": "#083",
+              "start_timestamp": 1640962800,
+              "sub_title": "Z=83: Dr. Stone",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012338/chapter_thumbnail/202033.webp?hash=KPE3gCW3MiAQVkYZOCNMqQ&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012339,
+              "end_timestamp": 2145884400,
+              "name": "#084",
+              "start_timestamp": 1640962800,
+              "sub_title": "Z=84: People Power",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012339/chapter_thumbnail/202036.webp?hash=ZsDIH3LeUOBywmIyVM_s9A&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "already_viewed": true,
+              "chapter_id": 1001174,
+              "end_timestamp": 2145884400,
+              "name": "#085",
+              "start_timestamp": 1547996400,
+              "sub_title": "Z=85: Ultimate Resource",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1001174/chapter_thumbnail/7153.webp?hash=5leStJ8t-KtjOAWePzUYVg&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "already_viewed": true,
+              "chapter_id": 1001175,
+              "end_timestamp": 2145884400,
+              "name": "#086",
+              "start_timestamp": 1547996400,
+              "sub_title": "Z=86: Money",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1001175/chapter_thumbnail/7156.webp?hash=km59KviyWF_R6bsSZ22KEA&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "already_viewed": true,
+              "chapter_id": 1001176,
+              "end_timestamp": 2145884400,
+              "name": "#087",
+              "start_timestamp": 1547996400,
+              "sub_title": "Z=87: Senku's Department Store",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1001176/chapter_thumbnail/7159.webp?hash=yDayCqHw1Ya9qMovxnOYKA&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "already_viewed": true,
+              "chapter_id": 1001177,
+              "end_timestamp": 2145884400,
+              "name": "#088",
+              "start_timestamp": 1547996400,
+              "sub_title": "Z=88: Wings of Humanity",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1001177/chapter_thumbnail/7162.webp?hash=SxBMtTGq_5MtJIgwWwYMqA&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "already_viewed": true,
+              "chapter_id": 1001178,
+              "end_timestamp": 2145884400,
+              "name": "#089",
+              "start_timestamp": 1547996400,
+              "sub_title": "Z=89: Adventurers",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1001178/chapter_thumbnail/7165.webp?hash=hzZn2SyeCuucwQ5_r4jwfg&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1001179,
+              "end_timestamp": 2145884400,
+              "name": "#090",
+              "start_timestamp": 1548014400,
+              "sub_title": "Z=90: New World Map",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1001179/chapter_thumbnail/8710.webp?hash=l1hFY7QTzaGma21jdT8sTQ&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1001180,
+              "end_timestamp": 2145884400,
+              "name": "#091",
+              "start_timestamp": 1548619200,
+              "sub_title": "Z=91: Need Bread? Start with Wheat",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1001180/chapter_thumbnail/11296.webp?hash=g-ser8a-1LVTU6VafDejjQ&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1001181,
+              "end_timestamp": 2145884400,
+              "name": "#092",
+              "start_timestamp": 1549224000,
+              "sub_title": "Z=92: Desire Is Noble",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1001181/chapter_thumbnail/11575.webp?hash=dpV9-X66oGFH7DAdxnBi2Q&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1001182,
+              "end_timestamp": 2145884400,
+              "name": "#093",
+              "start_timestamp": 1549656000,
+              "sub_title": "Z=93: The First Shot Is Yours",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1001182/chapter_thumbnail/11926.webp?hash=MaTrdW985w20avwcHn84Sw&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1001183,
+              "end_timestamp": 2145884400,
+              "name": "#094",
+              "start_timestamp": 1550433600,
+              "sub_title": "Z=94: The Scent of Black Gold",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1001183/chapter_thumbnail/12154.webp?hash=ihlB3HFrfHm1cQm1RJq6QA&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1001184,
+              "end_timestamp": 2145884400,
+              "name": "#095",
+              "start_timestamp": 1551038400,
+              "sub_title": "Z=95: First Contact",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1001184/chapter_thumbnail/15229.webp?hash=MBx1Zr37PuxVV8wfBZ0NxA&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1001622,
+              "end_timestamp": 2145884400,
+              "name": "#096",
+              "start_timestamp": 1551643200,
+              "sub_title": "Z=96: Eye of Science",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1001622/chapter_thumbnail/15541.webp?hash=SF27o7qY6G8UmcDN_82F3A&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1001623,
+              "end_timestamp": 2145884400,
+              "name": "#097",
+              "start_timestamp": 1552248000,
+              "sub_title": "Z=97: The Joy of Leadership",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1001623/chapter_thumbnail/16819.webp?hash=tCsc7h4-AAsXah1EO0k6xQ&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1001624,
+              "end_timestamp": 2145884400,
+              "name": "#098",
+              "start_timestamp": 1552852800,
+              "sub_title": "Z=98: Ryusui",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1001624/chapter_thumbnail/17041.webp?hash=nlXyLE2ivL8S5XPbJISlxA&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1001625,
+              "end_timestamp": 2145884400,
+              "name": "#099",
+              "start_timestamp": 1553457600,
+              "sub_title": "Z=99: Kingdom of Science Photo Journal",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1001625/chapter_thumbnail/19561.webp?hash=5TG3Wwdrf6nRGCKosKeCdw&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1001759,
+              "end_timestamp": 2145884400,
+              "name": "#100",
+              "start_timestamp": 1554667200,
+              "sub_title": "Z=100: Origin of the 100 Tales",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1001759/chapter_thumbnail/20542.webp?hash=Gx91y2sMOOcmADqupab2bA&expires=1771027200",
+              "title_id": 100010
+            }
+          ]
+        },
+        {
+          "chapter_numbers": "150",
+          "mid_chapter_list": [
+            {
+              "chapter_id": 1001760,
+              "end_timestamp": 2145884400,
+              "name": "#101",
+              "start_timestamp": 1555272000,
+              "sub_title": "Z=101: Treasure Chest",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1001760/chapter_thumbnail/23479.webp?hash=7ACiQ_XM_3iigEqmAN83Vg&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1001761,
+              "end_timestamp": 2145884400,
+              "name": "#102",
+              "start_timestamp": 1555876800,
+              "sub_title": "Z=102: Perseus, Ship of Science",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1001761/chapter_thumbnail/25188.webp?hash=sRcTiTsipye5jzHBIH9ggA&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1001762,
+              "end_timestamp": 2145884400,
+              "name": "#103",
+              "start_timestamp": 1556308800,
+              "sub_title": "Z=103: Light of Hope and Despair",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1001762/chapter_thumbnail/26955.webp?hash=TpyHAai5sAXNikUwCyAz9Q&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1001763,
+              "end_timestamp": 2145884400,
+              "name": "#104",
+              "start_timestamp": 1557691200,
+              "sub_title": "Z=104: Men of Forensics",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1001763/chapter_thumbnail/27243.webp?hash=o_n9aRs6HhrLV0GFKk70yA&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1001935,
+              "end_timestamp": 2145884400,
+              "name": "#105",
+              "start_timestamp": 1558296000,
+              "sub_title": "Z=105: The Island's Greatest Beauty",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1001935/chapter_thumbnail/28524.webp?hash=Sfz2diOzS_mBJp3I0d7fPA&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1001936,
+              "end_timestamp": 2145884400,
+              "name": "#106",
+              "start_timestamp": 1558900800,
+              "sub_title": "Z=106: The Secret of Petrification",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1001936/chapter_thumbnail/28647.webp?hash=1IW0HlLoceqOnZqDw4xm8Q&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1001937,
+              "end_timestamp": 2145884400,
+              "name": "#107",
+              "start_timestamp": 1559505600,
+              "sub_title": "Z=107: Ace in the Hole on the Ship of Science",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1001937/chapter_thumbnail/33180.webp?hash=qgYw8j182p9ThyelCIhwIQ&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1002366,
+              "end_timestamp": 2145884400,
+              "name": "#108",
+              "start_timestamp": 1560110400,
+              "sub_title": "Z=108: Double Ace in the Hole",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1002366/chapter_thumbnail/33507.webp?hash=oG_F4TS_Hi8VuulCi8fmJg&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1002367,
+              "end_timestamp": 2145884400,
+              "name": "#109",
+              "start_timestamp": 1560715200,
+              "sub_title": "Z=109: Great Escape",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1002367/chapter_thumbnail/33774.webp?hash=zGmuYM-S1YEWu9iEH6DvgA&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1002368,
+              "end_timestamp": 2145884400,
+              "name": "#110",
+              "start_timestamp": 1561320000,
+              "sub_title": "Z=110: Beauty Science",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1002368/chapter_thumbnail/34014.webp?hash=9BNXFsIoK2MnlNxCKt8J5w&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1002369,
+              "end_timestamp": 2145884400,
+              "name": "#111",
+              "start_timestamp": 1561924800,
+              "sub_title": "Z=111: Science Wars",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1002369/chapter_thumbnail/35478.webp?hash=MYQoNeBnly0b6EHJUh7O5w&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1003161,
+              "end_timestamp": 2145884400,
+              "name": "#112",
+              "start_timestamp": 1562529600,
+              "sub_title": "Z=112: King of Three Dimensions",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1003161/chapter_thumbnail/36969.webp?hash=IlBVZUF94jtoFMjuin9WZw&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1003162,
+              "end_timestamp": 2145884400,
+              "name": "#113",
+              "start_timestamp": 1562961600,
+              "sub_title": "Z=113: Cryptography Science",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1003162/chapter_thumbnail/37269.webp?hash=M2YSk_J5ReByKaUCF_3neA&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1003163,
+              "end_timestamp": 2145884400,
+              "name": "#114",
+              "start_timestamp": 1563739200,
+              "sub_title": "Z=114: Silently, Science Pierces the Stone",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1003163/chapter_thumbnail/37581.webp?hash=L-NuybAcFa_WP1umOrtIFQ&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1003164,
+              "end_timestamp": 2145884400,
+              "name": "#115",
+              "start_timestamp": 1564344000,
+              "sub_title": "Z=115: One Second, One Grain",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1003164/chapter_thumbnail/38205.webp?hash=siDTwSZELMa-9LFWGu7kVA&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1003686,
+              "end_timestamp": 2145884400,
+              "name": "#116",
+              "start_timestamp": 1564948800,
+              "sub_title": "Z=116: Miracle in Hand",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1003686/chapter_thumbnail/38505.webp?hash=A6cThTDIitI1SCmOJ1zlIA&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1003687,
+              "end_timestamp": 2145884400,
+              "name": "#117",
+              "start_timestamp": 1566158400,
+              "sub_title": "Z=117: The Kingdom of Science Strikes Back",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1003687/chapter_thumbnail/39078.webp?hash=0BlghZxTJKhwLWukMTgbpw&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1003688,
+              "end_timestamp": 2145884400,
+              "name": "#118",
+              "start_timestamp": 1566763200,
+              "sub_title": "Z=118: Silent Soldiers",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1003688/chapter_thumbnail/39447.webp?hash=BOmfpYlXy2R0WZY9NaPQqQ&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1003689,
+              "end_timestamp": 2145884400,
+              "name": "#119",
+              "start_timestamp": 1567368000,
+              "sub_title": "Z=119: Science Soldiers",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1003689/chapter_thumbnail/39783.webp?hash=AS7xfKB6pSGwCFgWFAYl8w&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1003831,
+              "end_timestamp": 2145884400,
+              "name": "#120",
+              "start_timestamp": 1567972800,
+              "sub_title": "Z=120: Top Seacret",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1003831/chapter_thumbnail/40152.webp?hash=PVktDWjyQk8mwbjIvEE-Qw&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1003832,
+              "end_timestamp": 2145884400,
+              "name": "#121",
+              "start_timestamp": 1568404800,
+              "sub_title": "Z=121: Medusa's True Face",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1003832/chapter_thumbnail/40827.webp?hash=cPruke5o4u_-k1eRRpddlQ&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1003833,
+              "end_timestamp": 2145884400,
+              "name": "#122",
+              "start_timestamp": 1569009600,
+              "sub_title": "Z=122: Brain-Battle Puzzle Pieces",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1003833/chapter_thumbnail/43131.webp?hash=DGbtAyr22Q411z88sl5rYg&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1003834,
+              "end_timestamp": 2145884400,
+              "name": "#123",
+              "start_timestamp": 1569787200,
+              "sub_title": "Z=123: Brain-Battle Gambit",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1003834/chapter_thumbnail/44607.webp?hash=-zjNfxoemuVFhw49911FSA&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1003835,
+              "end_timestamp": 2145884400,
+              "name": "#124",
+              "start_timestamp": 1570392000,
+              "sub_title": "Z=124: Invention of Gods and Devils",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1003835/chapter_thumbnail/45504.webp?hash=WmHY2BoMe5uPyI4vFE-oPQ&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1005646,
+              "end_timestamp": 2145884400,
+              "name": "#125",
+              "start_timestamp": 1570824000,
+              "sub_title": "Z=125: Decisive Three-Dimensional Battle",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1005646/chapter_thumbnail/46446.webp?hash=bDQeVuxhfu0T9q-nYdHI4w&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1005647,
+              "end_timestamp": 2145884400,
+              "name": "#126",
+              "start_timestamp": 1571601600,
+              "sub_title": "Z=126: Three-Dimensional Stratagem",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1005647/chapter_thumbnail/47829.webp?hash=fr3lpZXbm2eu0b5XxPjLrA&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1005648,
+              "end_timestamp": 2145884400,
+              "name": "#127",
+              "start_timestamp": 1572206400,
+              "sub_title": "Z=127: Medusa & Perseus",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1005648/chapter_thumbnail/49944.webp?hash=PjCvW8IHUM4gZyja21G5og&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1005834,
+              "end_timestamp": 2145884400,
+              "name": "#128",
+              "start_timestamp": 1572638400,
+              "sub_title": "Z=128: Island-Wide Battle Royale",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1005834/chapter_thumbnail/50871.webp?hash=rueKC0ask_CM_fUvLiZD9g&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1005925,
+              "end_timestamp": 2145884400,
+              "name": "#129",
+              "start_timestamp": 1573416000,
+              "sub_title": "Z=129: Joker",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1005925/chapter_thumbnail/51642.webp?hash=dUZdorXYQVlwTcGbnWk5VA&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1005926,
+              "end_timestamp": 2145884400,
+              "name": "#130",
+              "start_timestamp": 1574020800,
+              "sub_title": "Z=130: Devil's Choice",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1005926/chapter_thumbnail/53163.webp?hash=ewBT-lggD1ePGjKT9pHJ4w&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1005927,
+              "end_timestamp": 2145884400,
+              "name": "#131",
+              "start_timestamp": 1575230400,
+              "sub_title": "Z=131: Nasty Crimes",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1005927/chapter_thumbnail/54945.webp?hash=NbWgxvImfl6JPQA6qI3w2g&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1006041,
+              "end_timestamp": 2145884400,
+              "name": "#132",
+              "start_timestamp": 1575835200,
+              "sub_title": "Z=132: The Strongest Weapon Is...",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1006041/chapter_thumbnail/56670.webp?hash=K18kmmaBjlmmP-Cc5iXzUw&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1006042,
+              "end_timestamp": 2145884400,
+              "name": "#133",
+              "start_timestamp": 1576440000,
+              "sub_title": "Z=133: Flash of Destruction",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1006042/chapter_thumbnail/57015.webp?hash=QyEosL_gjg9Xjyi856FGdw&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1006043,
+              "end_timestamp": 2145884400,
+              "name": "#134",
+              "start_timestamp": 1577044800,
+              "sub_title": "Z=134: Commander Faceoff",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1006043/chapter_thumbnail/57471.webp?hash=o83Z5kC_l7mJXpswrJUFkg&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1006044,
+              "end_timestamp": 2145884400,
+              "name": "#135",
+              "start_timestamp": 1579446000,
+              "sub_title": "Z=135: Counting",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1006044/chapter_thumbnail/58992.webp?hash=yOHttqjc2MHf6PlawQ8XwA&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1006191,
+              "end_timestamp": 2145884400,
+              "name": "#136",
+              "start_timestamp": 1580050800,
+              "sub_title": "Z=136: Medusa vs. Science",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1006191/chapter_thumbnail/59622.webp?hash=6DhOq-TOcJhUCu_bWs0qbA&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1006277,
+              "end_timestamp": 2145884400,
+              "name": "#137",
+              "start_timestamp": 1580655600,
+              "sub_title": "Z=137: Last Man Standing",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1006277/chapter_thumbnail/61398.webp?hash=DC895nUMwc6QetrCNmnzdQ&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1006278,
+              "end_timestamp": 2145884400,
+              "name": "#138",
+              "start_timestamp": 1581264000,
+              "sub_title": "Z=138: End of Part 3",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1006278/chapter_thumbnail/61797.webp?hash=Mz4gIirvswI89yhXtJM4uQ&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1006279,
+              "end_timestamp": 2145884400,
+              "name": "#139",
+              "start_timestamp": 1581868800,
+              "sub_title": "Z=139: First Dream",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1006279/chapter_thumbnail/62850.webp?hash=cTxE6gy2wT_IdBdFbtR1sA&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1006280,
+              "end_timestamp": 2145884400,
+              "name": "#140",
+              "start_timestamp": 1582300800,
+              "sub_title": "Z=140: New-World Pilots",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1006280/chapter_thumbnail/63723.webp?hash=o1ImmhAtYwYw45P1bOSl6A&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1006412,
+              "end_timestamp": 2145884400,
+              "name": "#141",
+              "start_timestamp": 1583078400,
+              "sub_title": "Z=141: First Team",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1006412/chapter_thumbnail/64818.webp?hash=WF6eLOvIhjc8jArqXfVSnQ&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1006413,
+              "end_timestamp": 2145884400,
+              "name": "#142",
+              "start_timestamp": 1583683200,
+              "sub_title": "Z=142: World Power",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1006413/chapter_thumbnail/65253.webp?hash=qrDgKUv8Q0l1HO0lALMLyg&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1006414,
+              "end_timestamp": 2145884400,
+              "name": "#143",
+              "start_timestamp": 1584288000,
+              "sub_title": "Z=143: Ryusui vs. Senku",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1006414/chapter_thumbnail/93558.webp?hash=2Qo5G2mRT0rgIoPEyot-2Q&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1006415,
+              "end_timestamp": 2145884400,
+              "name": "#144",
+              "start_timestamp": 1584892800,
+              "sub_title": "Z=144: Ryusui & Gen vs. Senku & Kohaku",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1006415/chapter_thumbnail/94215.webp?hash=leZQGK0LHyh5XpVoKOXS2w&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1006416,
+              "end_timestamp": 2145884400,
+              "name": "#145",
+              "start_timestamp": 1585497600,
+              "sub_title": "Z=145: Bar Francois",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1006416/chapter_thumbnail/94623.webp?hash=YqH1uEsCD2jkdahJ9loeIQ&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1006560,
+              "end_timestamp": 2145884400,
+              "name": "#146",
+              "start_timestamp": 1586102400,
+              "sub_title": "Z=146: Bar Francois: Bitters",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1006560/chapter_thumbnail/95598.webp?hash=81thI0zq5U7DZCbqMLDtng&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1006561,
+              "end_timestamp": 2145884400,
+              "name": "#147",
+              "start_timestamp": 1586707200,
+              "sub_title": "Z=147: Science Journey",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1006561/chapter_thumbnail/95982.webp?hash=CPN5XxopGOPr7ajxd6voXA&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1006562,
+              "end_timestamp": 2145884400,
+              "name": "#148",
+              "start_timestamp": 1587916800,
+              "sub_title": "Z=148: Pioneers of Earth",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1006562/chapter_thumbnail/96612.webp?hash=-Q-a7xRsBfO5wdGfPNWo3g&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1006563,
+              "end_timestamp": 2145884400,
+              "name": "#149",
+              "start_timestamp": 1589126400,
+              "sub_title": "Z=149: Light Lure in Darkness",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1006563/chapter_thumbnail/98184.webp?hash=hNAWuVI_yG3CR6Lx-rFYcA&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1006671,
+              "end_timestamp": 2145884400,
+              "name": "#150",
+              "start_timestamp": 1589731200,
+              "sub_title": "Z=150: Righteous Science-User",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1006671/chapter_thumbnail/98889.webp?hash=-MBgU_z4VlrTb9_DXEnbSw&expires=1771027200",
+              "title_id": 100010
+            }
+          ]
+        },
+        {
+          "chapter_numbers": "200",
+          "mid_chapter_list": [
+            {
+              "chapter_id": 1006672,
+              "end_timestamp": 2145884400,
+              "name": "#151",
+              "start_timestamp": 1590336000,
+              "sub_title": "Z=151: Dr. X",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1006672/chapter_thumbnail/99852.webp?hash=F0a2bGJqosDZi22OdReUDw&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1006958,
+              "end_timestamp": 2145884400,
+              "name": "#152",
+              "start_timestamp": 1590940800,
+              "sub_title": "Z=152: Doctor Vs. Doctor",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1006958/chapter_thumbnail/100470.webp?hash=3k7VNHmBWXz2l2311FEGpg&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1007021,
+              "end_timestamp": 2145884400,
+              "name": "#153",
+              "start_timestamp": 1591545600,
+              "sub_title": "Z=153: War Game",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1007021/chapter_thumbnail/132180.webp?hash=MPrCwvsagdhV-2s3qgY5BQ&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1007022,
+              "end_timestamp": 2145884400,
+              "name": "#154",
+              "start_timestamp": 1592150400,
+              "sub_title": "Z=154: Spy vs. Spy",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1007022/chapter_thumbnail/132756.webp?hash=VCoApZMbM2P1vv3oSVEE2g&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1007023,
+              "end_timestamp": 2145884400,
+              "name": "#155",
+              "start_timestamp": 1592755200,
+              "sub_title": "Z=155: Science is Elegant",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1007023/chapter_thumbnail/133545.webp?hash=KZF3ZYCbL85n5-Ub4rpFWA&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1007024,
+              "end_timestamp": 2145884400,
+              "name": "#156",
+              "start_timestamp": 1593187200,
+              "sub_title": "Z=156: Two Scientists",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1007024/chapter_thumbnail/133941.webp?hash=3IpAqFpgqSp8Ks01Lth2Dw&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1007322,
+              "end_timestamp": 2145884400,
+              "name": "#157",
+              "start_timestamp": 1593964800,
+              "sub_title": "Z=157: Same Time, Same Place",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1007322/chapter_thumbnail/134883.webp?hash=OfpX7zIt5JfOtoBgwRPcpg&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1007323,
+              "end_timestamp": 2145884400,
+              "name": "#158",
+              "start_timestamp": 1594569600,
+              "sub_title": "Z=158: Who's the Scientist?",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1007323/chapter_thumbnail/135444.webp?hash=G9OClUAe3lanmsF0trzkoQ&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1007324,
+              "end_timestamp": 2145884400,
+              "name": "#159",
+              "start_timestamp": 1595174400,
+              "sub_title": "Z=159: Lock On",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1007324/chapter_thumbnail/135786.webp?hash=QlmJ_0ss76jD70pNVBITcA&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1007499,
+              "end_timestamp": 2145884400,
+              "name": "#160",
+              "start_timestamp": 1596384000,
+              "sub_title": "Z=160: Torch of Science",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1007499/chapter_thumbnail/136368.webp?hash=5erX7iz_yQcu0Si6mOo97g&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1007500,
+              "end_timestamp": 2145884400,
+              "name": "#161",
+              "start_timestamp": 1597075200,
+              "sub_title": "Z=161: Craft Wars",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1007500/chapter_thumbnail/136821.webp?hash=1e5xxguqEvosdKfluj6SdA&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1007501,
+              "end_timestamp": 2145884400,
+              "name": "#162",
+              "start_timestamp": 1598198400,
+              "sub_title": "Z=162: Down the Earth-Stained Path",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1007501/chapter_thumbnail/137424.webp?hash=DNaDiDkckyAlFV8aorLE2A&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1007502,
+              "end_timestamp": 2145884400,
+              "name": "#163",
+              "start_timestamp": 1598803200,
+              "sub_title": "Z=163: Multifront Final Battle",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1007502/chapter_thumbnail/137847.webp?hash=VmOKrBX2-_oraOgDyEzTMQ&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1007636,
+              "end_timestamp": 2145884400,
+              "name": "#164",
+              "start_timestamp": 1599408000,
+              "sub_title": "Z=164: Re-Lock On",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1007636/chapter_thumbnail/138441.webp?hash=COhR5SDvImRhklQm1lUG9Q&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1007671,
+              "end_timestamp": 2145884400,
+              "name": "#165",
+              "start_timestamp": 1600012800,
+              "sub_title": "Z=165: Know the Rules, Make the Rules",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1007671/chapter_thumbnail/138942.webp?hash=8ES6YF0FiYajyNYfEY4s8g&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1007672,
+              "end_timestamp": 2145884400,
+              "name": "#166",
+              "start_timestamp": 1600444800,
+              "sub_title": "Z=166: Ultimate Knight",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1007672/chapter_thumbnail/139599.webp?hash=QJhqvRUk9ZJhAJmbwS60xA&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1007673,
+              "end_timestamp": 2145884400,
+              "name": "#167",
+              "start_timestamp": 1601222400,
+              "sub_title": "Z=167: Different Strokes",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1007673/chapter_thumbnail/139947.webp?hash=wi8LsA5khlwqjuspKuQZdg&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1007793,
+              "end_timestamp": 2145884400,
+              "name": "#168",
+              "start_timestamp": 1601827200,
+              "sub_title": "Z=168: Corn City: Population One Million",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1007793/chapter_thumbnail/140328.webp?hash=WaOd-zjI39tLLomHDwStHQ&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1007794,
+              "end_timestamp": 2145884400,
+              "name": "#169",
+              "start_timestamp": 1602432000,
+              "sub_title": "Z=169: RISK or HEART",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1007794/chapter_thumbnail/141249.webp?hash=mczulOLelmzOBJk0SnKKMQ&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1007795,
+              "end_timestamp": 2145884400,
+              "name": "#170",
+              "start_timestamp": 1602864000,
+              "sub_title": "Z=170: Staring Up at the Same Moon",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1007795/chapter_thumbnail/141816.webp?hash=HxPrQYQ6T4wmH_40da0KXg&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1007796,
+              "end_timestamp": 2145884400,
+              "name": "#171",
+              "start_timestamp": 1603641600,
+              "sub_title": "Z=171: Staring at the Same Light",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1007796/chapter_thumbnail/142398.webp?hash=hZ1cwOPygz18fc8JCM5PtA&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1007942,
+              "end_timestamp": 2145884400,
+              "name": "#172",
+              "start_timestamp": 1604246400,
+              "sub_title": "Z=172: Marked with an \"X\" of Wisdom",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1007942/chapter_thumbnail/142857.webp?hash=N1yA6aU7yc3DcVBl3C9B2w&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1007943,
+              "end_timestamp": 2145884400,
+              "name": "#173",
+              "start_timestamp": 1604851200,
+              "sub_title": "Z=173: Earth Race",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1007943/chapter_thumbnail/143526.webp?hash=WRDgI9iFHsOzwAuPz72YGw&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1007944,
+              "end_timestamp": 2145884400,
+              "name": "#174",
+              "start_timestamp": 1605456000,
+              "sub_title": "Z=174: The Specter of the Panama Canal",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1007944/chapter_thumbnail/143907.webp?hash=uQ7h0A7HJcd_oRxfMAlSIA&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1007945,
+              "end_timestamp": 2145884400,
+              "name": "#175",
+              "start_timestamp": 1605888000,
+              "sub_title": "Z=175: Ultra Race Across South America",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1007945/chapter_thumbnail/144726.webp?hash=Y11V-Rh4u6n9JE9-GX4i5w&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1007946,
+              "end_timestamp": 2145884400,
+              "name": "#176",
+              "start_timestamp": 1606665600,
+              "sub_title": "Z=176: Net-Breaking Battle Plan",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1007946/chapter_thumbnail/145248.webp?hash=fznkTgH3QYlrCUcZwYSupA&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1008144,
+              "end_timestamp": 2145884400,
+              "name": "#177",
+              "start_timestamp": 1607270400,
+              "sub_title": "Z=177: Medusa Mechanism",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1008144/chapter_thumbnail/145770.webp?hash=_NNpTBXicFviARtqwyU3eQ&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1008145,
+              "end_timestamp": 2145884400,
+              "name": "#178",
+              "start_timestamp": 1607875200,
+              "sub_title": "Z=178: Science Scales Mountains",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1008145/chapter_thumbnail/146346.webp?hash=5kh2zyEGa0kitKvGxCk9eQ&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1008146,
+              "end_timestamp": 2145884400,
+              "name": "#179",
+              "start_timestamp": 1608480000,
+              "sub_title": "Z=179: Bonds on the High-Wire",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1008146/chapter_thumbnail/146958.webp?hash=Zhg8eBi6x173AjdsSPho7A&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1008147,
+              "end_timestamp": 2145884400,
+              "name": "#180",
+              "start_timestamp": 1609689600,
+              "sub_title": "Z=180: Sickening Yet Beautiful",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1008147/chapter_thumbnail/148024.webp?hash=AND0zy_Wlm1SkIB_OScPLA&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1008373,
+              "end_timestamp": 2145884400,
+              "name": "#181",
+              "start_timestamp": 1610899200,
+              "sub_title": "Z=181: New World Science",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1008373/chapter_thumbnail/148825.webp?hash=H9UuM-GsoNvGXetiUF3ICA&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1008374,
+              "end_timestamp": 2145884400,
+              "name": "#182",
+              "start_timestamp": 1611504000,
+              "sub_title": "Z=182: Diamond Heart",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1008374/chapter_thumbnail/149326.webp?hash=4tvsa1dx3PAVezbzqYBVfA&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1008375,
+              "end_timestamp": 2145884400,
+              "name": "#183",
+              "start_timestamp": 1612108800,
+              "sub_title": "Z=183: Stone Sanctuary",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1008375/chapter_thumbnail/150367.webp?hash=jN4h0hNzv7gFSbTUuu-msQ&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1008530,
+              "end_timestamp": 2145884400,
+              "name": "#184",
+              "start_timestamp": 1612713600,
+              "sub_title": "Z=184: Fort Medusa",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1008530/chapter_thumbnail/150865.webp?hash=gr31hLWgLJEmAaA59HZ7qw&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1008531,
+              "end_timestamp": 2145884400,
+              "name": "#185",
+              "start_timestamp": 1613318400,
+              "sub_title": "Z=185: Lovely Cleavage Plane",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1008531/chapter_thumbnail/151399.webp?hash=fnR0M5JT8HTq3sGoWTKrqA&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1008532,
+              "end_timestamp": 2145884400,
+              "name": "#186",
+              "start_timestamp": 1613923200,
+              "sub_title": "Z=186: To Each Their Own Blade",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1008532/chapter_thumbnail/151993.webp?hash=Yru_NHjRX4sggp0BnxOp_A&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1008937,
+              "end_timestamp": 2145884400,
+              "name": "#187",
+              "start_timestamp": 1614528000,
+              "sub_title": "Z=187: Cyber Guerilla",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1008937/chapter_thumbnail/152443.webp?hash=rh1n10fQSPGnD6syyjQAxg&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1008938,
+              "end_timestamp": 2145884400,
+              "name": "#188",
+              "start_timestamp": 1615132800,
+              "sub_title": "Z=188: What I Once Sought to Destroy",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1008938/chapter_thumbnail/154504.webp?hash=dKnzMwSwCrBJovpITT7uzg&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1008939,
+              "end_timestamp": 2145884400,
+              "name": "#189",
+              "start_timestamp": 1615737600,
+              "sub_title": "Z=189: Our Dr. Stone",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1008939/chapter_thumbnail/156214.webp?hash=4nADYBXysQe3D7CTiu91ww&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1008940,
+              "end_timestamp": 2145884400,
+              "name": "#190",
+              "start_timestamp": 1616342400,
+              "sub_title": "Z=190: Science Transcends Life",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1008940/chapter_thumbnail/160108.webp?hash=VfPC7bYzyVjYZNKHhix2RQ&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1008941,
+              "end_timestamp": 2145884400,
+              "name": "#191",
+              "start_timestamp": 1617552000,
+              "sub_title": "Z=191: Divine Scream, Down to Earth",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1008941/chapter_thumbnail/161434.webp?hash=y420Wi4cudUli9F1fln8ng&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1009095,
+              "end_timestamp": 2145884400,
+              "name": "#192",
+              "start_timestamp": 1618156800,
+              "sub_title": "Z=192: Until We Meet Again",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1009095/chapter_thumbnail/163309.webp?hash=TNQMnFakkhn9SvmTzQlTpw&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1009096,
+              "end_timestamp": 2145884400,
+              "name": "#193",
+              "start_timestamp": 1618761600,
+              "sub_title": "Z=193: Our Stone World",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1009096/chapter_thumbnail/164767.webp?hash=Ke8beacJFROVoC9NuWlw-g&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1009097,
+              "end_timestamp": 2145884400,
+              "name": "#194",
+              "start_timestamp": 1619366400,
+              "sub_title": "Z=194: Homo Sapiens, All Alone",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1009097/chapter_thumbnail/165969.webp?hash=0J0h_3oCLrOY0jErgSMe_A&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1009231,
+              "end_timestamp": 2145884400,
+              "name": "#195",
+              "start_timestamp": 1620576000,
+              "sub_title": "Z=195: Treasure Hunter, All Alone",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1009231/chapter_thumbnail/167259.webp?hash=_XysckPLY_XtUI81CuiQ1Q&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1009232,
+              "end_timestamp": 2145884400,
+              "name": "#196",
+              "start_timestamp": 1621180800,
+              "sub_title": "Z=196: Scientist, All Alone",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1009232/chapter_thumbnail/168208.webp?hash=lryTizGi8PsrFDnGFDdpkw&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1009233,
+              "end_timestamp": 2145884400,
+              "name": "#197",
+              "start_timestamp": 1621785600,
+              "sub_title": "Z=197: A Stony Eden and Its Forbidden Fruit",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1009233/chapter_thumbnail/169013.webp?hash=IyB0J-aHcfUTMIwckMS2ng&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1009396,
+              "end_timestamp": 2145884400,
+              "name": "#198",
+              "start_timestamp": 1622390400,
+              "sub_title": "Z=198: Whole New World",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1009396/chapter_thumbnail/170043.webp?hash=RVnV3gYO0j2FogT_0uR2tw&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1009397,
+              "end_timestamp": 2145884400,
+              "name": "#199",
+              "start_timestamp": 1622995200,
+              "sub_title": "Z=199: Superalloys",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1009397/chapter_thumbnail/171418.webp?hash=PScSL18xjBf_Cz2UmTH1lg&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1009398,
+              "end_timestamp": 2145884400,
+              "name": "#200",
+              "start_timestamp": 1623600000,
+              "sub_title": "Z=200: Future Engine",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1009398/chapter_thumbnail/172501.webp?hash=7SV9ixq491wzY9fEU4EDXQ&expires=1771027200",
+              "title_id": 100010
+            }
+          ]
+        },
+        {
+          "chapter_numbers": "250",
+          "mid_chapter_list": [
+            {
+              "chapter_id": 1009399,
+              "end_timestamp": 2145884400,
+              "name": "#201",
+              "start_timestamp": 1624204800,
+              "sub_title": "Z=201: Morse Talk",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1009399/chapter_thumbnail/173074.webp?hash=zrycmlHjyDq9mR5_QGYlag&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1009400,
+              "end_timestamp": 2145884400,
+              "name": "#202",
+              "start_timestamp": 1624809600,
+              "sub_title": "Z=202: Ryusui Corp.",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1009400/chapter_thumbnail/173518.webp?hash=Ztz9Z6VHuL4vcot1gep1kA&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1009560,
+              "end_timestamp": 2145884400,
+              "name": "#203",
+              "start_timestamp": 1625414400,
+              "sub_title": "Z=203: Missile Heart",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1009560/chapter_thumbnail/174097.webp?hash=bdQvq90fWJ34p2fU8VRUeQ&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1009561,
+              "end_timestamp": 2145884400,
+              "name": "#204",
+              "start_timestamp": 1626019200,
+              "sub_title": "Z=204: The Universe is Written in the Language of Mathematics",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1009561/chapter_thumbnail/174466.webp?hash=VWBzL9dfcn2_YrvZgzOBUw&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1009562,
+              "end_timestamp": 2145884400,
+              "name": "#205",
+              "start_timestamp": 1626624000,
+              "sub_title": "Z=205: Universe of Zeroes and Ones",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1009562/chapter_thumbnail/174862.webp?hash=D5U0kLsAIMqNfxrsm-ZyJw&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1009667,
+              "end_timestamp": 2145884400,
+              "name": "#206",
+              "start_timestamp": 1628521200,
+              "sub_title": "Z=206: Dawn of the Computer",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1009667/chapter_thumbnail/176716.webp?hash=usdbXDYoDfh9Yclpmb9qsA&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1009668,
+              "end_timestamp": 2145884400,
+              "name": "#207",
+              "start_timestamp": 1629644400,
+              "sub_title": "Z=207: Linking the Circuit Diagram",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1009668/chapter_thumbnail/178006.webp?hash=CFtjUQ6GFHxCMt0r5kiHrg&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1009669,
+              "end_timestamp": 2145884400,
+              "name": "#208",
+              "start_timestamp": 1630249200,
+              "sub_title": "Z=208: Science Transcends Humanity",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1009669/chapter_thumbnail/178759.webp?hash=Q9kZIaBIQg9KqPlAB7Z2Ug&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1009823,
+              "end_timestamp": 2145884400,
+              "name": "#209",
+              "start_timestamp": 1630854000,
+              "sub_title": "Z=209: The Rocket's Hard Truth",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1009823/chapter_thumbnail/180847.webp?hash=HHoRvrDO495Sz4_XpiCRMw&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1009824,
+              "end_timestamp": 2145884400,
+              "name": "#210",
+              "start_timestamp": 1631458800,
+              "sub_title": "Z=210: Not One-Way",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1009824/chapter_thumbnail/181405.webp?hash=eXCeLW_Tv0pIgkIV2wgnQg&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1009825,
+              "end_timestamp": 2145884400,
+              "name": "#211",
+              "start_timestamp": 1631890800,
+              "sub_title": "Z=211: World Tour for Resources",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1009825/chapter_thumbnail/182512.webp?hash=ZjZyOwvx4t2Tu4IDz9GW-w&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1009826,
+              "end_timestamp": 2145884400,
+              "name": "#212",
+              "start_timestamp": 1632668400,
+              "sub_title": "Z=212: Final Part: Stone to Space",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1009826/chapter_thumbnail/183277.webp?hash=r_9epfICJxl0Q9wNzJUBbQ&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1010013,
+              "end_timestamp": 2145884400,
+              "name": "#213",
+              "start_timestamp": 1633878000,
+              "sub_title": "Z=213: Unknown Known",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1010013/chapter_thumbnail/185056.webp?hash=IyaQjVXFHvm8_YHrV27MCw&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1010014,
+              "end_timestamp": 2145884400,
+              "name": "#214",
+              "start_timestamp": 1634482800,
+              "sub_title": "Z=214: Stone World's Earth Defense Force",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1010014/chapter_thumbnail/185821.webp?hash=lxOkrCvKBlEYKSL0BWfGVg&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1010015,
+              "end_timestamp": 2145884400,
+              "name": "#215",
+              "start_timestamp": 1635087600,
+              "sub_title": "Z=215: Long, Long Road",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1010015/chapter_thumbnail/186373.webp?hash=1PCW4vjbCFDR96xT-sQgtw&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1010484,
+              "end_timestamp": 2145884400,
+              "name": "#216",
+              "start_timestamp": 1635692400,
+              "sub_title": "Z=216: Hello, World",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1010484/chapter_thumbnail/186871.webp?hash=kGUYhMJAyH20S5KK7s4PpQ&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1010485,
+              "end_timestamp": 2145884400,
+              "name": "#217",
+              "start_timestamp": 1636297200,
+              "sub_title": "Z=217: Science Underdogs",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1010485/chapter_thumbnail/187417.webp?hash=bjgqkbb3DLjL2kMEveYDBw&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1010486,
+              "end_timestamp": 2145884400,
+              "name": "#218",
+              "start_timestamp": 1636902000,
+              "sub_title": "Z=218: WWW",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1010486/chapter_thumbnail/188866.webp?hash=aLoJEJ5yclqOf2Ol5d2QWg&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1010487,
+              "end_timestamp": 2145884400,
+              "name": "#219",
+              "start_timestamp": 1637506800,
+              "sub_title": "Z=219: Three Heroes",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1010487/chapter_thumbnail/195337.webp?hash=d3YGY3H-tICTT7KCsuwdDQ&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1010488,
+              "end_timestamp": 2145884400,
+              "name": "#220",
+              "start_timestamp": 1638111600,
+              "sub_title": "Z=220: A Desire for All",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1010488/chapter_thumbnail/195907.webp?hash=ZZk0k8pmX_BK-zXbLH2fQQ&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1011912,
+              "end_timestamp": 2145884400,
+              "name": "#221",
+              "start_timestamp": 1638716400,
+              "sub_title": "Z=221: Entrusting It All",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1011912/chapter_thumbnail/196519.webp?hash=2M-5i9toJ5K3N219TQ19iw&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1011913,
+              "end_timestamp": 2145884400,
+              "name": "#222",
+              "start_timestamp": 1639321200,
+              "sub_title": "Z=222: Science Road",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1011913/chapter_thumbnail/197146.webp?hash=vXarR67elYtpV3c6ikdPMw&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1011914,
+              "end_timestamp": 2145884400,
+              "name": "#223",
+              "start_timestamp": 1639926000,
+              "sub_title": "Z=223: 0",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1011914/chapter_thumbnail/203110.webp?hash=sXhNPVVsTOJYGUAOWHQW0g&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1011915,
+              "end_timestamp": 2145884400,
+              "name": "#224",
+              "start_timestamp": 1641222000,
+              "sub_title": "Z=224: In Space",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1011915/chapter_thumbnail/203710.webp?hash=AZp9GkSVNPJ1O0lM4RAYtQ&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012639,
+              "end_timestamp": 2145884400,
+              "name": "#225",
+              "start_timestamp": 1642345200,
+              "sub_title": "Z=225: Docking",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012639/chapter_thumbnail/206689.webp?hash=odLViJKTJpZSb89E0PsMhQ&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012640,
+              "end_timestamp": 2145884400,
+              "name": "#226",
+              "start_timestamp": 1642950000,
+              "sub_title": "Z=226: Giant Step",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012640/chapter_thumbnail/208087.webp?hash=MBx2zrkQl0gQFEJB8eUWNw&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012641,
+              "end_timestamp": 2145884400,
+              "name": "#227",
+              "start_timestamp": 1643554800,
+              "sub_title": "Z=227: It Was You",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012641/chapter_thumbnail/208654.webp?hash=lybOixSqPsF8VAsz1Xea-A&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012739,
+              "end_timestamp": 2145884400,
+              "name": "#228",
+              "start_timestamp": 1644159600,
+              "sub_title": "Z=228: Life Stone",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012739/chapter_thumbnail/209389.webp?hash=KfmHc9aHhzpnwAkaOHQ8KQ&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012780,
+              "end_timestamp": 2145884400,
+              "name": "#229",
+              "start_timestamp": 1644764400,
+              "sub_title": "Z=229: Why-Man",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012780/chapter_thumbnail/209951.webp?hash=dFAFL6S6RwV0CCbPmApu_w&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012800,
+              "end_timestamp": 2145884400,
+              "name": "#230",
+              "start_timestamp": 1645369200,
+              "sub_title": "Z=230: Human",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012800/chapter_thumbnail/210667.webp?hash=og1aO4iRrESI8enBmLz85g&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012836,
+              "end_timestamp": 2145884400,
+              "name": "#231",
+              "start_timestamp": 1645974000,
+              "sub_title": "Z=231: A Future to Get Excited About",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012836/chapter_thumbnail/211153.webp?hash=H2HA_Cs5sv_flSoIRwkxQw&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1012941,
+              "end_timestamp": 2145884400,
+              "name": "#232",
+              "start_timestamp": 1646578800,
+              "sub_title": "Final Chapter: Dr. Stone",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1012941/chapter_thumbnail/212383.webp?hash=t2aDIU6Sv_L2VKonxovrUQ&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1013713,
+              "end_timestamp": 2145884400,
+              "name": "ex",
+              "start_timestamp": 1656860400,
+              "sub_title": "Terraforming",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1013713/chapter_thumbnail/224772.webp?hash=inyeMQx-plU0Pg3R_rxQLA&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1019503,
+              "end_timestamp": 2145884400,
+              "name": "ex",
+              "start_timestamp": 1699196400,
+              "sub_title": "Chapter 1D: Future Message",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1019503/chapter_thumbnail/320824.webp?hash=NypZUqHyfnFG3kEAH5afTw&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1019504,
+              "end_timestamp": 2145884400,
+              "name": "ex",
+              "start_timestamp": 1702825200,
+              "sub_title": "Chapter 2D: Future Road Map",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1019504/chapter_thumbnail/327171.webp?hash=tGCzSPrCzxsblrkhezsl-g&expires=1771027200",
+              "title_id": 100010
+            },
+            {
+              "chapter_id": 1019502,
+              "end_timestamp": 2145884400,
+              "name": "ex",
+              "start_timestamp": 1703430000,
+              "sub_title": "Chapter 3D: Future Science",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/chapter/1019502/chapter_thumbnail/328206.webp?hash=xemI-0fCALxRwdhGQhOKMg&expires=1771027200",
+              "title_id": 100010
+            }
+          ]
+        }
+      ],
+      "is_simul_released": true,
+      "number_of_views": 17498075,
+      "overview": "One fateful day, all of humanity was petrified by a blinding flash of light. After several millennia, high schooler Taiju awakens and finds himself lost in a world of statues. However, he's not alone! His science-loving friend Senku's been up and running for a few months and he's got a grand plan in mind?to kickstart civilization with the power of science!",
+      "rating": 1,
+      "sns": {
+        "body": "#MANGA_Plus Dr. STONE",
+        "url": "https://jumpg-webapi.tokyo-cdn.com/www/sns_share?title_id=100010"
+      },
+      "title": {
+        "author": "Riichiro Inagaki / Boichi",
+        "name": "Dr. STONE",
+        "portrait_image_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/title_thumbnail_portrait_list/312364.webp?hash=N8-maxyynA0pzXUBWRCIWQ&expires=2145884400",
+        "title_id": 100010
+      },
+      "title_image_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/title_thumbnail_main/312361.webp?hash=ExKiQG_xvo2fULojK5vRzg&expires=2145884400",
+      "viewing_period_description": "The latest 0 chapters are viewable in this title.\nPlease be aware that the 0th latest chapter will be hidden when a new chapter is added."
+    }
+  }
+}

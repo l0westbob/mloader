@@ -40,6 +40,7 @@ class DummyLoader(api.APILoaderMixin):
         self.quality = quality
         self.request_timeout = (1.0, 2.0)
         self.session = DummySession()
+        self.payload_capture = None
 
 
 def test_parse_manga_viewer_response(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -127,3 +128,49 @@ def test_title_detail_url() -> None:
     """Verify title-detail endpoint URL is built correctly."""
     loader = DummyLoader()
     assert loader._build_title_detail_url() == "https://api.example/api/title_detailV3"
+
+
+def test_load_pages_captures_payload_when_enabled(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify _load_pages forwards response payloads to capture backend."""
+    api.APILoaderMixin._load_pages.cache_clear()
+    loader = DummyLoader()
+    captured: list[dict[str, Any]] = []
+
+    class Capture:
+        def capture(self, **kwargs: Any) -> None:
+            captured.append(kwargs)
+
+    loader.payload_capture = Capture()
+    monkeypatch.setattr(api, "_parse_manga_viewer_response", lambda content: {"parsed": content})
+
+    loader._load_pages(123)
+
+    assert len(captured) == 1
+    assert captured[0]["endpoint"] == "manga_viewer"
+    assert captured[0]["identifier"] == 123
+    assert captured[0]["url"].endswith("/api/manga_viewer")
+    assert captured[0]["response_content"] == b"payload"
+
+
+def test_get_title_details_captures_payload_when_enabled(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify _get_title_details forwards response payloads to capture backend."""
+    api.APILoaderMixin._get_title_details.cache_clear()
+    loader = DummyLoader()
+    captured: list[dict[str, Any]] = []
+
+    class Capture:
+        def capture(self, **kwargs: Any) -> None:
+            captured.append(kwargs)
+
+    loader.payload_capture = Capture()
+    monkeypatch.setattr(api, "_parse_title_detail_response", lambda content: {"parsed": content})
+
+    loader._get_title_details(88)
+
+    assert len(captured) == 1
+    assert captured[0]["endpoint"] == "title_detailV3"
+    assert captured[0]["identifier"] == 88
+    assert captured[0]["url"].endswith("/api/title_detailV3")
+    assert captured[0]["response_content"] == b"payload"

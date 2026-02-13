@@ -11,6 +11,7 @@ from urllib3.util.retry import Retry
 from mloader.types import ExporterFactoryLike
 
 from .api import APILoaderMixin
+from .capture import APIPayloadCapture
 from .decryption import DecryptionMixin
 from .downloader import DownloadMixin
 from .normalization import NormalizationMixin
@@ -31,6 +32,7 @@ class MangaLoader(APILoaderMixin, NormalizationMixin, DownloadMixin, DecryptionM
         api_url: str = "https://jumpg-api.tokyo-cdn.com",
         request_timeout: tuple[float, float] = (5.0, 30.0),
         retries: int = 3,
+        capture_api_dir: str | None = None,
     ) -> None:
         """Initialize loader configuration, transport defaults, and headers."""
         self.meta = meta
@@ -40,6 +42,7 @@ class MangaLoader(APILoaderMixin, NormalizationMixin, DownloadMixin, DecryptionM
         self.quality = quality
         self.split = split
         self.request_timeout = request_timeout
+        self.payload_capture = APIPayloadCapture(capture_api_dir) if capture_api_dir else None
         self.session = session or Session()
         self._configure_transport(self.session, retries)
         self.session.headers.update(

@@ -51,6 +51,8 @@ You can download individual chapters or full title (but only available chapters)
 
 Chapters can be saved in different formats (check the `--help` output for the available formats).
 
+When `--capture-api` is enabled, mloader stores every fetched API payload (raw protobuf + metadata + parsed JSON when possible). This is useful for regression fixture collection and for tracking upstream API changes over time.
+
 ## 🖥️ Command line interface
 
 Currently `mloader` supports these commands
@@ -62,9 +64,16 @@ Usage: mloader [OPTIONS] [URLS]...
 
 Options:
   --version                       Show the version and exit.
-  -o, --out <directory>           Save directory (not a file)  [default:
+  -o, --out <directory>           Output directory for downloads  [default:
                                   mloader_downloads]
-  -f, --format [raw|cbz|pdf]      Output format  [default: cbz]
+  --verify-capture-schema <directory>
+                                  Verify captured API payloads
+                                  against required response schema fields and
+                                  exit
+  -r, --raw                       Save raw images
+  -f, --format [cbz|pdf]          Save as CBZ or PDF  [default: cbz]
+  --capture-api <directory>       Dump raw API payload captures (protobuf +
+                                  metadata) to this directory
   -q, --quality [super_high|high|low]
                                   Image quality  [default: super_high]
   -s, --split                     Split combined images
@@ -75,7 +84,15 @@ Options:
   -e, --end INTEGER RANGE         Maximal chapter to try to download  [x>=1]
   -l, --last                      Download only the last chapter for title
   --chapter-title                 Include chapter titles in filenames
+  --chapter-subdir                Save raw images in subdirectories by chapter
+  -m, --meta                      Export additional metadata as JSON
   --help                          Show this message and exit.
+```
+
+Verify your recorded payload set:
+
+```bash
+mloader --verify-capture-schema ./capture
 ```
 
 ## 🧩 Extending mloader
