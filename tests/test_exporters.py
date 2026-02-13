@@ -1,5 +1,10 @@
+"""Tests for concrete exporter implementations."""
+
+from __future__ import annotations
+
 import io
 import zipfile
+from pathlib import Path
 from types import SimpleNamespace
 
 from PIL import Image
@@ -10,22 +15,26 @@ from mloader.exporters.pdf_exporter import PDFExporter
 from mloader.exporters.raw_exporter import RawExporter
 
 
-def _title(name="demo title", language=Language.ENGLISH.value):
+def _title(name: str = "demo title", language: int = Language.ENGLISH.value) -> SimpleNamespace:
+    """Build a minimal title object for exporter tests."""
     return SimpleNamespace(name=name, language=language)
 
 
-def _chapter(name="#1", sub_title="start"):
+def _chapter(name: str = "#1", sub_title: str = "start") -> SimpleNamespace:
+    """Build a minimal chapter object for exporter tests."""
     return SimpleNamespace(name=name, sub_title=sub_title)
 
 
-def _jpeg_bytes(color=(255, 0, 0)):
+def _jpeg_bytes(color: tuple[int, int, int] = (255, 0, 0)) -> bytes:
+    """Create a small in-memory JPEG image payload for tests."""
     image = Image.new("RGB", (20, 20), color=color)
     buffer = io.BytesIO()
     image.save(buffer, format="JPEG")
     return buffer.getvalue()
 
 
-def test_raw_exporter_writes_and_skips_existing_image(tmp_path):
+def test_raw_exporter_writes_and_skips_existing_image(tmp_path: Path) -> None:
+    """Verify raw exporter writes page files and skips existing outputs."""
     exporter = RawExporter(destination=str(tmp_path), title=_title(), chapter=_chapter())
 
     exporter.add_image(b"abc", 0)
@@ -37,7 +46,8 @@ def test_raw_exporter_writes_and_skips_existing_image(tmp_path):
     assert exporter.skip_image(0) is True
 
 
-def test_raw_exporter_with_chapter_subdir(tmp_path):
+def test_raw_exporter_with_chapter_subdir(tmp_path: Path) -> None:
+    """Verify raw exporter can place output in chapter-specific subdirectories."""
     exporter = RawExporter(
         destination=str(tmp_path),
         title=_title(),
@@ -47,7 +57,8 @@ def test_raw_exporter_with_chapter_subdir(tmp_path):
     assert exporter.path.name == exporter.chapter_name
 
 
-def test_cbz_exporter_creates_archive_with_images(tmp_path):
+def test_cbz_exporter_creates_archive_with_images(tmp_path: Path) -> None:
+    """Verify CBZ exporter writes image entries into a created archive."""
     exporter = CBZExporter(destination=str(tmp_path), title=_title(), chapter=_chapter())
 
     exporter.add_image(b"img1", 0)
@@ -62,7 +73,8 @@ def test_cbz_exporter_creates_archive_with_images(tmp_path):
     assert any(name.endswith(".jpg") for name in names)
 
 
-def test_cbz_exporter_skips_when_archive_exists(tmp_path):
+def test_cbz_exporter_skips_when_archive_exists(tmp_path: Path) -> None:
+    """Verify CBZ exporter skips writes when destination archive already exists."""
     first = CBZExporter(destination=str(tmp_path), title=_title(), chapter=_chapter())
     first.add_image(b"img1", 0)
     first.close()
@@ -77,7 +89,8 @@ def test_cbz_exporter_skips_when_archive_exists(tmp_path):
     assert second.path.stat().st_size == size_before
 
 
-def test_pdf_exporter_writes_pdf(tmp_path):
+def test_pdf_exporter_writes_pdf(tmp_path: Path) -> None:
+    """Verify PDF exporter writes a non-empty PDF output file."""
     exporter = PDFExporter(destination=str(tmp_path), title=_title(), chapter=_chapter())
 
     exporter.add_image(_jpeg_bytes(), 0)
@@ -87,7 +100,8 @@ def test_pdf_exporter_writes_pdf(tmp_path):
     assert exporter.path.stat().st_size > 0
 
 
-def test_pdf_exporter_skips_when_pdf_exists(tmp_path):
+def test_pdf_exporter_skips_when_pdf_exists(tmp_path: Path) -> None:
+    """Verify PDF exporter skips writes when destination PDF already exists."""
     first = PDFExporter(destination=str(tmp_path), title=_title(), chapter=_chapter())
     first.add_image(_jpeg_bytes(), 0)
     first.close()
@@ -102,7 +116,8 @@ def test_pdf_exporter_skips_when_pdf_exists(tmp_path):
     assert second.path.stat().st_size == size_before
 
 
-def test_pdf_exporter_close_without_images_is_noop(tmp_path):
+def test_pdf_exporter_close_without_images_is_noop(tmp_path: Path) -> None:
+    """Verify closing PDF exporter without images does not create output."""
     exporter = PDFExporter(destination=str(tmp_path), title=_title(name="other"), chapter=_chapter())
     exporter.close()
     assert exporter.path.exists() is False

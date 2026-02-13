@@ -1,6 +1,6 @@
 [build-system]
-requires = ["setuptools>=80.0", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling>=1.27.0"]
+build-backend = "hatchling.build"
 
 [project]
 name = "mloader"
@@ -33,8 +33,8 @@ dev = [
     "ruff>=0.13.0",
 ]
 
-[tool.setuptools.packages.find]
-include = ["mloader*"]
+[tool.hatch.build.targets.wheel]
+packages = ["mloader"]
 
 [tool.pytest.ini_options]
 addopts = "-q"
@@ -44,6 +44,24 @@ testpaths = ["tests"]
 target-version = "py314"
 line-length = 100
 extend-exclude = ["mloader/response_pb2.py"]
+
+[tool.ruff.lint]
+select = [
+    "F",
+    "D100",
+    "D101",
+    "D102",
+    "D103",
+    "D104",
+    "D107",
+    "ANN001",
+    "ANN002",
+    "ANN003",
+    "ANN201",
+    "ANN202",
+    "ANN204",
+    "ANN205",
+]
 
 [tool.ruff.lint.per-file-ignores]
 "mloader/__main__.py" = ["E402"]

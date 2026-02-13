@@ -1,6 +1,12 @@
+"""Tests for download orchestration helpers."""
+
+from __future__ import annotations
+
 import json
 from contextlib import contextmanager
+from pathlib import Path
 from types import SimpleNamespace
+from typing import Any, Iterator
 
 import click
 import pytest
@@ -10,48 +16,66 @@ from mloader.manga_loader.downloader import DownloadMixin
 
 
 class DummyDownloader(DownloadMixin):
-    def __init__(self, destination="/tmp/out"):
+    """DownloadMixin harness overriding selected side-effect methods."""
+
+    def __init__(self, destination: str = "/tmp/out") -> None:
+        """Initialize downloader with a fake exporter destination."""
         self.exporter = SimpleNamespace(keywords={"destination": destination})
         self.meta = False
 
-    def _extract_chapter_data(self, title_dump):
+    def _extract_chapter_data(self, title_dump: Any) -> dict[str, dict[str, Any]]:
+        """Return pre-seeded chapter data stored on ``title_dump``."""
         return title_dump.chapter_data
 
-    def _download_image(self, url):
+    def _download_image(self, url: str) -> bytes:
+        """Return deterministic bytes for a given image URL."""
         return f"img:{url}".encode("utf-8")
 
 
 class FullDownloader(DownloadMixin):
-    def __init__(self, destination="/tmp/out"):
+    """DownloadMixin harness using real mixin internals where possible."""
+
+    def __init__(self, destination: str = "/tmp/out") -> None:
+        """Initialize downloader with a fake exporter destination and session."""
         self.exporter = SimpleNamespace(keywords={"destination": destination})
         self.meta = False
         self.session = DummySession(DummyResponse(content=b"default"))
 
 
 class DummyResponse:
-    def __init__(self, content=b"data"):
+    """Simple HTTP response test double with status tracking."""
+
+    def __init__(self, content: bytes = b"data") -> None:
+        """Store the payload and initialize status tracking."""
         self.content = content
         self.status_checked = False
 
-    def raise_for_status(self):
+    def raise_for_status(self) -> None:
+        """Record that status validation was executed."""
         self.status_checked = True
 
 
 class DummySession:
-    def __init__(self, response):
-        self.response = response
-        self.calls = []
+    """Simple HTTP session test double collecting requested URLs."""
 
-    def get(self, url):
+    def __init__(self, response: DummyResponse) -> None:
+        """Initialize session with a fixed response object."""
+        self.response = response
+        self.calls: list[str] = []
+
+    def get(self, url: str) -> DummyResponse:
+        """Record URL requests and return the configured response."""
         self.calls.append(url)
         return self.response
 
 
-def _chapter(chapter_id, name, sub_title="sub"):
+def _chapter(chapter_id: int, name: str, sub_title: str = "sub") -> SimpleNamespace:
+    """Build a minimal chapter object."""
     return SimpleNamespace(chapter_id=chapter_id, name=name, sub_title=sub_title)
 
 
-def _group(chapters):
+def _group(chapters: list[SimpleNamespace]) -> SimpleNamespace:
+    """Build a chapter group wrapper used by title dumps."""
     return SimpleNamespace(
         first_chapter_list=list(chapters),
         mid_chapter_list=[],
@@ -59,7 +83,8 @@ def _group(chapters):
     )
 
 
-def test_filter_chapters_to_download_skips_existing_files():
+def test_filter_chapters_to_download_skips_existing_files() -> None:
+    """Verify existing chapter files are skipped from download candidates."""
     downloader = DummyDownloader()
     chapter_data = {
         "Chapter One": {"chapter_id": 1},
@@ -83,7 +108,8 @@ def test_filter_chapters_to_download_skips_existing_files():
     assert result == [2]
 
 
-def test_dump_title_metadata_writes_expected_json(tmp_path):
+def test_dump_title_metadata_writes_expected_json(tmp_path: Path) -> None:
+    """Verify metadata exporter writes normalized chapter metadata JSON."""
     downloader = DummyDownloader(destination=str(tmp_path))
     title_dump = SimpleNamespace(
         non_appearance_info="n/a",
@@ -105,22 +131,30 @@ def test_dump_title_metadata_writes_expected_json(tmp_path):
     assert content["chapters"]["Hello World"]["chapter_id"] == 1
 
 
-def test_process_chapter_pages_handles_double_pages(monkeypatch):
+def test_process_chapter_pages_handles_double_pages(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify DOUBLE page types are converted into ranged page indexes."""
     downloader = DummyDownloader()
 
     @contextmanager
-    def fake_progressbar(items, **kwargs):
+    def fake_progressbar(items: list[Any], **kwargs: Any) -> Iterator[list[Any]]:
+        """Yield given items without rendering a real progress bar."""
+        del kwargs
         yield items
 
     monkeypatch.setattr(click, "progressbar", fake_progressbar)
 
-    calls = []
+    calls: list[tuple[bytes, Any]] = []
 
     class FakeExporter:
-        def skip_image(self, index):
+        """Exporter test double recording add_image calls."""
+
+        def skip_image(self, index: int | range) -> bool:
+            """Never skip images in this test exporter."""
+            del index
             return False
 
-        def add_image(self, blob, index):
+        def add_image(self, blob: bytes, index: int | range) -> None:
+            """Record blob and page index for assertions."""
             calls.append((blob, index))
 
     pages = [
@@ -136,7 +170,8 @@ def test_process_chapter_pages_handles_double_pages(monkeypatch):
     assert calls[1][1] == 2
 
 
-def test_has_last_page_detection():
+def test_has_last_page_detection() -> None:
+    """Verify terminal page detection with and without last_page payload."""
     downloader = DummyDownloader()
 
     good = SimpleNamespace(pages=[SimpleNamespace(last_page=SimpleNamespace())])
@@ -146,15 +181,20 @@ def test_has_last_page_detection():
     assert downloader._has_last_page(bad) is False
 
 
-def test_download_calls_prepare_and_download():
-    calls = {}
+def test_download_calls_prepare_and_download() -> None:
+    """Verify download() delegates to normalization and _download methods."""
+    calls: dict[str, Any] = {}
 
     class Orchestrator(DummyDownloader):
-        def _prepare_normalized_manga_list(self, *args):
+        """Downloader double capturing orchestration method arguments."""
+
+        def _prepare_normalized_manga_list(self, *args: Any) -> dict[str, set[int]]:
+            """Capture prepare args and return a sentinel mapping."""
             calls["prepare"] = args
             return {"mapping": {1}}
 
-        def _download(self, mapping):
+        def _download(self, mapping: dict[str, set[int]]) -> None:
+            """Capture the mapping forwarded to _download."""
             calls["download"] = mapping
 
     loader = Orchestrator()
@@ -164,11 +204,21 @@ def test_download_calls_prepare_and_download():
     assert calls["download"] == {"mapping": {1}}
 
 
-def test_download_iterates_titles():
-    calls = []
+def test_download_iterates_titles() -> None:
+    """Verify _download iterates titles in insertion order with indexes."""
+    calls: list[tuple[int, int, int, set[int]]] = []
 
     class Iterating(DummyDownloader):
-        def _process_title(self, title_index, total_titles, title_id, chapter_ids):
+        """Downloader double capturing _process_title invocations."""
+
+        def _process_title(
+            self,
+            title_index: int,
+            total_titles: int,
+            title_id: int,
+            chapter_ids: set[int],
+        ) -> None:
+            """Record _process_title invocation payloads."""
             calls.append((title_index, total_titles, title_id, chapter_ids))
 
     loader = Iterating()
@@ -177,7 +227,10 @@ def test_download_iterates_titles():
     assert calls == [(1, 2, 10, {1, 2}), (2, 2, 20, {3})]
 
 
-def test_process_title_with_no_chapters_to_download(monkeypatch):
+def test_process_title_with_no_chapters_to_download(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify _process_title returns early when no chapters remain."""
     downloader = FullDownloader()
     title_dump = SimpleNamespace(
         title=SimpleNamespace(name="My Manga", author="A"),
@@ -192,13 +245,16 @@ def test_process_title_with_no_chapters_to_download(monkeypatch):
     downloader._process_title(1, 1, 10, {1})
 
 
-def test_process_title_downloads_sorted_chapters(monkeypatch):
+def test_process_title_downloads_sorted_chapters(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify _process_title processes candidate chapters in sorted order."""
     downloader = FullDownloader()
     title_dump = SimpleNamespace(
         title=SimpleNamespace(name="My Manga", author="A"),
         chapter_data={"sub": {"chapter_id": 3}},
     )
-    processed = []
+    processed: list[tuple[int, int, int]] = []
 
     monkeypatch.setattr(downloader, "_get_title_details", lambda _tid: title_dump, raising=False)
     monkeypatch.setattr(
@@ -220,7 +276,10 @@ def test_process_title_downloads_sorted_chapters(monkeypatch):
     assert processed == [(1, 3, 2), (2, 3, 3), (3, 3, 5)]
 
 
-def test_process_title_dumps_metadata_when_enabled(monkeypatch):
+def test_process_title_dumps_metadata_when_enabled(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify metadata export is invoked when loader meta flag is enabled."""
     downloader = FullDownloader()
     downloader.meta = True
     title_dump = SimpleNamespace(
@@ -244,7 +303,8 @@ def test_process_title_dumps_metadata_when_enabled(monkeypatch):
     assert calls["metadata"] == 1
 
 
-def test_process_chapter_exits_without_last_page(monkeypatch):
+def test_process_chapter_exits_without_last_page(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify _process_chapter exits when viewer payload lacks last_page."""
     downloader = FullDownloader()
     viewer = SimpleNamespace(chapter_name="C1", pages=[SimpleNamespace()])
     monkeypatch.setattr(downloader, "_load_pages", lambda _cid: viewer, raising=False)
@@ -253,24 +313,31 @@ def test_process_chapter_exits_without_last_page(monkeypatch):
         downloader._process_chapter(SimpleNamespace(name="t"), 1, 1, 10)
 
 
-def test_process_chapter_creates_exporter_and_closes(monkeypatch):
+def test_process_chapter_creates_exporter_and_closes(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify _process_chapter builds exporter, processes pages, and closes exporter."""
+
     class ExporterInstance:
-        def __init__(self):
+        """Exporter test double with close tracking."""
+
+        def __init__(self) -> None:
+            """Initialize close tracking state."""
             self.closed = False
 
-        def close(self):
+        def close(self) -> None:
+            """Record close invocation."""
             self.closed = True
 
     instance = ExporterInstance()
-    captured = {}
+    captured: dict[str, Any] = {}
 
-    def exporter_factory(**kwargs):
+    def exporter_factory(**kwargs: Any) -> ExporterInstance:
+        """Capture exporter constructor arguments and return test instance."""
         captured.update(kwargs)
         return instance
 
     downloader = FullDownloader()
     downloader.exporter = exporter_factory
-    processed = []
+    processed: list[tuple[list[Any], str, Any]] = []
 
     viewer = SimpleNamespace(
         chapter_name="#1",
@@ -304,7 +371,8 @@ def test_process_chapter_creates_exporter_and_closes(monkeypatch):
     assert instance.closed is True
 
 
-def test_download_image_calls_raise_for_status():
+def test_download_image_calls_raise_for_status() -> None:
+    """Verify _download_image calls response.raise_for_status before returning bytes."""
     downloader = FullDownloader()
     response = DummyResponse(content=b"img")
     session = DummySession(response)
@@ -317,27 +385,39 @@ def test_download_image_calls_raise_for_status():
     assert result == b"img"
 
 
-def test_process_chapter_pages_skips_when_exporter_requests(monkeypatch):
+def test_process_chapter_pages_skips_when_exporter_requests(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify _process_chapter_pages skips add_image when exporter says to skip."""
     downloader = DummyDownloader()
 
     @contextmanager
-    def fake_progressbar(items, **kwargs):
+    def fake_progressbar(items: list[Any], **kwargs: Any) -> Iterator[list[Any]]:
+        """Yield given items without rendering a real progress bar."""
+        del kwargs
         yield items
 
     monkeypatch.setattr(click, "progressbar", fake_progressbar)
 
     class SkipExporter:
-        def skip_image(self, index):
+        """Exporter test double that always skips images."""
+
+        def skip_image(self, index: int | range) -> bool:
+            """Return True for every page index."""
+            del index
             return True
 
-        def add_image(self, blob, index):
+        def add_image(self, blob: bytes, index: int | range) -> None:
+            """Fail test if add_image is called while skip_image is True."""
+            del blob, index
             raise AssertionError("add_image should not be called when skip_image is True")
 
     pages = [SimpleNamespace(type=PageType.SINGLE.value, image_url="u1")]
     downloader._process_chapter_pages(pages, chapter_name="#1", exporter=SkipExporter())
 
 
-def test_extract_chapter_data_from_all_groups():
+def test_extract_chapter_data_from_all_groups() -> None:
+    """Verify chapter metadata extraction includes first/mid/last chapter groups."""
     downloader = FullDownloader()
     title_dump = SimpleNamespace(
         chapter_list_group=[
@@ -356,7 +436,8 @@ def test_extract_chapter_data_from_all_groups():
     assert result["C"]["chapter_id"] == 3
 
 
-def test_get_existing_files_returns_stems(tmp_path):
+def test_get_existing_files_returns_stems(tmp_path: Path) -> None:
+    """Verify _get_existing_files returns PDF stems only."""
     downloader = DummyDownloader()
     export_path = tmp_path / "manga"
     export_path.mkdir()
@@ -367,12 +448,14 @@ def test_get_existing_files_returns_stems(tmp_path):
     assert sorted(downloader._get_existing_files(export_path)) == ["a", "b"]
 
 
-def test_get_existing_files_returns_empty_when_missing(tmp_path):
+def test_get_existing_files_returns_empty_when_missing(tmp_path: Path) -> None:
+    """Verify _get_existing_files returns empty list for missing export path."""
     downloader = DummyDownloader()
     assert downloader._get_existing_files(tmp_path / "missing") == []
 
 
-def test_filter_chapters_warns_when_chapter_missing(caplog):
+def test_filter_chapters_warns_when_chapter_missing(caplog: Any) -> None:
+    """Verify missing chapter IDs log a warning and are excluded."""
     downloader = DummyDownloader()
     chapter_data = {"Missing": {"chapter_id": 99}}
     title_dump = SimpleNamespace(chapter_list_group=[])
@@ -391,7 +474,8 @@ def test_filter_chapters_warns_when_chapter_missing(caplog):
     assert "not found in title dump" in caplog.text
 
 
-def test_find_chapter_by_id_returns_match_and_none():
+def test_find_chapter_by_id_returns_match_and_none() -> None:
+    """Verify chapter lookup returns chapter object when found, else None."""
     downloader = DummyDownloader()
     chapter = _chapter(1, "#1")
     title_dump = SimpleNamespace(chapter_list_group=[_group([chapter])])
@@ -400,6 +484,7 @@ def test_find_chapter_by_id_returns_match_and_none():
     assert downloader._find_chapter_by_id(title_dump, 2) is None
 
 
-def test_prepare_filename_keeps_text_when_mojibake_fix_fails():
+def test_prepare_filename_keeps_text_when_mojibake_fix_fails() -> None:
+    """Verify filename sanitizer still returns safe text on decode failures."""
     downloader = DummyDownloader()
     assert downloader._prepare_filename("A\u20ac!") == "A"

@@ -1,3 +1,5 @@
+"""Compatibility entrypoint for the console script."""
+
 # Ensure logging is set up early
 from mloader.cli.config import setup_logging
 setup_logging()

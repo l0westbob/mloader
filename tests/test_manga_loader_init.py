@@ -1,7 +1,12 @@
+"""Tests for MangaLoader initialization behavior."""
+
+from __future__ import annotations
+
 from mloader.manga_loader.init import MangaLoader
 
 
-def test_manga_loader_creates_independent_default_sessions():
+def test_manga_loader_creates_independent_default_sessions() -> None:
+    """Ensure separate MangaLoader instances do not share default sessions."""
     loader_a = MangaLoader(exporter=None, quality="high", split=False, meta=False)
     loader_b = MangaLoader(exporter=None, quality="high", split=False, meta=False)
 

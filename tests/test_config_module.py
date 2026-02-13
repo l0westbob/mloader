@@ -1,9 +1,16 @@
+"""Tests for environment-backed configuration values."""
+
+from __future__ import annotations
+
 import importlib
+
+import pytest
 
 import mloader.config as config
 
 
-def test_auth_params_respect_environment(monkeypatch):
+def test_auth_params_respect_environment(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Ensure AUTH_PARAMS reflects environment overrides after reload."""
     monkeypatch.setenv("APP_VER", "999")
     monkeypatch.setenv("OS", "android")
     monkeypatch.setenv("OS_VER", "42")

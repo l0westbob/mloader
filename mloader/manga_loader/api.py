@@ -1,3 +1,5 @@
+"""API helpers and cached fetch methods for MangaPlus endpoints."""
+
 from __future__ import annotations
 
 from functools import lru_cache
@@ -15,7 +17,7 @@ def _parse_manga_viewer_response(content: bytes) -> MangaViewer:
     return parsed.success.manga_viewer
 
 
-def _build_title_detail_params(title_id: Union[str, int]) -> dict:
+def _build_title_detail_params(title_id: Union[str, int]) -> dict[str, str | int]:
     """Assemble the query parameters for the title details API request."""
     return {**AUTH_PARAMS, "title_id": title_id}
 
@@ -27,6 +29,8 @@ def _parse_title_detail_response(content: bytes) -> TitleDetailView:
 
 
 class APILoaderMixin:
+    """Provide cached API calls for chapter viewer and title details."""
+
     @lru_cache(None)
     def _load_pages(self, chapter_id: Union[str, int]) -> MangaViewer:
         """
@@ -41,7 +45,7 @@ class APILoaderMixin:
         """Construct the full URL for the manga viewer API endpoint."""
         return f"{self._api_url}/api/manga_viewer"
 
-    def _build_manga_viewer_params(self, chapter_id: Union[str, int]) -> dict:
+    def _build_manga_viewer_params(self, chapter_id: Union[str, int]) -> dict[str, str | int]:
         """Assemble the query parameters for the manga viewer API request."""
         split_value = "yes" if self.split else "no"
         return {**AUTH_PARAMS, "chapter_id": chapter_id, "split": split_value, "img_quality": self.quality}

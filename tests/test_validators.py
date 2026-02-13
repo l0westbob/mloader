@@ -1,3 +1,7 @@
+"""Tests for CLI callback validators."""
+
+from __future__ import annotations
+
 from types import SimpleNamespace
 
 import click
@@ -6,7 +10,8 @@ import pytest
 from mloader.cli.validators import validate_ids, validate_urls
 
 
-def test_validate_urls_collects_chapters_and_titles():
+def test_validate_urls_collects_chapters_and_titles() -> None:
+    """Verify URL callback extracts viewer and title IDs into context sets."""
     ctx = click.Context(click.Command("mloader"))
 
     value = (
@@ -22,27 +27,31 @@ def test_validate_urls_collects_chapters_and_titles():
     assert ctx.params["titles"] == {456}
 
 
-def test_validate_urls_rejects_invalid_url():
+def test_validate_urls_rejects_invalid_url() -> None:
+    """Verify malformed URLs raise a click validation error."""
     ctx = click.Context(click.Command("mloader"))
 
     with pytest.raises(click.BadParameter):
         validate_urls(ctx, None, ("not-a-url",))
 
 
-def test_validate_urls_rejects_unsupported_segment():
+def test_validate_urls_rejects_unsupported_segment() -> None:
+    """Verify unknown URL path keys are rejected by validator callback."""
     ctx = click.Context(click.Command("mloader"))
 
     with pytest.raises(click.BadParameter):
         validate_urls(ctx, None, ("https://mangaplus.shueisha.co.jp/chapter/123",))
 
 
-def test_validate_urls_accepts_empty_input():
+def test_validate_urls_accepts_empty_input() -> None:
+    """Verify empty URL argument lists are passed through unchanged."""
     ctx = click.Context(click.Command("mloader"))
 
     assert validate_urls(ctx, None, ()) == ()
 
 
-def test_validate_ids_updates_context_for_chapter_and_title():
+def test_validate_ids_updates_context_for_chapter_and_title() -> None:
+    """Verify ID callback updates corresponding chapter and title sets."""
     ctx = click.Context(click.Command("mloader"))
 
     validate_ids(ctx, SimpleNamespace(name="chapter"), (1, 2, 2))
@@ -52,6 +61,14 @@ def test_validate_ids_updates_context_for_chapter_and_title():
     assert ctx.params["titles"] == {10}
 
 
-def test_validate_ids_accepts_empty_input():
+def test_validate_ids_accepts_empty_input() -> None:
+    """Verify empty numeric ID lists are passed through unchanged."""
     ctx = click.Context(click.Command("mloader"))
     assert validate_ids(ctx, SimpleNamespace(name="chapter"), ()) == ()
+
+
+def test_validate_ids_rejects_missing_param_metadata() -> None:
+    """Verify validator raises click.BadParameter when param metadata is absent."""
+    ctx = click.Context(click.Command("mloader"))
+    with pytest.raises(click.BadParameter):
+        validate_ids(ctx, None, (1,))

@@ -1,3 +1,5 @@
+"""Project metadata constants."""
+
 __intro__ = r"""
             _                 _
   _ __ ___ | | ___   __ _  __| | ___ _ __

@@ -1,3 +1,5 @@
+"""Normalization helpers that map input IDs to downloadable chapter sets."""
+
 from collections import namedtuple
 from itertools import chain
 from typing import Collection, Dict, Set
@@ -5,7 +7,10 @@ from mloader.utils import chapter_name_to_int
 
 MangaList = Dict[int, Set[int]]
 
+
 class NormalizationMixin:
+    """Provide chapter/title normalization logic for loader input."""
+
     def _normalize_ids(
             self,
             title_ids: Collection[int],
@@ -13,7 +18,7 @@ class NormalizationMixin:
             min_chapter: int,
             max_chapter: int,
             last_chapter: bool = False,
-    ) -> 'MangaList':
+    ) -> MangaList:
         """
         Normalize manga title and chapter IDs into a mapping.
 
@@ -70,7 +75,7 @@ class NormalizationMixin:
             min_chapter: int,
             max_chapter: int,
             last_chapter: bool,
-    ) -> 'MangaList':
+    ) -> MangaList:
         """
         Prepare the normalized manga mapping from title and chapter IDs.
         """

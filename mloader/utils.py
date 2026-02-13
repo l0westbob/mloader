@@ -1,3 +1,5 @@
+"""Generic utility helpers for chapter parsing and filename sanitization."""
+
 import re
 import string
 import sys

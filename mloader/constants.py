@@ -1,8 +1,11 @@
+"""Domain enums used across loader and exporters."""
+
 from enum import Enum
 
 
 class Language(Enum):
-    """Represents supported languages."""
+    """Represent supported manga languages."""
+
     ENGLISH = 0
     SPANISH = 1
     FRENCH = 2
@@ -15,14 +18,16 @@ class Language(Enum):
 
 
 class ChapterType(Enum):
-    """Represents different chapter types."""
+    """Represent chapter ordering categories returned by the API."""
+
     LATEST = 0
     SEQUENCE = 1
     NO_SEQUENCE = 2
 
 
 class PageType(Enum):
-    """Represents different page display types."""
+    """Represent page layout types in manga viewer responses."""
+
     SINGLE = 0
     LEFT = 1
     RIGHT = 2

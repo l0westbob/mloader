@@ -1,14 +1,13 @@
+"""Logging configuration helpers for CLI execution."""
+
+from __future__ import annotations
+
 import logging
 import sys
 
 
-def setup_logging():
-    """
-    Configure logging for the application.
-
-    Sets third-party loggers (e.g., 'requests', 'urllib3') to WARNING and configures the
-    root logger to output logs to stdout with a custom format.
-    """
+def setup_logging() -> None:
+    """Configure application logging for console output."""
     for logger_name in ("requests", "urllib3"):
         logging.getLogger(logger_name).setLevel(logging.WARNING)
 
@@ -24,18 +23,9 @@ def setup_logging():
     )
 
 
-# Immediately configure logging upon module import.
 setup_logging()
 
 
-def get_logger(name: str = None) -> logging.Logger:
-    """
-    Retrieve a logger instance with the given name.
-
-    Parameters:
-        name (str, optional): The name of the logger. Defaults to None for the root logger.
-
-    Returns:
-        logging.Logger: The configured logger.
-    """
+def get_logger(name: str | None = None) -> logging.Logger:
+    """Return a logger for ``name`` or the root logger when omitted."""
     return logging.getLogger(name)

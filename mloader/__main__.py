@@ -1,4 +1,4 @@
-# mloader/__main__.py
+"""Application entrypoint used by ``python -m mloader``."""
 
 # Import the logging setup early so that it applies to all loggers.
 from mloader.cli.config import setup_logging

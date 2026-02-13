@@ -1,3 +1,5 @@
+"""Command-line interface definition for mloader."""
+
 import logging
 from functools import partial
 from typing import Optional, Set
@@ -155,29 +157,8 @@ def main(
         meta: bool,
         chapters: Optional[Set[int]] = None,
         titles: Optional[Set[int]] = None,
-):
-    """
-    Main entry point for the manga downloader CLI.
-
-    This command validates inputs, initializes the appropriate exporter (raw or CBZ), sets up
-    the manga loader, and starts the download process.
-
-    Parameters:
-        ctx (click.Context): Click context.
-        out_dir (str): Output directory for downloads.
-        raw (bool): Flag indicating whether to save raw images.
-        output_format (str): Flag indicating whether to save in cbz or pdf format.
-        quality (str): Image quality setting.
-        split (bool): Flag indicating whether to split combined images.
-        begin (int): Minimal chapter number to download.
-        end (int): Maximal chapter number to download.
-        last (bool): Flag to download only the last chapter of each title.
-        chapter_title (bool): Flag to include chapter titles in filenames.
-        chapter_subdir (bool): Flag to save raw images in subdirectories by chapter.
-        meta: (bool): Flag to save title_metadata JSON.
-        chapters (Optional[Set[int]]): Set of chapter IDs.
-        titles (Optional[Set[int]]): Set of title IDs.
-    """
+) -> None:
+    """Run the CLI command and start the configured download flow."""
     # Display application description.
     click.echo(click.style(about.__intro__, fg="blue"))
 
