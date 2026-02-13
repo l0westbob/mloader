@@ -2,6 +2,7 @@
 
 [![Latest Github release](https://img.shields.io/github/tag/hurlenko/mloader.svg)](https://github.com/hurlenko/mloader/releases/latest)
 ![Python](https://img.shields.io/badge/python-v3.14+-blue.svg)
+![Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen.svg)
 ![License](https://img.shields.io/badge/license-GPLv3-blue.svg)
 
 ## **mloader** - download manga from mangaplus.shueisha.co.jp
@@ -39,6 +40,12 @@ pip install -e .[dev]
 
 ```bash
 pytest
+```
+
+Coverage is enforced at **100%** in CI:
+
+```bash
+pytest --cov=mloader --cov-report=term-missing --cov-fail-under=100
 ```
 
 ## 📙 Usage
