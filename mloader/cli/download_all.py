@@ -10,6 +10,7 @@ import click
 import requests
 
 from mloader import __version__ as about
+from mloader.cli.config import setup_logging
 from mloader.constants import Language
 from mloader.errors import SubscriptionRequiredError
 from mloader.exporters.exporter_base import ExporterBase
@@ -316,6 +317,7 @@ def main(
     capture_api_dir: str | None,
 ) -> None:
     """Run bulk-discovery, then download all discovered titles."""
+    setup_logging()
     click.echo(click.style(about.__intro__, fg="blue"))
 
     allowed_languages = parse_language_filters(languages)
