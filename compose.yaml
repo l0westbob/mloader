@@ -12,4 +12,4 @@ services:
       MLOADER_EXTRACT_OUT_DIR: /downloads
     volumes:
       - ./mloader_downloads:/downloads
-    command: ["--list-only"]
+    command: ["--format", "pdf"]
