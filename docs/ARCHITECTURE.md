@@ -5,8 +5,9 @@
 ## Runtime flow
 
 1. `mloader/cli/main.py` parses CLI options and builds exporter configuration.
-2. `MangaLoader` coordinates API calls, ID normalization, and chapter downloads.
-3. Exporters write chapter content to the chosen output format.
+2. `mloader/cli/download_all.py` discovers title IDs from protobuf web API payloads first, then uses static scrape + optional browser fallback when needed, and triggers bulk downloads.
+3. `MangaLoader` coordinates API calls, ID normalization, and chapter downloads.
+4. Exporters write chapter content to the chosen output format.
 
 ## Loader mixins
 

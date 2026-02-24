@@ -10,6 +10,7 @@ readme = "README.md"
 requires-python = ">=3.14"
 license = { text = "GPL-3.0-or-later" }
 authors = [
+    { name = "l0westbob" },
     { name = "Hurlenko" },
 ]
 dependencies = [
@@ -25,6 +26,7 @@ Source = "https://github.com/hurlenko/mloader"
 
 [project.scripts]
 mloader = "mloader.__main__:main"
+mloader-download-all = "mloader.cli.download_all:main"
 
 [project.optional-dependencies]
 dev = [
@@ -32,6 +34,9 @@ dev = [
     "pytest-cov>=6.2.0",
     "ruff>=0.13.0",
     "mypy>=1.18.0",
+]
+bulk = [
+    "playwright>=1.55.0",
 ]
 
 [tool.hatch.build.targets.wheel]
@@ -80,6 +85,8 @@ exclude = [
 module = [
     "requests",
     "requests.*",
+    "playwright",
+    "playwright.*",
     "google.protobuf",
     "google.protobuf.*",
 ]

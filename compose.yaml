@@ -1,0 +1,15 @@
+services:
+  mloader:
+    container_name: "mloader"
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    environment:
+      APP_VER: 97
+      OS: ios
+      OS_VER: 18.1
+      SECRET: e75b23a6296a2575a49b5449119a72d8
+      MLOADER_EXTRACT_OUT_DIR: /downloads
+    volumes:
+      - ./mloader_downloads:/downloads
+    command: ["--list-only"]

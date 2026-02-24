@@ -60,6 +60,23 @@ Chapters can be saved in different formats (check the `--help` output for the av
 
 When `--capture-api` is enabled, mloader stores every fetched API payload (raw protobuf + metadata + parsed JSON when possible). This is useful for regression fixture collection and for tracking upstream API changes over time.
 
+Download all discoverable titles from MangaPlus list pages with one command:
+
+```bash
+mloader-download-all --format pdf
+```
+
+The bulk command uses protobuf API discovery first (`/api/title_list/allV2`), then falls back to
+static page scraping and optional browser-rendered scraping (`--browser-fallback`, enabled by
+default) when needed.
+
+Install browser fallback support locally with:
+
+```bash
+pip install '.[bulk]'
+playwright install chromium
+```
+
 ## 🖥️ Command line interface
 
 Currently `mloader` supports these commands
@@ -110,6 +127,16 @@ Compare a new capture run against your committed baseline:
 
 ```bash
 mloader --verify-capture-schema ./capture --verify-capture-baseline ./tests/fixtures/api_captures/baseline
+```
+
+## 🐳 Docker
+
+`docker/Dockerfile` installs `mloader` from the local repository files and uses `mloader-download-all` as container entrypoint.
+
+The default `compose.yaml` command runs:
+
+```bash
+mloader-download-all --format pdf --meta
 ```
 
 ## 🧩 Extending mloader
