@@ -2,16 +2,21 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass, field
 import logging
-from itertools import count
 from pathlib import Path
 from typing import Collection, Literal, Mapping
 
-import click
-
-from mloader.constants import PageType
+from mloader.domain.requests import DownloadSummary
 from mloader.errors import SubscriptionRequiredError
-from mloader.manga_loader.services import ChapterMetadata, ChapterPlanner, MetadataWriter
+from mloader.manga_loader.manifest import TitleDownloadManifest
+from mloader.manga_loader.services import (
+    ChapterMetadata,
+    ChapterPlanner,
+    MetadataWriter,
+    PageExportService,
+    PageImageService,
+)
 from mloader.types import (
     ChapterLike,
     ExporterFactoryLike,
@@ -27,6 +32,25 @@ from mloader.utils import escape_path
 log = logging.getLogger(__name__)
 
 
+@dataclass(slots=True)
+class _MutableDownloadSummary:
+    """Mutable run counters used during one download execution."""
+
+    downloaded: int = 0
+    skipped_manifest: int = 0
+    failed: int = 0
+    failed_chapter_ids: list[int] = field(default_factory=list)
+
+    def as_immutable(self) -> DownloadSummary:
+        """Build immutable summary payload for public API return value."""
+        return DownloadSummary(
+            downloaded=self.downloaded,
+            skipped_manifest=self.skipped_manifest,
+            failed=self.failed,
+            failed_chapter_ids=tuple(self.failed_chapter_ids),
+        )
+
+
 class DownloadMixin:
     """Provide download and export orchestration for manga content."""
 
@@ -36,6 +60,8 @@ class DownloadMixin:
     exporter: ExporterFactoryLike
     session: SessionLike
     request_timeout: tuple[float, float]
+    resume: bool
+    manifest_reset: bool
 
     def _prepare_normalized_manga_list(
         self,
@@ -60,6 +86,16 @@ class DownloadMixin:
         """Download and decrypt one image payload."""
         raise NotImplementedError
 
+    def _clear_api_caches_for_run(self) -> None:
+        """Clear all API cache entries before/after one download run."""
+
+    def _clear_api_caches_for_title(
+        self,
+        title_id: int,
+        chapter_ids: Collection[int],
+    ) -> None:
+        """Clear per-title API cache entries after title processing."""
+
     def download(
         self,
         *,
@@ -68,22 +104,32 @@ class DownloadMixin:
         min_chapter: int,
         max_chapter: int,
         last_chapter: bool = False,
-    ) -> None:
+    ) -> DownloadSummary:
         """Start a download run using already validated filters."""
-        normalized_mapping = self._prepare_normalized_manga_list(
-            title_ids,
-            chapter_ids,
-            min_chapter,
-            max_chapter,
-            last_chapter,
-        )
-        self._download(normalized_mapping)
+        summary = _MutableDownloadSummary()
+        self._clear_api_caches_for_run()
+        try:
+            normalized_mapping = self._prepare_normalized_manga_list(
+                title_ids,
+                chapter_ids,
+                min_chapter,
+                max_chapter,
+                last_chapter,
+            )
+            self._download(normalized_mapping, summary)
+        finally:
+            self._clear_api_caches_for_run()
+        return summary.as_immutable()
 
-    def _download(self, manga_mapping: Mapping[int, Collection[int]]) -> None:
+    def _download(
+        self,
+        manga_mapping: Mapping[int, Collection[int]],
+        summary: _MutableDownloadSummary,
+    ) -> None:
         """Iterate through normalized titles and process them one by one."""
         total_titles = len(manga_mapping)
         for title_index, (title_id, chapter_ids) in enumerate(manga_mapping.items(), 1):
-            self._process_title(title_index, total_titles, title_id, chapter_ids)
+            self._process_title(title_index, total_titles, title_id, chapter_ids, summary=summary)
 
     def _process_title(
         self,
@@ -91,37 +137,71 @@ class DownloadMixin:
         total_titles: int,
         title_id: int,
         chapter_ids: Collection[int],
+        *,
+        summary: _MutableDownloadSummary,
     ) -> None:
         """Download and export all selected chapters for one title."""
-        title_dump = self._get_title_details(title_id)
-        title_detail = title_dump.title
+        manifest: TitleDownloadManifest | None = None
+        try:
+            title_dump = self._get_title_details(title_id)
+            title_detail = title_dump.title
 
-        log.info(f"{title_index}/{total_titles}) Manga: {title_detail.name}")
-        log.info(f"    Author: {title_detail.author}")
+            log.info(f"{title_index}/{total_titles}) Manga: {title_detail.name}")
+            log.info(f"    Author: {title_detail.author}")
 
-        export_path = Path(self.destination) / escape_path(title_detail.name).title()
-        chapter_data = self._extract_chapter_data(title_dump)
+            export_path = Path(self.destination) / escape_path(title_detail.name).title()
+            if self.resume or self.manifest_reset:
+                manifest = TitleDownloadManifest(export_path, autosave=False)
+                if self.manifest_reset:
+                    manifest.reset()
 
-        if self.meta:
-            self._dump_title_metadata(title_dump, chapter_data, export_path)
+            chapter_data = self._extract_chapter_data(title_dump)
 
-        existing_files = self._get_existing_files(export_path)
-        chapters_to_download = self._filter_chapters_to_download(
-            chapter_data,
-            title_dump,
-            title_detail,
-            existing_files,
-            chapter_ids,
-        )
+            if self.meta:
+                self._dump_title_metadata(title_dump, chapter_data, export_path)
 
-        if not chapters_to_download:
-            log.info(f"    All chapters for '{title_detail.name}' are already downloaded.")
-            return
+            existing_files = self._get_existing_files(export_path)
+            chapters_to_download = self._filter_chapters_to_download(
+                chapter_data,
+                title_dump,
+                title_detail,
+                existing_files,
+                chapter_ids,
+            )
+            if self.resume and manifest is not None:
+                chapters_to_download, skipped_manifest = self._exclude_manifest_completed_chapters(
+                    chapters_to_download,
+                    manifest,
+                )
+                summary.skipped_manifest += skipped_manifest
 
-        total_chapters = len(chapters_to_download)
-        log.info(f"    {total_chapters} chapter(s) to download for '{title_detail.name}'.")
-        for chapter_index, chapter_id in enumerate(sorted(chapters_to_download), 1):
-            self._process_chapter(title_detail, chapter_index, total_chapters, chapter_id)
+            if not chapters_to_download:
+                log.info(f"    All chapters for '{title_detail.name}' are already downloaded.")
+                return
+
+            total_chapters = len(chapters_to_download)
+            log.info(f"    {total_chapters} chapter(s) to download for '{title_detail.name}'.")
+            for chapter_index, chapter_id in enumerate(sorted(chapters_to_download), 1):
+                try:
+                    self._process_chapter(
+                        title_detail,
+                        chapter_index,
+                        total_chapters,
+                        chapter_id,
+                        manifest=manifest if self.resume else None,
+                    )
+                    summary.downloaded += 1
+                except Exception as error:
+                    if self.resume and manifest is not None:
+                        manifest.mark_failed(chapter_id, error=str(error))
+                        manifest.flush()
+                    summary.failed += 1
+                    summary.failed_chapter_ids.append(chapter_id)
+                    log.error("    Failed chapter %s: %s", chapter_id, error)
+        finally:
+            if self.resume and manifest is not None:
+                manifest.flush()
+            self._clear_api_caches_for_title(title_id, chapter_ids)
 
     def _process_chapter(
         self,
@@ -129,6 +209,8 @@ class DownloadMixin:
         chapter_index: int,
         total_chapters: int,
         chapter_id: int,
+        *,
+        manifest: TitleDownloadManifest | None = None,
     ) -> None:
         """Download and export a single chapter."""
         viewer = self._load_pages(chapter_id)
@@ -146,6 +228,13 @@ class DownloadMixin:
             f"    {chapter_index}/{total_chapters}) Chapter "
             f"{viewer.chapter_name}: {current_chapter.sub_title}"
         )
+        if manifest is not None:
+            manifest.mark_started(
+                chapter_id,
+                chapter_name=viewer.chapter_name,
+                sub_title=current_chapter.sub_title,
+                output_format=self.output_format,
+            )
 
         exporter = self.exporter(
             title=title_detail,
@@ -153,9 +242,13 @@ class DownloadMixin:
             next_chapter=next_chapter,
         )
         pages = [page.manga_page for page in viewer.pages if page.manga_page.image_url]
-
         self._process_chapter_pages(pages, viewer.chapter_name, exporter)
         exporter.close()
+
+        if manifest is not None:
+            exporter_path = getattr(exporter, "path", None)
+            output_path = str(exporter_path) if exporter_path is not None else None
+            manifest.mark_completed(chapter_id, output_path=output_path)
 
     def _process_chapter_pages(
         self,
@@ -164,40 +257,37 @@ class DownloadMixin:
         exporter: ExporterLike,
     ) -> None:
         """Download all chapter pages and pass them to the exporter."""
-        with click.progressbar(pages, label=chapter_name, show_pos=True) as progress_bar:
-            page_counter = count()
-            for page_index, page in zip(page_counter, progress_bar):
-                output_index: int | range = page_index
-                if PageType(page.type) == PageType.DOUBLE:
-                    output_index = range(page_index, next(page_counter))
-
-                if exporter.skip_image(output_index):
-                    continue
-
-                image_blob = self._fetch_page_image(page)
-                exporter.add_image(image_blob, output_index)
+        PageExportService.export_pages(
+            pages,
+            chapter_name,
+            exporter,
+            fetch_page_image=self._fetch_page_image,
+        )
 
     def _download_image(self, url: str) -> bytes:
         """Download an image blob from ``url``."""
-        response = self.session.get(url, timeout=self.request_timeout)
-        response.raise_for_status()
-        return response.content
+        return PageImageService.download_image(
+            self.session,
+            self.request_timeout,
+            url,
+        )
 
     def _fetch_page_image(self, page: MangaPageLike) -> bytes:
         """Return raw or decrypted image bytes for one manga page."""
-        encryption_key = str(getattr(page, "encryption_key", ""))
-        if encryption_key:
-            return bytes(self._decrypt_image(page.image_url, encryption_key))
-        return self._download_image(page.image_url)
+        return PageImageService.fetch_page_image(
+            page,
+            download_image=self._download_image,
+            decrypt_image=self._decrypt_image,
+        )
 
     def _dump_title_metadata(
         self,
         title_dump: TitleDumpLike,
-        chapter_data_or_export_dir: Mapping[str, ChapterMetadata | Mapping[str, object]] | str | Path,
+        chapter_data_or_export_dir: Mapping[int, ChapterMetadata | Mapping[str, object]] | str | Path,
         export_dir: str | Path | None = None,
     ) -> None:
         """Write title-level metadata JSON into ``export_dir``."""
-        resolved_chapter_data: Mapping[str, ChapterMetadata | Mapping[str, object]]
+        resolved_chapter_data: Mapping[int, ChapterMetadata | Mapping[str, object]]
         resolved_export_dir: str | Path
         if export_dir is None:
             if isinstance(chapter_data_or_export_dir, Mapping):
@@ -213,7 +303,7 @@ class DownloadMixin:
         MetadataWriter.dump_title_metadata(title_dump, resolved_chapter_data, resolved_export_dir)
         log.info(f"    Metadata for title '{title_dump.title.name}' exported")
 
-    def _extract_chapter_data(self, title_dump: TitleDumpLike) -> dict[str, ChapterMetadata]:
+    def _extract_chapter_data(self, title_dump: TitleDumpLike) -> dict[int, ChapterMetadata]:
         """Collect chapter metadata from all chapter groups into one mapping."""
         return ChapterPlanner.extract_chapter_data(title_dump, self._prepare_filename)
 
@@ -239,7 +329,7 @@ class DownloadMixin:
 
     def _filter_chapters_to_download(
         self,
-        chapter_data: Mapping[str, ChapterMetadata],
+        chapter_data: Mapping[int, ChapterMetadata],
         title_dump: TitleDumpLike,
         title_detail: TitleLike,
         existing_files: Collection[str],
@@ -253,6 +343,18 @@ class DownloadMixin:
             existing_files,
             requested_chapter_ids,
         )
+
+    def _exclude_manifest_completed_chapters(
+        self,
+        chapter_ids: Collection[int],
+        manifest: TitleDownloadManifest,
+    ) -> tuple[list[int], int]:
+        """Exclude chapter IDs already marked completed in the title manifest."""
+        pending = [chapter_id for chapter_id in chapter_ids if not manifest.is_completed(chapter_id)]
+        skipped_count = len(chapter_ids) - len(pending)
+        if skipped_count:
+            log.info(f"    Skipping {skipped_count} chapter(s) already marked completed in manifest.")
+        return pending, skipped_count
 
     def _build_expected_filename(
         self,

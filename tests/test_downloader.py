@@ -12,6 +12,7 @@ import click
 import pytest
 
 from mloader.constants import PageType
+from mloader.domain.requests import DownloadSummary
 from mloader.errors import SubscriptionRequiredError
 from mloader.manga_loader.downloader import DownloadMixin
 from mloader.manga_loader.services import ChapterMetadata
@@ -27,8 +28,10 @@ class DummyDownloader(DownloadMixin):
         self.output_format = "pdf"
         self.request_timeout = (0.1, 0.1)
         self.meta = False
+        self.resume = True
+        self.manifest_reset = False
 
-    def _extract_chapter_data(self, title_dump: Any) -> dict[str, dict[str, Any]]:
+    def _extract_chapter_data(self, title_dump: Any) -> dict[int, dict[str, Any]]:
         """Return pre-seeded chapter data stored on ``title_dump``."""
         return title_dump.chapter_data
 
@@ -51,6 +54,8 @@ class FullDownloader(DownloadMixin):
         self.output_format = "pdf"
         self.request_timeout = (0.1, 0.1)
         self.meta = False
+        self.resume = True
+        self.manifest_reset = False
         self.session = DummySession(DummyResponse(content=b"default"))
 
 
@@ -96,12 +101,22 @@ def _group(chapters: list[SimpleNamespace]) -> SimpleNamespace:
     )
 
 
+def _run_summary() -> SimpleNamespace:
+    """Return mutable run-summary namespace compatible with downloader internals."""
+    return SimpleNamespace(
+        downloaded=0,
+        skipped_manifest=0,
+        failed=0,
+        failed_chapter_ids=[],
+    )
+
+
 def test_filter_chapters_to_download_skips_existing_files() -> None:
     """Verify existing chapter files are skipped from download candidates."""
     downloader = DummyDownloader()
     chapter_data = {
-        "Chapter One": {"chapter_id": 1},
-        "Chapter Two": {"chapter_id": 2},
+        1: {"chapter_id": 1, "sub_title": "Chapter One"},
+        2: {"chapter_id": 2, "sub_title": "Chapter Two"},
     }
     chapter1 = _chapter(1, "#1")
     chapter2 = _chapter(2, "#2")
@@ -129,7 +144,7 @@ def test_dump_title_metadata_writes_expected_json(tmp_path: Path) -> None:
         number_of_views=321,
         overview="overview",
         title=SimpleNamespace(name="my manga", author="author", portrait_image_url="http://img"),
-        chapter_data={"hello/world": {"chapter_id": 1, "thumbnail_url": "t1"}},
+        chapter_data={1: {"chapter_id": 1, "thumbnail_url": "t1", "sub_title": "hello/world"}},
     )
 
     export_dir = tmp_path / "My Manga"
@@ -141,7 +156,8 @@ def test_dump_title_metadata_writes_expected_json(tmp_path: Path) -> None:
     content = json.loads(metadata_file.read_text(encoding="utf-8"))
     assert content["name"] == "my manga"
     assert content["author"] == "author"
-    assert content["chapters"]["Hello World"]["chapter_id"] == 1
+    assert content["chapters"]["1"]["chapter_id"] == 1
+    assert content["chapters"]["1"]["sub_title"] == "Hello World"
 
 
 def test_dump_title_metadata_rejects_mapping_without_export_dir() -> None:
@@ -150,7 +166,7 @@ def test_dump_title_metadata_rejects_mapping_without_export_dir() -> None:
     title_dump = SimpleNamespace(chapter_data={})
 
     with pytest.raises(TypeError, match="Expected export directory"):
-        downloader._dump_title_metadata(title_dump, {"a": {"chapter_id": 1}})
+        downloader._dump_title_metadata(title_dump, {1: {"chapter_id": 1}})
 
 
 def test_dump_title_metadata_rejects_non_mapping_when_export_dir_is_provided(
@@ -173,13 +189,14 @@ def test_dump_title_metadata_supports_explicit_chapter_mapping(tmp_path: Path) -
         overview="overview",
         title=SimpleNamespace(name="my manga", author="author", portrait_image_url="http://img"),
     )
-    chapter_data = {"A": ChapterMetadata(thumbnail_url="t1", chapter_id=10)}
+    chapter_data = {10: ChapterMetadata(thumbnail_url="t1", chapter_id=10, sub_title="A")}
     export_dir = tmp_path / "My Manga"
 
     downloader._dump_title_metadata(title_dump, chapter_data, export_dir)
 
     content = json.loads((export_dir / "title_metadata.json").read_text(encoding="utf-8"))
-    assert content["chapters"]["A"]["chapter_id"] == 10
+    assert content["chapters"]["10"]["chapter_id"] == 10
+    assert content["chapters"]["10"]["sub_title"] == "A"
 
 
 def test_process_chapter_pages_handles_double_pages(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -239,20 +256,60 @@ def test_download_calls_prepare_and_download() -> None:
     class Orchestrator(DummyDownloader):
         """Downloader double capturing orchestration method arguments."""
 
-        def _prepare_normalized_manga_list(self, *args: Any) -> dict[str, set[int]]:
+        def _prepare_normalized_manga_list(self, *args: Any) -> dict[int, set[int]]:
             """Capture prepare args and return a sentinel mapping."""
             calls["prepare"] = args
-            return {"mapping": {1}}
+            return {42: {1}}
 
-        def _download(self, mapping: dict[str, set[int]]) -> None:
+        def _download(self, mapping: dict[int, set[int]], summary: Any) -> None:
             """Capture the mapping forwarded to _download."""
+            del summary
             calls["download"] = mapping
 
     loader = Orchestrator()
-    loader.download(title_ids={1}, chapter_ids={2}, min_chapter=1, max_chapter=5, last_chapter=True)
+    summary = loader.download(
+        title_ids={1},
+        chapter_ids={2},
+        min_chapter=1,
+        max_chapter=5,
+        last_chapter=True,
+    )
 
     assert calls["prepare"] == ({1}, {2}, 1, 5, True)
-    assert calls["download"] == {"mapping": {1}}
+    assert calls["download"] == {42: {1}}
+    assert summary == DownloadSummary(
+        downloaded=0,
+        skipped_manifest=0,
+        failed=0,
+        failed_chapter_ids=(),
+    )
+
+
+def test_download_clears_run_cache_before_and_after_execution() -> None:
+    """Verify download lifecycle clears run-level API cache at start and end."""
+    calls: list[str] = []
+
+    class Orchestrator(DummyDownloader):
+        """Downloader double capturing run-level cache clear calls."""
+
+        def _prepare_normalized_manga_list(self, *args: Any) -> dict[int, set[int]]:
+            """Return empty mapping to keep flow deterministic."""
+            del args
+            return {}
+
+        def _download(self, mapping: dict[int, set[int]], summary: Any) -> None:
+            """Record download invocation payload."""
+            del mapping, summary
+            calls.append("download")
+
+        def _clear_api_caches_for_run(self) -> None:
+            """Record run-cache clearing hook invocation."""
+            calls.append("clear_run")
+
+    loader = Orchestrator()
+    loader.download(title_ids={1}, chapter_ids=None, min_chapter=0, max_chapter=10)
+
+    assert calls == ["clear_run", "download", "clear_run"]
 
 
 def test_download_iterates_titles() -> None:
@@ -268,12 +325,15 @@ def test_download_iterates_titles() -> None:
             total_titles: int,
             title_id: int,
             chapter_ids: set[int],
+            *,
+            summary: Any,
         ) -> None:
             """Record _process_title invocation payloads."""
+            del summary
             calls.append((title_index, total_titles, title_id, chapter_ids))
 
     loader = Iterating()
-    loader._download({10: {1, 2}, 20: {3}})
+    loader._download({10: {1, 2}, 20: {3}}, summary=_run_summary())
 
     assert calls == [(1, 2, 10, {1, 2}), (2, 2, 20, {3})]
 
@@ -293,7 +353,33 @@ def test_process_title_with_no_chapters_to_download(
     monkeypatch.setattr(downloader, "_get_existing_files", lambda _path: [])
     monkeypatch.setattr(downloader, "_filter_chapters_to_download", lambda *args, **kwargs: [])
 
-    downloader._process_title(1, 1, 10, {1})
+    downloader._process_title(1, 1, 10, {1}, summary=_run_summary())
+
+
+def test_process_title_clears_title_cache_after_processing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify title-level cache clear hook runs after title processing."""
+    downloader = FullDownloader()
+    title_dump = SimpleNamespace(
+        title=SimpleNamespace(name="My Manga", author="A"),
+        chapter_data={},
+    )
+    clear_calls: list[tuple[int, set[int]]] = []
+
+    monkeypatch.setattr(downloader, "_get_title_details", lambda _tid: title_dump, raising=False)
+    monkeypatch.setattr(downloader, "_extract_chapter_data", lambda _dump: {}, raising=False)
+    monkeypatch.setattr(downloader, "_get_existing_files", lambda _path: [])
+    monkeypatch.setattr(downloader, "_filter_chapters_to_download", lambda *args, **kwargs: [])
+    monkeypatch.setattr(
+        downloader,
+        "_clear_api_caches_for_title",
+        lambda title_id, chapter_ids: clear_calls.append((title_id, set(chapter_ids))),
+    )
+
+    downloader._process_title(1, 1, 10, {1, 2}, summary=_run_summary())
+
+    assert clear_calls == [(10, {1, 2})]
 
 
 def test_process_title_downloads_sorted_chapters(
@@ -303,7 +389,7 @@ def test_process_title_downloads_sorted_chapters(
     downloader = FullDownloader()
     title_dump = SimpleNamespace(
         title=SimpleNamespace(name="My Manga", author="A"),
-        chapter_data={"sub": {"chapter_id": 3}},
+        chapter_data={3: {"chapter_id": 3, "sub_title": "sub"}},
     )
     processed: list[tuple[int, int, int]] = []
 
@@ -311,7 +397,7 @@ def test_process_title_downloads_sorted_chapters(
     monkeypatch.setattr(
         downloader,
         "_extract_chapter_data",
-        lambda _dump: {"sub": {"chapter_id": 3}},
+        lambda _dump: {3: {"chapter_id": 3, "sub_title": "sub"}},
         raising=False,
     )
     monkeypatch.setattr(downloader, "_get_existing_files", lambda _path: [])
@@ -319,10 +405,10 @@ def test_process_title_downloads_sorted_chapters(
     monkeypatch.setattr(
         downloader,
         "_process_chapter",
-        lambda title, index, total, chapter_id: processed.append((index, total, chapter_id)),
+        lambda title, index, total, chapter_id, **kwargs: processed.append((index, total, chapter_id)),
     )
 
-    downloader._process_title(1, 1, 10, {2, 3, 5})
+    downloader._process_title(1, 1, 10, {2, 3, 5}, summary=_run_summary())
 
     assert processed == [(1, 3, 2), (2, 3, 3), (3, 3, 5)]
 
@@ -349,9 +435,185 @@ def test_process_title_dumps_metadata_when_enabled(
         lambda *_args, **_kwargs: calls.__setitem__("metadata", calls["metadata"] + 1),
     )
 
-    downloader._process_title(1, 1, 10, {1})
+    downloader._process_title(1, 1, 10, {1}, summary=_run_summary())
 
     assert calls["metadata"] == 1
+
+
+def test_process_title_skips_manifest_completed_chapters(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify title processing excludes chapter IDs marked completed in manifest."""
+    downloader = FullDownloader()
+    title_dump = SimpleNamespace(
+        title=SimpleNamespace(name="My Manga", author="A"),
+        chapter_data={},
+    )
+    processed: list[int] = []
+
+    class FakeManifest:
+        def __init__(self, _export_path: Path, *, autosave: bool = False) -> None:
+            """Store nothing; behavior is fully deterministic for the test."""
+            del autosave
+
+        def is_completed(self, chapter_id: int) -> bool:
+            """Mark chapter 2 as already completed."""
+            return chapter_id == 2
+
+        def flush(self) -> None:
+            """No-op flush for downloader finalize hooks."""
+
+    monkeypatch.setattr(downloader, "_get_title_details", lambda _tid: title_dump, raising=False)
+    monkeypatch.setattr(downloader, "_extract_chapter_data", lambda _dump: {}, raising=False)
+    monkeypatch.setattr(downloader, "_get_existing_files", lambda _path: [])
+    monkeypatch.setattr(downloader, "_filter_chapters_to_download", lambda *args, **kwargs: [1, 2, 3])
+    monkeypatch.setattr(
+        "mloader.manga_loader.downloader.TitleDownloadManifest",
+        FakeManifest,
+    )
+    monkeypatch.setattr(
+        downloader,
+        "_process_chapter",
+        lambda _title, _index, _total, chapter_id, **kwargs: processed.append(chapter_id),
+    )
+
+    summary = _run_summary()
+    downloader._process_title(1, 1, 10, {1, 2, 3}, summary=summary)
+
+    assert processed == [1, 3]
+    assert summary.skipped_manifest == 1
+
+
+def test_process_title_records_failed_chapter_summary(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify per-chapter failures are collected and run continues."""
+    downloader = FullDownloader()
+    title_dump = SimpleNamespace(
+        title=SimpleNamespace(name="My Manga", author="A"),
+        chapter_data={},
+    )
+    processed: list[int] = []
+    marked_failed: list[int] = []
+    flush_calls = 0
+
+    class FakeManifest:
+        def __init__(self, _export_path: Path, *, autosave: bool = False) -> None:
+            del autosave
+
+        def is_completed(self, chapter_id: int) -> bool:
+            del chapter_id
+            return False
+
+        def mark_failed(self, chapter_id: int, *, error: str) -> None:
+            del error
+            marked_failed.append(chapter_id)
+
+        def flush(self) -> None:
+            nonlocal flush_calls
+            flush_calls += 1
+
+    def _process_chapter(
+        _title: Any,
+        _index: int,
+        _total: int,
+        chapter_id: int,
+        **kwargs: Any,
+    ) -> None:
+        del kwargs
+        if chapter_id == 2:
+            raise RuntimeError("boom")
+        processed.append(chapter_id)
+
+    monkeypatch.setattr(downloader, "_get_title_details", lambda _tid: title_dump, raising=False)
+    monkeypatch.setattr(downloader, "_extract_chapter_data", lambda _dump: {}, raising=False)
+    monkeypatch.setattr(downloader, "_get_existing_files", lambda _path: [])
+    monkeypatch.setattr(downloader, "_filter_chapters_to_download", lambda *args, **kwargs: [1, 2, 3])
+    monkeypatch.setattr(
+        "mloader.manga_loader.downloader.TitleDownloadManifest",
+        FakeManifest,
+    )
+    monkeypatch.setattr(downloader, "_process_chapter", _process_chapter)
+
+    summary = _run_summary()
+    downloader._process_title(1, 1, 10, {1, 2, 3}, summary=summary)
+
+    assert processed == [1, 3]
+    assert summary.downloaded == 2
+    assert summary.failed == 1
+    assert summary.failed_chapter_ids == [2]
+    assert marked_failed == [2]
+    assert flush_calls >= 2
+
+
+def test_process_title_disables_manifest_when_resume_is_false(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify --no-resume mode skips manifest-based chapter filtering."""
+    downloader = FullDownloader()
+    downloader.resume = False
+    title_dump = SimpleNamespace(
+        title=SimpleNamespace(name="My Manga", author="A"),
+        chapter_data={},
+    )
+    processed: list[int] = []
+
+    monkeypatch.setattr(downloader, "_get_title_details", lambda _tid: title_dump, raising=False)
+    monkeypatch.setattr(downloader, "_extract_chapter_data", lambda _dump: {}, raising=False)
+    monkeypatch.setattr(downloader, "_get_existing_files", lambda _path: [])
+    monkeypatch.setattr(downloader, "_filter_chapters_to_download", lambda *args, **kwargs: [1, 2])
+    monkeypatch.setattr(
+        downloader,
+        "_process_chapter",
+        lambda _title, _index, _total, chapter_id, **kwargs: processed.append(chapter_id),
+    )
+
+    summary = _run_summary()
+    downloader._process_title(1, 1, 10, {1, 2}, summary=summary)
+
+    assert processed == [1, 2]
+    assert summary.skipped_manifest == 0
+
+
+def test_process_title_resets_manifest_when_requested(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify --manifest-reset clears existing per-title manifest state."""
+    downloader = FullDownloader()
+    downloader.manifest_reset = True
+    title_dump = SimpleNamespace(
+        title=SimpleNamespace(name="My Manga", author="A"),
+        chapter_data={},
+    )
+    reset_calls = 0
+
+    class FakeManifest:
+        def __init__(self, _export_path: Path, *, autosave: bool = False) -> None:
+            del autosave
+
+        def reset(self) -> None:
+            nonlocal reset_calls
+            reset_calls += 1
+
+        def is_completed(self, chapter_id: int) -> bool:
+            del chapter_id
+            return False
+
+        def flush(self) -> None:
+            """No-op flush for downloader finalize hooks."""
+
+    monkeypatch.setattr(downloader, "_get_title_details", lambda _tid: title_dump, raising=False)
+    monkeypatch.setattr(downloader, "_extract_chapter_data", lambda _dump: {}, raising=False)
+    monkeypatch.setattr(downloader, "_get_existing_files", lambda _path: [])
+    monkeypatch.setattr(downloader, "_filter_chapters_to_download", lambda *args, **kwargs: [])
+    monkeypatch.setattr(
+        "mloader.manga_loader.downloader.TitleDownloadManifest",
+        FakeManifest,
+    )
+
+    downloader._process_title(1, 1, 10, {1}, summary=_run_summary())
+
+    assert reset_calls == 1
 
 
 def test_process_chapter_raises_when_subscription_required(
@@ -382,6 +644,22 @@ def test_process_chapter_creates_exporter_and_closes(monkeypatch: pytest.MonkeyP
 
     instance = ExporterInstance()
     captured: dict[str, Any] = {}
+    started: list[tuple[int, str, str, str]] = []
+    completed: list[tuple[int, str | None]] = []
+
+    class Manifest:
+        def mark_started(
+            self,
+            chapter_id: int,
+            *,
+            chapter_name: str,
+            sub_title: str,
+            output_format: str,
+        ) -> None:
+            started.append((chapter_id, chapter_name, sub_title, output_format))
+
+        def mark_completed(self, chapter_id: int, *, output_path: str | None = None) -> None:
+            completed.append((chapter_id, output_path))
 
     def exporter_factory(**kwargs: Any) -> ExporterInstance:
         """Capture exporter constructor arguments and return test instance."""
@@ -414,7 +692,7 @@ def test_process_chapter_creates_exporter_and_closes(monkeypatch: pytest.MonkeyP
     )
 
     title = SimpleNamespace(name="My Manga")
-    downloader._process_chapter(title, 1, 1, 10)
+    downloader._process_chapter(title, 1, 1, 10, manifest=Manifest())
 
     assert captured["title"] is title
     assert captured["chapter"].sub_title == "Sub"
@@ -422,6 +700,55 @@ def test_process_chapter_creates_exporter_and_closes(monkeypatch: pytest.MonkeyP
     assert processed[0][1] == "#1"
     assert len(processed[0][0]) == 1
     assert instance.closed is True
+    assert started == [(10, "#1", "Sub", "pdf")]
+    assert completed == [(10, None)]
+
+
+def test_process_chapter_marks_manifest_failed_when_page_processing_raises(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify chapter export-processing failures are raised to title-level handling."""
+    downloader = FullDownloader()
+
+    class Exporter:
+        def close(self) -> None:
+            """No-op close used by this failure-path test."""
+
+    class Manifest:
+        def mark_started(
+            self,
+            chapter_id: int,
+            *,
+            chapter_name: str,
+            sub_title: str,
+            output_format: str,
+        ) -> None:
+            del chapter_id, chapter_name, sub_title, output_format
+
+    viewer = SimpleNamespace(
+        chapter_name="#1",
+        pages=[
+            SimpleNamespace(manga_page=SimpleNamespace(image_url="u1")),
+            SimpleNamespace(
+                manga_page=SimpleNamespace(image_url=""),
+                last_page=SimpleNamespace(
+                    current_chapter=SimpleNamespace(name="#1", sub_title="Sub"),
+                    next_chapter=SimpleNamespace(chapter_id=0),
+                ),
+            ),
+        ],
+    )
+
+    monkeypatch.setattr(downloader, "_load_pages", lambda _cid: viewer, raising=False)
+    monkeypatch.setattr(downloader, "exporter", lambda **kwargs: Exporter())
+    monkeypatch.setattr(
+        downloader,
+        "_process_chapter_pages",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(RuntimeError("boom")),
+    )
+
+    with pytest.raises(RuntimeError, match="boom"):
+        downloader._process_chapter(SimpleNamespace(name="My Manga"), 1, 1, 10, manifest=Manifest())
 
 
 def test_download_image_calls_raise_for_status() -> None:
@@ -522,9 +849,33 @@ def test_extract_chapter_data_from_all_groups() -> None:
 
     result = downloader._extract_chapter_data(title_dump)
 
-    assert result["A"]["chapter_id"] == 1
-    assert result["B"]["chapter_id"] == 2
-    assert result["C"]["chapter_id"] == 3
+    assert result[1]["chapter_id"] == 1
+    assert result[2]["chapter_id"] == 2
+    assert result[3]["chapter_id"] == 3
+    assert result[2]["sub_title"] == "B"
+
+
+def test_extract_chapter_data_keeps_duplicate_subtitles_by_chapter_id() -> None:
+    """Verify duplicate subtitles do not overwrite chapter metadata entries."""
+    downloader = FullDownloader()
+    title_dump = SimpleNamespace(
+        chapter_list_group=[
+            SimpleNamespace(
+                first_chapter_list=[
+                    SimpleNamespace(sub_title="Same", thumbnail_url="t1", chapter_id=1),
+                    SimpleNamespace(sub_title="Same", thumbnail_url="t2", chapter_id=2),
+                ],
+                mid_chapter_list=[],
+                last_chapter_list=[],
+            )
+        ]
+    )
+
+    result = downloader._extract_chapter_data(title_dump)
+
+    assert set(result.keys()) == {1, 2}
+    assert result[1]["sub_title"] == "Same"
+    assert result[2]["sub_title"] == "Same"
 
 
 def test_get_existing_files_returns_stems(tmp_path: Path) -> None:
@@ -571,7 +922,7 @@ def test_get_existing_files_is_disabled_for_raw_mode(tmp_path: Path) -> None:
 def test_filter_chapters_warns_when_chapter_missing(caplog: Any) -> None:
     """Verify missing chapter IDs log a warning and are excluded."""
     downloader = DummyDownloader()
-    chapter_data = {"Missing": {"chapter_id": 99}}
+    chapter_data = {99: {"chapter_id": 99, "sub_title": "Missing"}}
     title_dump = SimpleNamespace(chapter_list_group=[])
     title_detail = SimpleNamespace(name="My Manga")
 
@@ -594,7 +945,7 @@ def test_filter_chapters_accepts_dataclass_metadata_values() -> None:
     chapter = _chapter(5, "#5")
     title_dump = SimpleNamespace(chapter_list_group=[_group([chapter])])
     title_detail = SimpleNamespace(name="My Manga")
-    chapter_data = {"Sub": ChapterMetadata(thumbnail_url="t5", chapter_id=5)}
+    chapter_data = {5: ChapterMetadata(thumbnail_url="t5", chapter_id=5, sub_title="Sub")}
 
     result = downloader._filter_chapters_to_download(
         chapter_data,
@@ -624,9 +975,10 @@ def test_download_mixin_placeholders_raise_not_implemented() -> None:
 
 def test_chapter_metadata_mapping_access_and_key_error() -> None:
     """Verify compatibility mapping access on ``ChapterMetadata``."""
-    metadata = ChapterMetadata(thumbnail_url="thumb", chapter_id=7)
+    metadata = ChapterMetadata(thumbnail_url="thumb", chapter_id=7, sub_title="Sub")
 
     assert metadata["thumbnail_url"] == "thumb"
+    assert metadata["sub_title"] == "Sub"
     with pytest.raises(KeyError):
         _ = metadata["unknown"]
 

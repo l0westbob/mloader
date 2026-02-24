@@ -4,14 +4,19 @@ from __future__ import annotations
 
 import logging
 import sys
+from typing import TextIO
 
 
-def setup_logging() -> None:
+def setup_logging(
+    *,
+    level: int = logging.INFO,
+    stream: TextIO | None = None,
+) -> None:
     """Configure application logging for console output."""
     for logger_name in ("requests", "urllib3"):
         logging.getLogger(logger_name).setLevel(logging.WARNING)
 
-    stream_handler = logging.StreamHandler(sys.stdout)
+    stream_handler = logging.StreamHandler(stream or sys.stderr)
     logging.basicConfig(
         handlers=[stream_handler],
         format=(
@@ -19,7 +24,8 @@ def setup_logging() -> None:
         ),
         style="{",
         datefmt="%d.%m.%Y %H:%M:%S",
-        level=logging.INFO,
+        level=level,
+        force=True,
     )
 
 

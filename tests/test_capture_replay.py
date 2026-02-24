@@ -5,11 +5,13 @@ from __future__ import annotations
 import json
 from pathlib import Path
 from typing import Any
+from types import SimpleNamespace
 from urllib.parse import urlparse
 
 import pytest
 
 from mloader.manga_loader import api
+from mloader.manga_loader.init import MangaLoader
 from mloader.manga_loader.services import ChapterPlanner
 from mloader.utils import escape_path
 
@@ -182,3 +184,94 @@ def test_local_capture_schema_matches_baseline_fixture() -> None:
         assert signature_payload in baseline_by_endpoint[endpoint], (
             f"Schema drift detected for local capture '{stem}' endpoint '{endpoint}'."
         )
+
+
+def test_full_downloader_replay_with_fixture_payloads(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Replay title and viewer fixtures through loader download orchestration."""
+    title_payload = (FIXTURE_CAPTURE_DIR / "0001_title_detailV3_100010.pb").read_bytes()
+    viewer_payloads = {
+        1000311: (FIXTURE_CAPTURE_DIR / "0002_manga_viewer_1000311.pb").read_bytes(),
+        1000312: (FIXTURE_CAPTURE_DIR / "0003_manga_viewer_1000312.pb").read_bytes(),
+    }
+
+    class ReplaySession:
+        """Session double that replays captured protobuf responses by endpoint and ID."""
+
+        def __init__(self) -> None:
+            """Initialize mutable headers and no-op transport hooks."""
+            self.headers: dict[str, str] = {}
+
+        def mount(self, prefix: str, adapter: object) -> None:
+            """Ignore adapter mounts; they are irrelevant for fixture replay."""
+            del prefix, adapter
+
+        def get(
+            self,
+            url: str,
+            params: dict[str, object] | None = None,
+            timeout: tuple[float, float] | None = None,
+        ) -> SimpleNamespace:
+            """Return fixture payload bytes matching requested endpoint and identifier."""
+            del timeout
+            params = params or {}
+            if url.endswith("/api/title_detailV3"):
+                return SimpleNamespace(content=title_payload, raise_for_status=lambda: None)
+            if url.endswith("/api/manga_viewer"):
+                chapter_id = int(str(params["chapter_id"]))
+                return SimpleNamespace(
+                    content=viewer_payloads[chapter_id],
+                    raise_for_status=lambda: None,
+                )
+            raise AssertionError(f"Unexpected replay URL: {url}")
+
+    created_exporters: list[SimpleNamespace] = []
+
+    def exporter_factory(**kwargs: object) -> SimpleNamespace:
+        """Create exporter double that records page writes and emits output markers."""
+        chapter = kwargs["chapter"]
+        path = tmp_path / f"{chapter.chapter_id}.cbz"
+        exporter = SimpleNamespace(path=path, images=0)
+
+        def _skip_image(index: int | range) -> bool:
+            del index
+            return False
+
+        def _add_image(image_data: bytes, index: int | range) -> None:
+            del image_data, index
+            exporter.images += 1
+
+        def _close() -> None:
+            path.write_bytes(b"ok")
+
+        exporter.skip_image = _skip_image
+        exporter.add_image = _add_image
+        exporter.close = _close
+        created_exporters.append(exporter)
+        return exporter
+
+    loader = MangaLoader(
+        exporter=exporter_factory,
+        quality="high",
+        split=False,
+        meta=False,
+        destination=str(tmp_path),
+        output_format="cbz",
+        session=ReplaySession(),
+    )
+    monkeypatch.setattr(loader._runtime, "_fetch_page_image", lambda _page: b"img")
+
+    summary = loader.download(
+        title_ids=None,
+        chapter_ids={1000311, 1000312},
+        min_chapter=0,
+        max_chapter=999,
+        last_chapter=False,
+    )
+
+    assert summary.downloaded == 2
+    assert summary.failed == 0
+    assert len(created_exporters) == 2
+    assert all(exporter.images > 10 for exporter in created_exporters)

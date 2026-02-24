@@ -37,6 +37,14 @@ def _jpeg_bytes(color: tuple[int, int, int] = (255, 0, 0)) -> bytes:
     return buffer.getvalue()
 
 
+def _png_rgba_bytes() -> bytes:
+    """Create a small RGBA PNG payload for PDF conversion branch tests."""
+    image = Image.new("RGBA", (20, 20), color=(255, 0, 0, 120))
+    buffer = io.BytesIO()
+    image.save(buffer, format="PNG")
+    return buffer.getvalue()
+
+
 def test_raw_exporter_writes_and_skips_existing_image(tmp_path: Path) -> None:
     """Verify raw exporter writes page files and skips existing outputs."""
     exporter = RawExporter(destination=str(tmp_path), title=_title(), chapter=_chapter())
@@ -162,3 +170,37 @@ def test_pdf_exporter_close_without_images_is_noop(tmp_path: Path) -> None:
     exporter = PDFExporter(destination=str(tmp_path), title=_title(name="other"), chapter=_chapter())
     exporter.close()
     assert exporter.path.exists() is False
+
+
+def test_pdf_exporter_cleans_temp_page_buffers_after_close(tmp_path: Path) -> None:
+    """Verify PDF exporter releases temporary buffering state once closed."""
+    exporter = PDFExporter(destination=str(tmp_path), title=_title(name="buffers"), chapter=_chapter())
+
+    exporter.add_image(_jpeg_bytes(), 5)
+    exporter.add_image(_jpeg_bytes(color=(0, 255, 0)), 1)
+    exporter.close()
+
+    assert exporter.path.exists() is True
+    assert exporter._temp_dir is None
+    assert exporter._page_paths == []
+
+
+def test_pdf_exporter_add_image_noops_when_temp_dir_is_missing(tmp_path: Path) -> None:
+    """Verify add_image exits cleanly when temp buffering is unexpectedly unavailable."""
+    exporter = PDFExporter(destination=str(tmp_path), title=_title(name="no-temp"), chapter=_chapter())
+    exporter._temp_dir = None
+
+    exporter.add_image(_jpeg_bytes(), 0)
+
+    assert exporter._page_paths == []
+
+
+def test_pdf_exporter_handles_rgba_images_and_range_index(tmp_path: Path) -> None:
+    """Verify PDF exporter converts RGBA pages and accepts range-based page indexes."""
+    exporter = PDFExporter(destination=str(tmp_path), title=_title(name="rgba"), chapter=_chapter())
+
+    exporter.add_image(_png_rgba_bytes(), range(1, 2))
+    exporter.close()
+
+    assert exporter.path.exists() is True
+    assert exporter.path.stat().st_size > 0

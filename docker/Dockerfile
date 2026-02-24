@@ -5,4 +5,4 @@ WORKDIR /app
 COPY . /app
 RUN pip install --no-cache-dir '.[bulk]' && playwright install --with-deps chromium
 
-ENTRYPOINT ["mloader-download-all"]
+ENTRYPOINT ["mloader"]

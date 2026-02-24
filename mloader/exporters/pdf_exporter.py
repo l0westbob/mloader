@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-import io
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import Optional, Union
 
 from PIL import Image
@@ -27,7 +27,7 @@ class PDFExporter(ExporterBase):
         add_chapter_title: bool = False,
         add_chapter_subdir: bool = False,
     ) -> None:
-        """Initialize PDF path and buffered image collection."""
+        """Initialize PDF path and disk-backed page buffering state."""
         super().__init__(
             destination=destination,
             title=title,
@@ -40,14 +40,25 @@ class PDFExporter(ExporterBase):
         base_path.mkdir(parents=True, exist_ok=True)
         self.path = base_path.joinpath(self.chapter_name).with_suffix(".pdf")
         self.skip_all_images = self.path.exists()
-        self.images: list[Image.Image] = []
+        self._temp_dir: TemporaryDirectory[str] | None = None
+        self._page_paths: list[Path] = []
+        if not self.skip_all_images:
+            self._temp_dir = TemporaryDirectory(prefix="mloader-pdf-", dir=base_path)
 
     def add_image(self, image_data: bytes, index: Union[int, range]) -> None:
-        """Append one image to the PDF image list."""
-        _ = index
+        """Persist one image payload into a temporary page buffer file."""
         if self.skip_all_images:
             return
-        self.images.append(Image.open(io.BytesIO(image_data)))
+        if self._temp_dir is None:
+            return
+
+        if isinstance(index, range):
+            sort_key = index.start
+        else:
+            sort_key = index
+        page_path = Path(self._temp_dir.name) / f"{sort_key:08d}.img"
+        page_path.write_bytes(image_data)
+        self._page_paths.append(page_path)
 
     def skip_image(self, index: Union[int, range]) -> bool:
         """Return whether the chapter PDF already exists."""
@@ -56,17 +67,34 @@ class PDFExporter(ExporterBase):
 
     def close(self) -> None:
         """Write all collected images to the destination PDF file."""
-        if self.skip_all_images or not self.images:
+        if self.skip_all_images or not self._page_paths:
             return
 
         app_info = f"{__title__} - {__version__}"
-        self.images[0].save(
-            self.path,
-            "PDF",
-            resolution=100.0,
-            save_all=True,
-            append_images=self.images[1:],
-            title=self.chapter_name,
-            producer=app_info,
-            creator=app_info,
-        )
+        opened_images: list[Image.Image] = []
+        try:
+            for page_path in sorted(self._page_paths):
+                opened_image: Image.Image = Image.open(page_path)
+                if opened_image.mode != "RGB":
+                    converted = opened_image.convert("RGB")
+                    opened_image.close()
+                    opened_image = converted
+                opened_images.append(opened_image)
+
+            opened_images[0].save(
+                self.path,
+                "PDF",
+                resolution=100.0,
+                save_all=True,
+                append_images=opened_images[1:],
+                title=self.chapter_name,
+                producer=app_info,
+                creator=app_info,
+            )
+        finally:
+            for image in opened_images:
+                image.close()
+            if self._temp_dir is not None:
+                self._temp_dir.cleanup()
+                self._temp_dir = None
+            self._page_paths.clear()

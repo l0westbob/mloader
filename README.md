@@ -60,10 +60,15 @@ Chapters can be saved in different formats (check the `--help` output for the av
 
 When `--capture-api` is enabled, mloader stores every fetched API payload (raw protobuf + metadata + parsed JSON when possible). This is useful for regression fixture collection and for tracking upstream API changes over time.
 
+Every title directory now includes a resumable download manifest at `.mloader-manifest.json`.  
+Rerunning the same command skips chapters already marked as completed and retries chapters that previously failed or were interrupted.
+
+Use `--no-resume` to ignore manifest state for a run, or `--manifest-reset` to clear manifest state before downloading.
+
 Download all discoverable titles from MangaPlus list pages with one command:
 
 ```bash
-mloader-download-all --format pdf
+mloader --all --format pdf
 ```
 
 The bulk command uses protobuf API discovery first (`/api/title_list/allV2`), then falls back to
@@ -73,7 +78,7 @@ default) when needed.
 Restrict bulk discovery to specific languages:
 
 ```bash
-mloader-download-all --language english --language spanish --list-only
+mloader --all --language english --language spanish --list-only
 ```
 
 Supported `--language` values:
@@ -98,7 +103,7 @@ playwright install chromium
 
 ## 🖥️ Command line interface
 
-Currently `mloader` supports these commands
+Currently `mloader` supports these options
 
 ```
 Usage: mloader [OPTIONS] [URLS]...
@@ -107,6 +112,9 @@ Usage: mloader [OPTIONS] [URLS]...
 
 Options:
   --version                       Show the version and exit.
+  --json                          Emit structured JSON output to stdout
+  --quiet                         Suppress non-error human-readable output
+  --verbose                       Increase logging verbosity (repeatable)
   -o, --out <directory>           Output directory for downloads  [default:
                                   mloader_downloads]
   --verify-capture-schema <directory>
@@ -117,6 +125,22 @@ Options:
                                   Compare verified capture schema
                                   signatures against a baseline capture
                                   directory
+  --all                           Discover all available titles and
+                                  download them
+  --page TEXT                     MangaPlus list page to scrape for title
+                                  links (repeatable)
+  --title-index-endpoint TEXT     MangaPlus web API endpoint used for
+                                  API-first title discovery
+  --id-length INTEGER RANGE       If set, keep only title IDs with this
+                                  exact digit length
+  --language [english|spanish|french|indonesian|portuguese|russian|thai|german|vietnamese]
+                                  Restrict --all discovery to one or
+                                  more languages (repeatable)
+  --list-only                     Only print discovered title IDs for
+                                  --all and exit
+  --browser-fallback / --no-browser-fallback
+                                  Use Playwright-rendered scraping when
+                                  static page fetch yields no title IDs
   -r, --raw                       Save raw images
   -f, --format [cbz|pdf]          Save as CBZ or PDF  [default: cbz]
   --capture-api <directory>       Dump raw API payload captures (protobuf +
@@ -133,8 +157,50 @@ Options:
   --chapter-title                 Include chapter titles in filenames
   --chapter-subdir                Save raw images in subdirectories by chapter
   -m, --meta                      Export additional metadata as JSON
+  --resume / --no-resume          Use per-title manifest state to skip
+                                  already completed chapters
+  --manifest-reset                Reset per-title manifest state before
+                                  downloading
   --help                          Show this message and exit.
 ```
+
+Output mode behavior:
+
+- `--json`: emits machine-readable JSON payloads for successful command completion and controlled command failures.
+- `--quiet`: suppresses intro and informational command output.
+- `--verbose`: enables debug-level logging.
+
+Download run summaries include:
+- downloaded chapter count
+- manifest-skipped chapter count
+- failed chapter count and failed chapter IDs
+
+Deterministic exit-code mapping:
+
+- `0`: success
+- `2`: user input/usage error (Click argument parsing)
+- `3`: validation error (invalid CLI option combinations, schema verification validation)
+- `4`: external failure (upstream API/subscription/access failures)
+- `5`: internal bug/unexpected runtime failure
+
+Runtime auth settings (`app_ver`, `os`, `os_ver`, `secret`) are resolved with this priority:
+
+1. CLI/runtime overrides (internal, reserved for programmatic usage)
+2. Environment variables: `APP_VER`, `OS`, `OS_VER`, `SECRET`
+3. Config file: `MLOADER_CONFIG_FILE` (or local `.mloader.toml`)
+4. Built-in defaults
+
+Example TOML config:
+
+```toml
+[auth]
+app_ver = "97"
+os = "ios"
+os_ver = "18.1"
+secret = "your-secret"
+```
+
+When `--meta` is enabled, `title_metadata.json` stores chapters keyed by chapter ID (`"chapters": {"<chapter_id>": ...}`) and includes each chapter `sub_title` and `thumbnail_url`.
 
 Verify your recorded payload set:
 
@@ -150,12 +216,12 @@ mloader --verify-capture-schema ./capture --verify-capture-baseline ./tests/fixt
 
 ## 🐳 Docker
 
-`docker/Dockerfile` installs `mloader` from the local repository files and uses `mloader-download-all` as container entrypoint.
+`docker/Dockerfile` installs `mloader` from the local repository files and uses `mloader` as the container entrypoint.
 
 The default `compose.yaml` command runs:
 
 ```bash
-mloader-download-all --format pdf --meta
+mloader --all --language english --format pdf
 ```
 
 ## 🧩 Extending mloader
@@ -168,3 +234,13 @@ mloader-download-all --format pdf --meta
 
 See `CONTRIBUTING.md` for architecture and extension details.
 Detailed architecture notes are in `docs/ARCHITECTURE.md`.
+
+## 🚀 Releases
+
+`release-please` automation is configured to generate semantic-version release PRs and changelog updates from conventional commits.
+
+- Workflow: `.github/workflows/release-please.yml`
+- Config: `.release-please-config.json`
+- Version manifest: `.release-please-manifest.json`
+
+Publishing to PyPI is handled by `.github/workflows/publish-to-pypi.yml` on published releases (and tag pushes).

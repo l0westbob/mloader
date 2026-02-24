@@ -95,8 +95,7 @@ def test_manga_viewer_url_and_params() -> None:
 
 
 def test_load_pages_uses_cache(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Verify load_pages uses LRU cache for repeated chapter lookups."""
-    api.APILoaderMixin._load_pages.cache_clear()
+    """Verify load_pages uses cache for repeated chapter lookups."""
     loader = DummyLoader()
 
     monkeypatch.setattr(api, "_parse_manga_viewer_response", lambda content: {"parsed": content})
@@ -110,8 +109,7 @@ def test_load_pages_uses_cache(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_get_title_details_uses_cache(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Verify get_title_details uses LRU cache for repeated title lookups."""
-    api.APILoaderMixin._get_title_details.cache_clear()
+    """Verify get_title_details uses cache for repeated title lookups."""
     loader = DummyLoader()
 
     monkeypatch.setattr(api, "_parse_title_detail_response", lambda content: {"parsed": content})
@@ -132,7 +130,6 @@ def test_title_detail_url() -> None:
 
 def test_load_pages_captures_payload_when_enabled(monkeypatch: pytest.MonkeyPatch) -> None:
     """Verify _load_pages forwards response payloads to capture backend."""
-    api.APILoaderMixin._load_pages.cache_clear()
     loader = DummyLoader()
     captured: list[dict[str, Any]] = []
 
@@ -156,7 +153,6 @@ def test_get_title_details_captures_payload_when_enabled(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Verify _get_title_details forwards response payloads to capture backend."""
-    api.APILoaderMixin._get_title_details.cache_clear()
     loader = DummyLoader()
     captured: list[dict[str, Any]] = []
 
@@ -174,3 +170,81 @@ def test_get_title_details_captures_payload_when_enabled(
     assert captured[0]["identifier"] == 88
     assert captured[0]["url"].endswith("/api/title_detailV3")
     assert captured[0]["response_content"] == b"payload"
+
+
+def test_clear_api_caches_for_run_empties_both_caches(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify run-level clear removes cached title and chapter responses."""
+    loader = DummyLoader()
+    monkeypatch.setattr(api, "_parse_manga_viewer_response", lambda content: {"parsed": content})
+    monkeypatch.setattr(api, "_parse_title_detail_response", lambda content: {"parsed": content})
+
+    loader._load_pages(1)
+    loader._get_title_details(2)
+    assert loader._get_viewer_cache()
+    assert loader._get_title_cache()
+
+    loader._clear_api_caches_for_run()
+
+    assert loader._get_viewer_cache() == {}
+    assert loader._get_title_cache() == {}
+
+
+def test_clear_api_caches_for_title_removes_selected_entries(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify title-level clear removes the requested title and chapter cache entries."""
+    loader = DummyLoader()
+    monkeypatch.setattr(api, "_parse_manga_viewer_response", lambda content: {"parsed": content})
+    monkeypatch.setattr(api, "_parse_title_detail_response", lambda content: {"parsed": content})
+
+    loader._load_pages(10)
+    loader._load_pages(11)
+    loader._get_title_details(20)
+    loader._get_title_details(21)
+
+    loader._clear_api_caches_for_title(20, [10])
+
+    assert "20" not in loader._get_title_cache()
+    assert "21" in loader._get_title_cache()
+    assert "10" not in loader._get_viewer_cache()
+    assert "11" in loader._get_viewer_cache()
+
+
+def test_clear_api_caches_for_title_without_chapters_only_clears_title(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify title-only clear keeps viewer cache entries intact."""
+    loader = DummyLoader()
+    monkeypatch.setattr(api, "_parse_manga_viewer_response", lambda content: {"parsed": content})
+    monkeypatch.setattr(api, "_parse_title_detail_response", lambda content: {"parsed": content})
+
+    loader._load_pages(10)
+    loader._get_title_details(20)
+
+    loader._clear_api_caches_for_title(20, None)
+
+    assert "20" not in loader._get_title_cache()
+    assert "10" in loader._get_viewer_cache()
+
+
+def test_load_pages_cache_respects_max_size(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify chapter cache evicts oldest entries when max size is exceeded."""
+    loader = DummyLoader()
+    loader._viewer_cache_max_size = 2
+    monkeypatch.setattr(api, "_parse_manga_viewer_response", lambda content: {"parsed": content})
+
+    loader._load_pages(1)
+    loader._load_pages(2)
+    loader._load_pages(3)
+
+    assert set(loader._get_viewer_cache().keys()) == {"2", "3"}
+
+
+def test_get_title_details_cache_respects_max_size(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify title cache evicts oldest entries when max size is exceeded."""
+    loader = DummyLoader()
+    loader._title_cache_max_size = 1
+    monkeypatch.setattr(api, "_parse_title_detail_response", lambda content: {"parsed": content})
+
+    loader._get_title_details(1)
+    loader._get_title_details(2)
+
+    assert set(loader._get_title_cache().keys()) == {"2"}
