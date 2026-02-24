@@ -10,6 +10,7 @@ import click
 import requests
 
 from mloader import __version__ as about
+from mloader.constants import Language
 from mloader.errors import SubscriptionRequiredError
 from mloader.exporters.exporter_base import ExporterBase
 from mloader.exporters.init import CBZExporter, PDFExporter, RawExporter
@@ -24,6 +25,11 @@ DEFAULT_LIST_PAGES: tuple[str, str, str] = (
 DEFAULT_TITLE_INDEX_ENDPOINT = "https://jumpg-webapi.tokyo-cdn.com/api/title_list/allV2"
 # Match both '/titles/123' and escaped '\/titles\/123' shapes.
 TITLE_ID_PATTERN = re.compile(r"(?:\\?/titles\\?/)(?P<title_id>\d+)(?:\\?/|$|[?#\"'])")
+LANGUAGE_FILTER_CODES: dict[str, set[int]] = {
+    language.name.lower(): {language.value} for language in Language
+}
+LANGUAGE_FILTER_CODES["vietnamese"].add(8)
+LANGUAGE_FILTER_CHOICES = tuple(LANGUAGE_FILTER_CODES)
 
 OutputFormat = Literal["raw", "cbz", "pdf"]
 ExporterClass = Callable[..., ExporterBase]
@@ -42,11 +48,27 @@ def extract_title_ids(html: str, id_length: int | None = 6) -> set[int]:
 
 def extract_title_ids_from_api_payload(payload: bytes, id_length: int | None = 6) -> set[int]:
     """Extract unique MangaPlus title IDs from protobuf all-titles payload bytes."""
+    return extract_title_ids_from_api_payload_with_language_filter(
+        payload,
+        id_length=id_length,
+        allowed_languages=None,
+    )
+
+
+def extract_title_ids_from_api_payload_with_language_filter(
+    payload: bytes,
+    *,
+    id_length: int | None,
+    allowed_languages: set[int] | None,
+) -> set[int]:
+    """Extract unique title IDs with an optional language-code filter."""
     parsed = Response.FromString(payload)
     title_ids: set[int] = set()
     for title_group in parsed.success.all_titles_view.title_groups:
         for title in title_group.titles:
             title_id = title.title_id
+            if allowed_languages is not None and title.language not in allowed_languages:
+                continue
             if title_id <= 0:
                 continue
             if id_length is not None and len(str(title_id)) != id_length:
@@ -59,14 +81,30 @@ def collect_title_ids_from_api(
     title_index_endpoint: str,
     *,
     id_length: int | None,
+    allowed_languages: set[int] | None,
     request_timeout: tuple[float, float] = (5.0, 30.0),
 ) -> list[int]:
     """Fetch web title-index payload and return sorted unique title IDs."""
     with requests.Session() as session:
         response = session.get(title_index_endpoint, timeout=request_timeout)
         response.raise_for_status()
-        title_ids = extract_title_ids_from_api_payload(response.content, id_length=id_length)
+        title_ids = extract_title_ids_from_api_payload_with_language_filter(
+            response.content,
+            id_length=id_length,
+            allowed_languages=allowed_languages,
+        )
     return sorted(title_ids)
+
+
+def parse_language_filters(languages: Sequence[str]) -> set[int] | None:
+    """Convert language filter strings into a set of numeric API language codes."""
+    if not languages:
+        return None
+
+    language_codes: set[int] = set()
+    for language in languages:
+        language_codes.update(LANGUAGE_FILTER_CODES[language.lower()])
+    return language_codes
 
 
 def collect_title_ids(
@@ -149,6 +187,13 @@ def collect_title_ids_with_browser(
     type=click.IntRange(min=1),
     default=None,
     help="If set, keep only title IDs with this exact digit length",
+)
+@click.option(
+    "--language",
+    "languages",
+    multiple=True,
+    type=click.Choice(LANGUAGE_FILTER_CHOICES, case_sensitive=False),
+    help="Restrict API discovery to one or more languages (repeatable)",
 )
 @click.option(
     "--list-only",
@@ -255,6 +300,7 @@ def main(
     pages: tuple[str, ...],
     title_index_endpoint: str,
     id_length: int | None,
+    languages: tuple[str, ...],
     list_only: bool,
     browser_fallback: bool,
     raw: bool,
@@ -272,13 +318,23 @@ def main(
     """Run bulk-discovery, then download all discovered titles."""
     click.echo(click.style(about.__intro__, fg="blue"))
 
+    allowed_languages = parse_language_filters(languages)
     title_ids: list[int] = []
     try:
-        title_ids = collect_title_ids_from_api(title_index_endpoint, id_length=id_length)
+        title_ids = collect_title_ids_from_api(
+            title_index_endpoint,
+            id_length=id_length,
+            allowed_languages=allowed_languages,
+        )
     except requests.RequestException as exc:
+        if allowed_languages is not None:
+            raise click.ClickException(
+                "Language filtering requires API title-index access, but the API request failed: "
+                f"{exc}"
+            ) from exc
         click.echo(f"API title-index fetch failed: {exc}")
 
-    if not title_ids:
+    if not title_ids and allowed_languages is None:
         try:
             title_ids = collect_title_ids(pages, id_length=id_length)
         except requests.RequestException as exc:
@@ -286,13 +342,19 @@ def main(
                 raise click.ClickException(f"Failed to fetch title pages: {exc}") from exc
             click.echo(f"Static fetch failed: {exc}. Retrying with browser fallback.")
 
-    if not title_ids and browser_fallback:
+    if not title_ids and browser_fallback and allowed_languages is None:
         try:
             title_ids = collect_title_ids_with_browser(pages, id_length=id_length)
         except RuntimeError as exc:
             raise click.ClickException(str(exc)) from exc
         except Exception as exc:  # pragma: no cover - defensive browser failures
             raise click.ClickException(f"Browser fallback failed: {exc}") from exc
+
+    if not title_ids and allowed_languages is not None:
+        selected_languages = ", ".join(language.lower() for language in languages)
+        raise click.ClickException(
+            f"No title IDs found for selected language filter(s): {selected_languages}."
+        )
 
     if not title_ids:
         raise click.ClickException(

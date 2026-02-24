@@ -70,6 +70,25 @@ The bulk command uses protobuf API discovery first (`/api/title_list/allV2`), th
 static page scraping and optional browser-rendered scraping (`--browser-fallback`, enabled by
 default) when needed.
 
+Restrict bulk discovery to specific languages:
+
+```bash
+mloader-download-all --language english --language spanish --list-only
+```
+
+Supported `--language` values:
+- `english`
+- `spanish`
+- `french`
+- `indonesian`
+- `portuguese`
+- `russian`
+- `thai`
+- `german`
+- `vietnamese`
+
+As of February 24, 2026, all of the languages above are present in the live `allV2` payload.
+
 Install browser fallback support locally with:
 
 ```bash

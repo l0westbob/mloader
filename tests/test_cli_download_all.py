@@ -114,6 +114,19 @@ def _build_all_titles_payload(title_ids: list[int]) -> bytes:
     return parsed.SerializeToString()
 
 
+def _build_all_titles_payload_with_languages(titles: list[tuple[int, int]]) -> bytes:
+    """Build a minimal serialized all-titles protobuf payload with language codes."""
+    parsed = Response()
+    group = parsed.success.all_titles_view.title_groups.add()
+    group.group_name = "group"
+    for title_id, language in titles:
+        title = group.titles.add()
+        title.title_id = title_id
+        title.name = f"title-{title_id}"
+        title.language = language
+    return parsed.SerializeToString()
+
+
 def test_extract_title_ids_respects_id_length_filter() -> None:
     """Verify HTML extraction keeps only IDs matching configured digit length."""
     html = (
@@ -151,6 +164,25 @@ def test_extract_title_ids_from_api_payload_skips_non_positive_ids() -> None:
     assert download_all.extract_title_ids_from_api_payload(parsed.SerializeToString(), id_length=None) == set()
 
 
+def test_extract_title_ids_from_api_payload_filters_languages() -> None:
+    """Verify protobuf extraction can filter by allowed language codes."""
+    payload = _build_all_titles_payload_with_languages(
+        [
+            (100001, 0),
+            (100002, 1),
+            (100003, 0),
+        ]
+    )
+
+    result = download_all.extract_title_ids_from_api_payload_with_language_filter(
+        payload,
+        id_length=6,
+        allowed_languages={0},
+    )
+
+    assert result == {100001, 100003}
+
+
 def test_collect_title_ids_from_api_returns_sorted_unique_ids(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -159,7 +191,11 @@ def test_collect_title_ids_from_api_returns_sorted_unique_ids(
     dummy_session = DummySession({"https://api.example/allV2": payload})
     monkeypatch.setattr(download_all.requests, "Session", lambda: dummy_session)
 
-    result = download_all.collect_title_ids_from_api("https://api.example/allV2", id_length=6)
+    result = download_all.collect_title_ids_from_api(
+        "https://api.example/allV2",
+        id_length=6,
+        allowed_languages=None,
+    )
 
     assert result == [100001, 100002, 100003]
     assert dummy_session.calls == [("https://api.example/allV2", (5.0, 30.0))]
@@ -184,6 +220,21 @@ def test_collect_title_ids_returns_sorted_unique_ids(monkeypatch: pytest.MonkeyP
         ("https://a.example", (5.0, 30.0)),
         ("https://b.example", (5.0, 30.0)),
     ]
+
+
+def test_parse_language_filters_returns_none_for_empty_input() -> None:
+    """Verify empty language filters preserve unfiltered behavior."""
+    assert download_all.parse_language_filters(()) is None
+
+
+def test_parse_language_filters_merges_multiple_languages() -> None:
+    """Verify language filter parser resolves multiple language selectors."""
+    result = download_all.parse_language_filters(("english", "vietnamese"))
+
+    assert result is not None
+    assert 0 in result
+    assert 9 in result
+    assert 8 in result
 
 
 def test_collect_title_ids_with_browser_returns_sorted_unique_ids(
@@ -284,6 +335,28 @@ def test_cli_list_only_prints_ids_without_downloading(monkeypatch: pytest.Monkey
     assert DummyLoader.init_args is None
 
 
+def test_cli_forwards_language_filters_to_api(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify --language is translated into language-code filters for API discovery."""
+    observed_languages: set[int] | None = None
+
+    def _collect(
+        *_args: object,
+        **kwargs: object,
+    ) -> list[int]:
+        nonlocal observed_languages
+        observed_languages = kwargs["allowed_languages"]  # type: ignore[index]
+        return [100001]
+
+    monkeypatch.setattr(download_all, "collect_title_ids_from_api", _collect)
+    monkeypatch.setattr(download_all, "MangaLoader", DummyLoader)
+
+    runner = CliRunner()
+    result = runner.invoke(download_all.main, ["--language", "english", "--language", "spanish"])
+
+    assert result.exit_code == 0
+    assert observed_languages == {0, 1}
+
+
 def test_cli_downloads_with_loader_and_forwards_options(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -337,6 +410,18 @@ def test_cli_fails_when_no_titles_are_discovered(monkeypatch: pytest.MonkeyPatch
     assert "No title IDs found on configured list pages." in result.output
 
 
+def test_cli_fails_when_language_filter_has_no_results(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify empty API results with language filters raise a targeted message."""
+    monkeypatch.setattr(download_all, "collect_title_ids_from_api", lambda *_args, **_kwargs: [])
+    monkeypatch.setattr(download_all, "collect_title_ids", lambda *_args, **_kwargs: [100001])
+
+    runner = CliRunner()
+    result = runner.invoke(download_all.main, ["--language", "german"])
+
+    assert result.exit_code != 0
+    assert "No title IDs found for selected language filter(s): german." in result.output
+
+
 def test_cli_fails_when_scraper_request_errors(monkeypatch: pytest.MonkeyPatch) -> None:
     """Verify scraper request exceptions are surfaced as click errors."""
 
@@ -351,6 +436,23 @@ def test_cli_fails_when_scraper_request_errors(monkeypatch: pytest.MonkeyPatch) 
 
     assert result.exit_code != 0
     assert "Failed to fetch title pages: network" in result.output
+
+
+def test_cli_fails_when_language_filter_api_request_errors(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify language filtering stops when API request fails."""
+
+    def _raise_api_error(*_args: object, **_kwargs: object) -> list[int]:
+        raise requests.RequestException("api down")
+
+    monkeypatch.setattr(download_all, "collect_title_ids_from_api", _raise_api_error)
+
+    runner = CliRunner()
+    result = runner.invoke(download_all.main, ["--language", "english"])
+
+    assert result.exit_code != 0
+    assert "Language filtering requires API title-index access" in result.output
 
 
 def test_cli_fails_on_subscription_error(monkeypatch: pytest.MonkeyPatch) -> None:

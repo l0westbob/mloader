@@ -16,6 +16,22 @@ def _is_extra(chapter_name: str) -> bool:
     return chapter_name.strip("#").lower() == "ex"
 
 
+def _format_language_tag(language: int) -> str:
+    """Build a stable language tag for chapter names, including unknown codes."""
+    if language == 8:  # Legacy Vietnamese code observed in older payloads.
+        return " [VIETNAMESE]"
+
+    try:
+        parsed_language = Language(language)
+    except ValueError:
+        return f" [LANG-{language}]"
+
+    if parsed_language == Language.ENGLISH:
+        return ""
+
+    return f" [{parsed_language.name}]"
+
+
 class ExporterBase(metaclass=ABCMeta):
     """Define the interface and shared behavior for all exporters."""
 
@@ -64,9 +80,7 @@ class ExporterBase(metaclass=ABCMeta):
         """Build the filename prefix used by chapter and page outputs."""
         _ = next_chapter_name
         safe_chapter_name = escape_path(chapter_name)
-        lang = ""
-        if Language(language) != Language.ENGLISH:
-            lang = f" [{Language(language).name}]"
+        lang = _format_language_tag(language)
         return f"{title_name}{lang} - {safe_chapter_name}"
 
     def _format_chapter_suffix(self) -> str:

@@ -14,7 +14,7 @@ class Language(Enum):
     RUSSIAN = 5
     THAI = 6
     GERMAN = 7
-    VIETNAMESE = 8
+    VIETNAMESE = 9
 
 
 class ChapterType(Enum):

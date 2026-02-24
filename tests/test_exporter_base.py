@@ -56,6 +56,28 @@ def test_exporter_base_formats_prefix_suffix_and_page_names(tmp_path: Path) -> N
     assert exporter.format_page_name(range(1, 4), ext="png").endswith(".png")
 
 
+def test_exporter_base_handles_legacy_vietnamese_language_code(tmp_path: Path) -> None:
+    """Verify legacy Vietnamese code still produces a stable language prefix."""
+    exporter = DummyExporter(
+        destination=str(tmp_path),
+        title=_title(language=8),
+        chapter=_chapter(),
+    )
+
+    assert "[VIETNAMESE]" in exporter._chapter_prefix
+
+
+def test_exporter_base_handles_unknown_language_code(tmp_path: Path) -> None:
+    """Verify unknown language codes do not raise and keep a readable tag."""
+    exporter = DummyExporter(
+        destination=str(tmp_path),
+        title=_title(language=99),
+        chapter=_chapter(),
+    )
+
+    assert "[LANG-99]" in exporter._chapter_prefix
+
+
 def test_exporter_base_windows_path_prefix(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
