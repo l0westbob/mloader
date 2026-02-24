@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+from contextlib import suppress
+from html import escape
 import zipfile
 from io import BytesIO
 from pathlib import Path
+from tempfile import NamedTemporaryFile
 from typing import Optional, Union
 
 from mloader.exporters.exporter_base import ExporterBase
@@ -15,6 +18,18 @@ class CBZExporter(ExporterBase):
     """Export manga pages into a CBZ archive."""
 
     format = "cbz"
+    COMICINFO_XML_TEMPLATE = """<?xml version="1.0" encoding="utf-8"?>
+<ComicInfo>
+    <Series>{series}</Series>
+    <Number>{number}</Number>
+    <Title>{title}</Title>
+    <Writer>{writer}</Writer>
+    <LanguageISO>{language_iso}</LanguageISO>
+    <Manga>YesAndRightToLeft</Manga>
+    <Publisher>Shueisha</Publisher>
+    <Genre>Manga</Genre>
+</ComicInfo>
+"""
 
     def __init__(
         self,
@@ -60,9 +75,40 @@ class CBZExporter(ExporterBase):
         _ = index
         return self.skip_all_images
 
+    def _generate_comicinfo_xml(self) -> str:
+        """Generate a ComicInfo.xml payload for the current chapter export."""
+        return self.COMICINFO_XML_TEMPLATE.format(
+            series=escape(self.series_name or ""),
+            number=escape(str(self.chapter_number or "")),
+            title=escape(self.chapter_title or ""),
+            writer=escape(self.author or ""),
+            language_iso=escape(self._iso_language()),
+        )
+
+    def _write_comicinfo_xml_entry(self) -> None:
+        """Write ComicInfo.xml into the chapter directory inside the CBZ archive."""
+        xml_path = Path(self.chapter_name, "ComicInfo.xml").as_posix()
+        with suppress(Exception):
+            if xml_path in self.archive.namelist():
+                return
+
+        self.archive.writestr(xml_path, self._generate_comicinfo_xml())
+
     def close(self) -> None:
-        """Persist the in-memory archive to disk."""
+        """Persist the in-memory archive to disk with ComicInfo metadata."""
         if self.skip_all_images:
             return
-        self.archive.close()
-        self.path.write_bytes(self.archive_buffer.getvalue())
+
+        try:
+            self._write_comicinfo_xml_entry()
+        finally:
+            with suppress(Exception):
+                self.archive.close()
+
+        data = self.archive_buffer.getvalue()
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        with NamedTemporaryFile("wb", delete=False, dir=self.path.parent) as tmp:
+            tmp.write(data)
+            temp_path = Path(tmp.name)
+
+        temp_path.replace(self.path)

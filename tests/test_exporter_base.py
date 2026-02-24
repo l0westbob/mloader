@@ -26,9 +26,13 @@ class DummyExporter(ExporterBase):
         return False
 
 
-def _title(name: str = "demo title", language: int = Language.ENGLISH.value) -> SimpleNamespace:
+def _title(
+    name: str = "demo title",
+    language: int = Language.ENGLISH.value,
+    author: str = "author",
+) -> SimpleNamespace:
     """Build a minimal title object for exporter-base tests."""
-    return SimpleNamespace(name=name, language=language)
+    return SimpleNamespace(name=name, language=language, author=author)
 
 
 def _chapter(name: str = "#1", sub_title: str = "subtitle") -> SimpleNamespace:
@@ -76,6 +80,28 @@ def test_exporter_base_handles_unknown_language_code(tmp_path: Path) -> None:
     )
 
     assert "[LANG-99]" in exporter._chapter_prefix
+
+
+def test_exporter_base_iso_language_maps_known_code(tmp_path: Path) -> None:
+    """Verify known internal language codes map to expected ISO values."""
+    exporter = DummyExporter(
+        destination=str(tmp_path),
+        title=_title(language=Language.SPANISH.value),
+        chapter=_chapter(),
+    )
+
+    assert exporter._iso_language() == "es"
+
+
+def test_exporter_base_iso_language_falls_back_to_english(tmp_path: Path) -> None:
+    """Verify unknown language codes default to English ISO code."""
+    exporter = DummyExporter(
+        destination=str(tmp_path),
+        title=_title(language=99),
+        chapter=_chapter(),
+    )
+
+    assert exporter._iso_language() == "en"
 
 
 def test_exporter_base_windows_path_prefix(

@@ -15,9 +15,13 @@ from mloader.exporters.pdf_exporter import PDFExporter
 from mloader.exporters.raw_exporter import RawExporter
 
 
-def _title(name: str = "demo title", language: int = Language.ENGLISH.value) -> SimpleNamespace:
+def _title(
+    name: str = "demo title",
+    language: int = Language.ENGLISH.value,
+    author: str = "author",
+) -> SimpleNamespace:
     """Build a minimal title object for exporter tests."""
-    return SimpleNamespace(name=name, language=language)
+    return SimpleNamespace(name=name, language=language, author=author)
 
 
 def _chapter(name: str = "#1", sub_title: str = "start") -> SimpleNamespace:
@@ -69,8 +73,45 @@ def test_cbz_exporter_creates_archive_with_images(tmp_path: Path) -> None:
 
     with zipfile.ZipFile(exporter.path, "r") as archive:
         names = set(archive.namelist())
+        comicinfo = archive.read(Path(exporter.chapter_name, "ComicInfo.xml").as_posix()).decode("utf-8")
 
     assert any(name.endswith(".jpg") for name in names)
+    assert "<ComicInfo>" in comicinfo
+    assert "<LanguageISO>en</LanguageISO>" in comicinfo
+
+
+def test_cbz_exporter_comicinfo_escapes_metadata(tmp_path: Path) -> None:
+    """Verify ComicInfo.xml escapes special characters from metadata."""
+    exporter = CBZExporter(
+        destination=str(tmp_path),
+        title=_title(name="a & b", author="x < y"),
+        chapter=_chapter(name="#7", sub_title='title "quoted"'),
+    )
+
+    exporter.add_image(b"img", 0)
+    exporter.close()
+
+    with zipfile.ZipFile(exporter.path, "r") as archive:
+        comicinfo = archive.read(Path(exporter.chapter_name, "ComicInfo.xml").as_posix()).decode("utf-8")
+
+    assert "<Series>a &amp; b</Series>" in comicinfo
+    assert "<Writer>x &lt; y</Writer>" in comicinfo
+    assert "<Title>title &quot;quoted&quot;</Title>" in comicinfo
+
+
+def test_cbz_exporter_comicinfo_write_is_idempotent(tmp_path: Path) -> None:
+    """Verify repeated ComicInfo writes do not create duplicate archive entries."""
+    exporter = CBZExporter(destination=str(tmp_path), title=_title(), chapter=_chapter())
+
+    exporter.add_image(b"img", 0)
+    exporter._write_comicinfo_xml_entry()
+    exporter._write_comicinfo_xml_entry()
+    exporter.close()
+
+    with zipfile.ZipFile(exporter.path, "r") as archive:
+        names = archive.namelist()
+
+    assert names.count(Path(exporter.chapter_name, "ComicInfo.xml").as_posix()) == 1
 
 
 def test_cbz_exporter_skips_when_archive_exists(tmp_path: Path) -> None:

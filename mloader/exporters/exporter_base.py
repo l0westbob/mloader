@@ -32,6 +32,23 @@ def _format_language_tag(language: int) -> str:
     return f" [{parsed_language.name}]"
 
 
+def _iso_language_code(language: int) -> str:
+    """Convert internal language codes to ISO 639-1 values."""
+    language_map: dict[int, str] = {
+        Language.ENGLISH.value: "en",
+        Language.SPANISH.value: "es",
+        Language.FRENCH.value: "fr",
+        Language.INDONESIAN.value: "id",
+        Language.PORTUGUESE.value: "pt",
+        Language.RUSSIAN.value: "ru",
+        Language.THAI.value: "th",
+        Language.GERMAN.value: "de",
+        Language.VIETNAMESE.value: "vi",
+        8: "vi",  # Legacy Vietnamese code observed in historical payloads.
+    }
+    return language_map.get(language, "en")
+
+
 class ExporterBase(metaclass=ABCMeta):
     """Define the interface and shared behavior for all exporters."""
 
@@ -56,9 +73,14 @@ class ExporterBase(metaclass=ABCMeta):
 
         self.add_chapter_title = add_chapter_title
         self.add_chapter_subdir = add_chapter_subdir
+        self.series_name = title.name
         self.title_name = escape_path(title.name).title()
         self.chapter = chapter
         self.next_chapter = next_chapter
+        self.language = title.language
+        self.author = title.author
+        self.chapter_title = chapter.sub_title
+        self.chapter_number = chapter.name
         self.is_oneshot = is_oneshot(chapter.name, chapter.sub_title)
         self.is_extra = _is_extra(chapter.name)
 
@@ -91,6 +113,10 @@ class ExporterBase(metaclass=ABCMeta):
             else "Unknown"
         )
         return f"- {safe_subtitle}"
+
+    def _iso_language(self) -> str:
+        """Return the chapter language as an ISO 639-1 code."""
+        return _iso_language_code(self.language)
 
     def format_page_name(self, page: Union[int, range], ext: str = ".jpg") -> str:
         """Return the canonical page filename for ``page``."""
