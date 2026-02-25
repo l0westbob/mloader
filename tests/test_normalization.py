@@ -137,6 +137,29 @@ def test_normalize_ids_merges_chapter_id_and_title_number_requests() -> None:
     assert result == {100312: {102278}, 100412: {102377}}
 
 
+def test_normalize_ids_prefers_viewer_chapters_when_chapter_id_matches_selected_title() -> None:
+    """Verify overlapping title + chapter-ID inputs expand from viewer chapter list."""
+    viewers = {
+        102277: SimpleNamespace(
+            title_id=100312,
+            chapter_id=102277,
+            chapter_name="#1",
+            chapters=[_chapter(102277, "#1"), _chapter(102278, "#2")],
+        )
+    }
+    normalizer = DummyNormalizer(viewers, {})
+
+    result = normalizer._normalize_ids(
+        [100312],
+        [],
+        [102277],
+        min_chapter=0,
+        max_chapter=2_147_483_647,
+    )
+
+    assert result == {100312: {102277, 102278}}
+
+
 def test_normalize_ids_rejects_chapter_numbers_without_title_context() -> None:
     """Verify chapter-number-only requests fail without titles or chapter IDs."""
     normalizer = DummyNormalizer({}, {})

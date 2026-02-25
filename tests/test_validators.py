@@ -81,3 +81,10 @@ def test_validate_ids_rejects_missing_param_metadata() -> None:
     ctx = click.Context(click.Command("mloader"))
     with pytest.raises(click.BadParameter):
         validate_ids(ctx, None, (102277,))
+
+
+def test_validate_ids_rejects_unexpected_param_name() -> None:
+    """Verify validator raises click.BadParameter for unsupported parameter names."""
+    ctx = click.Context(click.Command("mloader"))
+    with pytest.raises(click.BadParameter, match="Unexpected parameter"):
+        validate_ids(ctx, SimpleNamespace(name="unknown"), (1,))
