@@ -189,6 +189,7 @@ def test_pdf_exporter_add_image_noops_when_temp_dir_is_missing(tmp_path: Path) -
     """Verify add_image exits cleanly when temp buffering is unexpectedly unavailable."""
     exporter = PDFExporter(destination=str(tmp_path), title=_title(name="no-temp"), chapter=_chapter())
     exporter._temp_dir = None
+    exporter.close()
 
     exporter.add_image(_jpeg_bytes(), 0)
 

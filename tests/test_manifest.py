@@ -170,3 +170,12 @@ def test_manifest_mark_entry_noops_when_update_is_identical_autosave_false(
     manifest.mark_failed(2, error="boom")
 
     assert manifest._dirty is False
+
+
+def test_manifest_reset_is_noop_when_file_is_missing(tmp_path: Path) -> None:
+    """Verify reset does not fail when manifest file does not exist."""
+    manifest = TitleDownloadManifest(tmp_path)
+
+    manifest.reset()
+
+    assert (tmp_path / MANIFEST_FILENAME).exists() is False

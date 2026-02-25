@@ -175,6 +175,51 @@ Download run summaries include:
 - manifest-skipped chapter count
 - failed chapter count and failed chapter IDs
 
+### Parameter reference
+
+`URLS`:
+- Positional list of MangaPlus URLs (`viewer/<id>` and/or `titles/<id>`). Parsed into chapter/title IDs.
+
+Output and logging:
+- `--json`: emit structured JSON responses for success/failure.
+- `--quiet`: suppress banner and informational output.
+- `-v, --verbose`: increase logging verbosity.
+- `-o, --out <directory>`: output directory (env: `MLOADER_EXTRACT_OUT_DIR`).
+
+Discovery (`--all`):
+- `--all`: discover all available titles and include them in the run.
+- `--page TEXT`: list pages for HTML scraping fallback (repeatable).
+- `--title-index-endpoint TEXT`: API endpoint used for API-first discovery (env: `MLOADER_TITLE_INDEX_ENDPOINT`).
+- `--id-length INTEGER`: keep only title IDs with exact digit length.
+- `--language ...`: restrict discovery to one or more languages (repeatable).
+- `--list-only`: only print discovered IDs, do not download.
+- `--browser-fallback / --no-browser-fallback`: enable/disable Playwright fallback.
+
+Download format and quality:
+- `-r, --raw`: export raw images (overrides `--format`).
+- `-f, --format [cbz|pdf]`: export chapter as CBZ or PDF (env: `MLOADER_OUTPUT_FORMAT`).
+- `-q, --quality [super_high|high|low]`: image quality (env: `MLOADER_QUALITY`).
+- `-s, --split`: request split page variants from API (env: `MLOADER_SPLIT`).
+- `--chapter-title`: include chapter titles in filenames.
+- `--chapter-subdir`: save raw images under chapter subdirectories.
+
+Targets and chapter range:
+- `-c, --chapter INTEGER`: explicit chapter ID (repeatable).
+- `-t, --title INTEGER`: explicit title ID (repeatable).
+- `-b, --begin INTEGER`: minimum chapter number filter.
+- `-e, --end INTEGER`: maximum chapter number filter.
+- `-l, --last`: download only last chapter per title.
+
+Metadata and capture:
+- `-m, --meta`: write `title_metadata.json`.
+- `--capture-api <directory>`: save protobuf/API payload captures (env: `MLOADER_CAPTURE_API_DIR`).
+- `--verify-capture-schema <directory>`: verify capture payload compatibility and exit.
+- `--verify-capture-baseline <directory>`: compare schema signatures against baseline capture directory.
+
+Resume controls:
+- `--resume / --no-resume`: enable/disable manifest-based skip behavior.
+- `--manifest-reset`: reset manifest state before run.
+
 Deterministic exit-code mapping:
 
 - `0`: success

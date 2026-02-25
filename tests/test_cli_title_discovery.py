@@ -116,6 +116,20 @@ class SubscriptionLoader(DummyLoader):
         raise SubscriptionRequiredError("subscription required")
 
 
+class PartialFailureLoader(DummyLoader):
+    """Loader test double returning summary with failed chapters."""
+
+    def download(self, **kwargs: Any) -> DownloadSummary:
+        """Return a deterministic partial-failure summary."""
+        del kwargs
+        return DownloadSummary(
+            downloaded=1,
+            skipped_manifest=0,
+            failed=1,
+            failed_chapter_ids=(123,),
+        )
+
+
 def _build_all_titles_payload(title_ids: list[int]) -> bytes:
     """Build a minimal serialized all-titles protobuf payload for tests."""
     parsed = Response()
@@ -568,6 +582,24 @@ def test_cli_fails_on_subscription_error(monkeypatch: pytest.MonkeyPatch) -> Non
 
     assert result.exit_code != 0
     assert "subscription required" in result.output
+
+
+def test_cli_all_mode_maps_partial_summary_failures_to_external_failure(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify --all returns external-failure exit code for partial chapter failures."""
+    monkeypatch.setattr(
+        cli_main.title_discovery,
+        "collect_title_ids_from_api",
+        lambda *_args, **_kwargs: [100001],
+    )
+    monkeypatch.setattr(cli_main, "MangaLoader", PartialFailureLoader)
+
+    runner = CliRunner()
+    result = runner.invoke(cli_main.main, ["--all"])
+
+    assert result.exit_code == EXTERNAL_FAILURE
+    assert "Download completed with 1 failed chapter(s)." in result.output
 
 
 def test_cli_fails_on_generic_loader_error(monkeypatch: pytest.MonkeyPatch) -> None:
