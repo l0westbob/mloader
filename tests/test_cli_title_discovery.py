@@ -159,11 +159,11 @@ def test_extract_title_ids_respects_id_length_filter() -> None:
     """Verify HTML extraction keeps only IDs matching configured digit length."""
     html = (
         '<a href="/titles/123456">ok</a>'
-        '<a href="/titles/12345">short</a>'
+        '<a href="/titles/10031">short</a>'
         '<a href="/titles/123456/">dup</a>'
     )
     assert title_discovery.extract_title_ids(html, id_length=6) == {123456}
-    assert title_discovery.extract_title_ids(html, id_length=None) == {12345, 123456}
+    assert title_discovery.extract_title_ids(html, id_length=None) == {10031, 123456}
 
 
 def test_extract_title_ids_matches_escaped_slash_links() -> None:

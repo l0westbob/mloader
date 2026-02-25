@@ -1,6 +1,6 @@
 # Mangaplus Downloader
 
-[![Latest Github release](https://img.shields.io/github/tag/hurlenko/mloader.svg)](https://github.com/hurlenko/mloader/releases/latest)
+![Version](https://img.shields.io/badge/version-v2.0.0-brightgreen.svg)
 ![Python](https://img.shields.io/badge/python-v3.14+-blue.svg)
 ![Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen.svg)
 ![License](https://img.shields.io/badge/license-GPLv3-blue.svg)

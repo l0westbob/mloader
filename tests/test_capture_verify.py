@@ -220,8 +220,8 @@ def test_verify_capture_schema_fails_for_missing_success_envelope(tmp_path: Path
 def test_verify_title_detail_payload_rejects_missing_title_detail() -> None:
     """Verify title-detail payload verifier rejects missing payload branch."""
     parsed = Response()
-    parsed.success.manga_viewer.title_id = 1
-    parsed.success.manga_viewer.chapter_id = 1
+    parsed.success.manga_viewer.title_id = 100312
+    parsed.success.manga_viewer.chapter_id = 102277
     with pytest.raises(CaptureVerificationError, match="Missing success.title_detail_view"):
         _verify_title_detail_payload(parsed, "sample")
 
@@ -237,7 +237,7 @@ def test_verify_title_detail_payload_rejects_missing_title_identity() -> None:
 def test_verify_title_detail_payload_rejects_empty_chapter_groups() -> None:
     """Verify title-detail payload verifier rejects groups without chapters."""
     parsed = Response()
-    parsed.success.title_detail_view.title.title_id = 1
+    parsed.success.title_detail_view.title.title_id = 100312
     parsed.success.title_detail_view.title.name = "T"
     parsed.success.title_detail_view.chapter_list_group.add()
     with pytest.raises(CaptureVerificationError, match="No chapter entries found in chapter_list_group"):
@@ -247,7 +247,7 @@ def test_verify_title_detail_payload_rejects_empty_chapter_groups() -> None:
 def test_verify_manga_viewer_payload_rejects_missing_viewer() -> None:
     """Verify manga-viewer payload verifier rejects missing payload branch."""
     parsed = Response()
-    parsed.success.title_detail_view.title.title_id = 1
+    parsed.success.title_detail_view.title.title_id = 100312
     parsed.success.title_detail_view.title.name = "T"
     with pytest.raises(CaptureVerificationError, match="Missing success.manga_viewer"):
         _verify_manga_viewer_payload(parsed, "sample")
@@ -264,8 +264,8 @@ def test_verify_manga_viewer_payload_rejects_missing_ids() -> None:
 def test_verify_manga_viewer_payload_rejects_missing_image_urls() -> None:
     """Verify manga-viewer payload verifier requires at least one image URL."""
     parsed = Response()
-    parsed.success.manga_viewer.title_id = 1
-    parsed.success.manga_viewer.chapter_id = 2
+    parsed.success.manga_viewer.title_id = 100312
+    parsed.success.manga_viewer.chapter_id = 102277
     parsed.success.manga_viewer.pages.add()
     with pytest.raises(CaptureVerificationError, match="No manga_page.image_url found in pages"):
         _verify_manga_viewer_payload(parsed, "sample")
@@ -274,8 +274,8 @@ def test_verify_manga_viewer_payload_rejects_missing_image_urls() -> None:
 def test_verify_manga_viewer_payload_rejects_missing_last_page_chapter() -> None:
     """Verify manga-viewer payload verifier requires terminal chapter linkage."""
     parsed = Response()
-    parsed.success.manga_viewer.title_id = 1
-    parsed.success.manga_viewer.chapter_id = 2
+    parsed.success.manga_viewer.title_id = 100312
+    parsed.success.manga_viewer.chapter_id = 102277
     page = parsed.success.manga_viewer.pages.add()
     page.manga_page.image_url = "http://img"
     with pytest.raises(CaptureVerificationError, match="Missing last_page.current_chapter"):
@@ -285,10 +285,10 @@ def test_verify_manga_viewer_payload_rejects_missing_last_page_chapter() -> None
 def test_build_schema_signature_rejects_unknown_endpoint() -> None:
     """Verify schema-signature builder rejects unsupported endpoint names."""
     parsed = Response()
-    parsed.success.title_detail_view.title.title_id = 1
+    parsed.success.title_detail_view.title.title_id = 100312
     parsed.success.title_detail_view.title.name = "title"
     group = parsed.success.title_detail_view.chapter_list_group.add()
-    group.first_chapter_list.add().chapter_id = 1
+    group.first_chapter_list.add().chapter_id = 102277
     with pytest.raises(CaptureVerificationError, match="Unsupported endpoint"):
         _build_schema_signature(
             endpoint="unknown",

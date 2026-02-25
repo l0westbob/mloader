@@ -16,6 +16,11 @@ from mloader.errors import SubscriptionRequiredError
 from mloader.manga_loader.downloader import DownloadInterruptedError
 from mloader.manga_loader.capture_verify import CaptureVerificationError, CaptureVerificationSummary
 
+CHAPTER_ID = "102277"
+CHAPTER_ID_ALT = "102278"
+FAILED_CHAPTER_ID_A = 102300
+FAILED_CHAPTER_ID_B = 102301
+
 
 class DummyLoader:
     """Loader test double capturing constructor and download arguments."""
@@ -104,7 +109,7 @@ class PartialFailureLoader(DummyLoader):
             downloaded=2,
             skipped_manifest=1,
             failed=2,
-            failed_chapter_ids=(12, 13),
+            failed_chapter_ids=(FAILED_CHAPTER_ID_A, FAILED_CHAPTER_ID_B),
         )
 
 
@@ -119,7 +124,7 @@ class InterruptedLoader(DummyLoader):
                 downloaded=1,
                 skipped_manifest=1,
                 failed=1,
-                failed_chapter_ids=(44,),
+                failed_chapter_ids=(int(CHAPTER_ID_ALT),),
             )
         )
 
@@ -137,7 +142,7 @@ def test_cli_uses_default_info_logging_level(monkeypatch: pytest.MonkeyPatch) ->
     monkeypatch.setattr(cli_main, "MangaLoader", DummyLoader)
 
     runner = CliRunner()
-    result = runner.invoke(cli_main.main, ["--chapter", "123"])
+    result = runner.invoke(cli_main.main, ["--chapter", CHAPTER_ID])
 
     assert result.exit_code == 0
     assert observed_level == 20
@@ -156,7 +161,7 @@ def test_cli_uses_warning_logging_level_in_quiet_mode(monkeypatch: pytest.Monkey
     monkeypatch.setattr(cli_main, "MangaLoader", DummyLoader)
 
     runner = CliRunner()
-    result = runner.invoke(cli_main.main, ["--chapter", "123", "--quiet"])
+    result = runner.invoke(cli_main.main, ["--chapter", CHAPTER_ID, "--quiet"])
 
     assert result.exit_code == 0
     assert observed_level == 30
@@ -176,7 +181,7 @@ def test_cli_uses_debug_logging_level_in_verbose_mode(monkeypatch: pytest.Monkey
     monkeypatch.setattr(cli_main, "MangaLoader", DummyLoader)
 
     runner = CliRunner()
-    result = runner.invoke(cli_main.main, ["--chapter", "123", "--verbose"])
+    result = runner.invoke(cli_main.main, ["--chapter", CHAPTER_ID, "--verbose"])
 
     assert result.exit_code == 0
     assert observed_level == 10
@@ -190,14 +195,14 @@ def test_cli_uses_raw_exporter_when_raw_flag_is_set(
     monkeypatch.setattr(cli_main, "RawExporter", DummyRawExporter)
 
     runner = CliRunner()
-    result = runner.invoke(cli_main.main, ["--chapter", "123", "--raw"])
+    result = runner.invoke(cli_main.main, ["--chapter", CHAPTER_ID, "--raw"])
 
     assert result.exit_code == 0
     assert DummyLoader.init_args is not None
     assert DummyLoader.download_args is not None
     assert DummyLoader.init_args["exporter_factory"].func is DummyRawExporter
     assert DummyLoader.init_args["output_format"] == "raw"
-    assert DummyLoader.download_args["chapter_ids"] == {123}
+    assert DummyLoader.download_args["chapter_ids"] == {int(CHAPTER_ID)}
 
 
 def test_cli_uses_pdf_exporter_when_requested(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -206,14 +211,14 @@ def test_cli_uses_pdf_exporter_when_requested(monkeypatch: pytest.MonkeyPatch) -
     monkeypatch.setattr(cli_main, "PDFExporter", DummyPdfExporter)
 
     runner = CliRunner()
-    result = runner.invoke(cli_main.main, ["--chapter", "55", "--format", "pdf"])
+    result = runner.invoke(cli_main.main, ["--chapter", CHAPTER_ID, "--format", "pdf"])
 
     assert result.exit_code == 0
     assert DummyLoader.init_args is not None
     assert DummyLoader.download_args is not None
     assert DummyLoader.init_args["exporter_factory"].func is DummyPdfExporter
     assert DummyLoader.init_args["output_format"] == "pdf"
-    assert DummyLoader.download_args["chapter_ids"] == {55}
+    assert DummyLoader.download_args["chapter_ids"] == {int(CHAPTER_ID)}
 
 
 def test_cli_returns_error_when_download_fails(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -221,7 +226,7 @@ def test_cli_returns_error_when_download_fails(monkeypatch: pytest.MonkeyPatch) 
     monkeypatch.setattr(cli_main, "MangaLoader", FailingLoader)
 
     runner = CliRunner()
-    result = runner.invoke(cli_main.main, ["--chapter", "55"])
+    result = runner.invoke(cli_main.main, ["--chapter", CHAPTER_ID])
 
     assert result.exit_code == INTERNAL_BUG
     assert "Download failed" in result.output
@@ -275,7 +280,7 @@ def test_cli_returns_subscription_message(monkeypatch: pytest.MonkeyPatch) -> No
     monkeypatch.setattr(cli_main, "MangaLoader", SubscriptionLoader)
 
     runner = CliRunner()
-    result = runner.invoke(cli_main.main, ["--chapter", "55"])
+    result = runner.invoke(cli_main.main, ["--chapter", CHAPTER_ID])
 
     assert result.exit_code == EXTERNAL_FAILURE
     assert "A MAX subscription is required to download this chapter." in result.output
@@ -286,7 +291,7 @@ def test_cli_forwards_capture_directory(monkeypatch: pytest.MonkeyPatch) -> None
     monkeypatch.setattr(cli_main, "MangaLoader", DummyLoader)
 
     runner = CliRunner()
-    result = runner.invoke(cli_main.main, ["--chapter", "7", "--capture-api", "/tmp/captures"])
+    result = runner.invoke(cli_main.main, ["--chapter", CHAPTER_ID, "--capture-api", "/tmp/captures"])
 
     assert result.exit_code == 0
     assert DummyLoader.init_args is not None
@@ -300,7 +305,7 @@ def test_cli_forwards_resume_and_manifest_reset_options(monkeypatch: pytest.Monk
     runner = CliRunner()
     result = runner.invoke(
         cli_main.main,
-        ["--chapter", "7", "--no-resume", "--manifest-reset"],
+        ["--chapter", CHAPTER_ID, "--no-resume", "--manifest-reset"],
     )
 
     assert result.exit_code == 0
@@ -431,7 +436,7 @@ def test_cli_json_mode_returns_structured_success_payload(
     monkeypatch.setattr(cli_main, "MangaLoader", DummyLoader)
 
     runner = CliRunner()
-    result = runner.invoke(cli_main.main, ["--json", "--chapter", "123"])
+    result = runner.invoke(cli_main.main, ["--json", "--chapter", CHAPTER_ID])
 
     assert result.exit_code == 0
     payload = json.loads(result.output)
@@ -454,7 +459,7 @@ def test_cli_json_mode_returns_structured_error_payload(
     monkeypatch.setattr(cli_main, "MangaLoader", FailingLoader)
 
     runner = CliRunner()
-    result = runner.invoke(cli_main.main, ["--json", "--chapter", "55"])
+    result = runner.invoke(cli_main.main, ["--json", "--chapter", CHAPTER_ID])
 
     assert result.exit_code == INTERNAL_BUG
     payload = json.loads(result.output)
@@ -472,7 +477,7 @@ def test_cli_maps_request_failures_to_external_exit_code(
     monkeypatch.setattr(cli_main, "MangaLoader", RequestErrorLoader)
 
     runner = CliRunner()
-    result = runner.invoke(cli_main.main, ["--chapter", "55"])
+    result = runner.invoke(cli_main.main, ["--chapter", CHAPTER_ID])
 
     assert result.exit_code == EXTERNAL_FAILURE
     assert "Download request failed: network down" in result.output
@@ -485,11 +490,11 @@ def test_cli_maps_interrupted_download_to_external_exit_code(
     monkeypatch.setattr(cli_main, "MangaLoader", InterruptedLoader)
 
     runner = CliRunner()
-    result = runner.invoke(cli_main.main, ["--chapter", "55"])
+    result = runner.invoke(cli_main.main, ["--chapter", CHAPTER_ID])
 
     assert result.exit_code == EXTERNAL_FAILURE
     assert "Download summary: downloaded=1, skipped_manifest=1, failed=1" in result.output
-    assert "Failed chapter IDs: 44" in result.output
+    assert f"Failed chapter IDs: {CHAPTER_ID_ALT}" in result.output
     assert "Download interrupted by user." in result.output
 
 
@@ -500,7 +505,7 @@ def test_cli_returns_external_failure_when_summary_has_failed_chapters(
     monkeypatch.setattr(cli_main, "MangaLoader", PartialFailureLoader)
 
     runner = CliRunner()
-    result = runner.invoke(cli_main.main, ["--chapter", "55"])
+    result = runner.invoke(cli_main.main, ["--chapter", CHAPTER_ID])
 
     assert result.exit_code == EXTERNAL_FAILURE
     assert "Download completed with 2 failed chapter(s)." in result.output
@@ -513,7 +518,7 @@ def test_cli_json_mode_includes_failed_summary_payload(
     monkeypatch.setattr(cli_main, "MangaLoader", PartialFailureLoader)
 
     runner = CliRunner()
-    result = runner.invoke(cli_main.main, ["--json", "--chapter", "55"])
+    result = runner.invoke(cli_main.main, ["--json", "--chapter", CHAPTER_ID])
 
     assert result.exit_code == EXTERNAL_FAILURE
     payload = json.loads(result.output)
@@ -525,7 +530,7 @@ def test_cli_json_mode_includes_failed_summary_payload(
             "downloaded": 2,
             "skipped_manifest": 1,
             "failed": 2,
-            "failed_chapter_ids": [12, 13],
+            "failed_chapter_ids": [FAILED_CHAPTER_ID_A, FAILED_CHAPTER_ID_B],
         },
     }
 
@@ -537,7 +542,7 @@ def test_cli_json_mode_includes_interrupted_summary_payload(
     monkeypatch.setattr(cli_main, "MangaLoader", InterruptedLoader)
 
     runner = CliRunner()
-    result = runner.invoke(cli_main.main, ["--json", "--chapter", "55"])
+    result = runner.invoke(cli_main.main, ["--json", "--chapter", CHAPTER_ID])
 
     assert result.exit_code == EXTERNAL_FAILURE
     payload = json.loads(result.output)
@@ -549,6 +554,6 @@ def test_cli_json_mode_includes_interrupted_summary_payload(
             "downloaded": 1,
             "skipped_manifest": 1,
             "failed": 1,
-            "failed_chapter_ids": [44],
+            "failed_chapter_ids": [int(CHAPTER_ID_ALT)],
         },
     }

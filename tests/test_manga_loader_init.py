@@ -71,16 +71,16 @@ def test_manga_loader_download_delegates_to_runtime(monkeypatch: pytest.MonkeyPa
     monkeypatch.setattr(loader._runtime, "download", _download)
 
     loader.download(
-        title_ids={1},
-        chapter_ids={2},
+        title_ids={100312},
+        chapter_ids={102277},
         min_chapter=3,
         max_chapter=4,
         last_chapter=True,
     )
 
     assert observed == {
-        "title_ids": {1},
-        "chapter_ids": {2},
+        "title_ids": {100312},
+        "chapter_ids": {102277},
         "min_chapter": 3,
         "max_chapter": 4,
         "last_chapter": True,
