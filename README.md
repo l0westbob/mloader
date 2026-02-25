@@ -86,6 +86,8 @@ Download all discoverable titles from MangaPlus list pages with one command:
 mloader --all --format pdf
 ```
 
+As of February 25, 2026, this will download 24,944 chapters over a total of 637 titles with a size of around 220GB (English catalog).
+
 The bulk command uses protobuf API discovery first (`/api/title_list/allV2`), then falls back to
 static page scraping and optional browser-rendered scraping (`--browser-fallback`, enabled by
 default) when needed.
@@ -107,7 +109,7 @@ Supported `--language` values:
 - `german`
 - `vietnamese`
 
-As of February 24, 2026, all of the languages above are present in the live `allV2` payload.
+As of February 24, 2026, all the languages above are present in the live `allV2` payload.
 
 Install browser runtime locally with:
 
