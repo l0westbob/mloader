@@ -271,12 +271,35 @@ mloader --verify-capture-schema ./capture --verify-capture-baseline ./tests/fixt
 
 ## 🐳 Docker
 
-`docker/Dockerfile` installs `mloader` from the local repository files and uses `mloader` as the container entrypoint.
+`docker/Dockerfile` installs `mloader` from the local repository files.
 
-The default `compose.yaml` command runs:
+The default `compose.yaml` now runs a long-lived cron daemon inside the container and executes `mloader` weekly.
+
+Default schedule and arguments:
 
 ```bash
-mloader --all --language english --format pdf
+MLOADER_CRON_SCHEDULE="0 3 * * 1"
+MLOADER_CRON_ARGS="--all --language english --format pdf"
+```
+
+This means: every Monday at 03:00 container time.
+
+Useful runtime knobs in `compose.yaml`:
+
+- `MLOADER_CRON_SCHEDULE`: standard 5-field cron expression.
+- `MLOADER_CRON_ARGS`: arguments passed to `mloader` for scheduled runs.
+- `MLOADER_RUN_ON_START`: `"true"` to run one job immediately on container startup.
+
+Run in background:
+
+```bash
+docker compose up -d --build
+```
+
+Check scheduler logs:
+
+```bash
+docker compose logs -f mloader
 ```
 
 ## 🧩 Extending mloader
