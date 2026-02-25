@@ -8,6 +8,7 @@ from pathlib import Path
 import click
 
 from mloader.cli.main import main as cli_main
+from mloader.cli.readme_reference import replace_readme_cli_reference
 
 
 def _extract_option_names_from_help(help_text: str) -> set[str]:
@@ -35,3 +36,10 @@ def test_readme_mentions_every_cli_long_option() -> None:
 
     for option_name in required_options:
         assert option_name in readme_text, f"README is missing option documentation for {option_name}"
+
+
+def test_readme_cli_reference_block_is_synced() -> None:
+    """Verify README auto-generated CLI reference block is synchronized."""
+    readme_text = Path("README.md").read_text(encoding="utf-8")
+    rendered = replace_readme_cli_reference(readme_text, command=cli_main)
+    assert rendered == readme_text

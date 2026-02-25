@@ -2,21 +2,16 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
 import logging
 from pathlib import Path
 from typing import Collection, Literal, Mapping
 
 from mloader.domain.requests import DownloadSummary
 from mloader.errors import SubscriptionRequiredError
+from mloader.manga_loader.download_services import DownloadServices
 from mloader.manga_loader.manifest import TitleDownloadManifest
-from mloader.manga_loader.services import (
-    ChapterMetadata,
-    ChapterPlanner,
-    MetadataWriter,
-    PageExportService,
-    PageImageService,
-)
+from mloader.manga_loader.run_report import RunReport
+from mloader.manga_loader.services import ChapterMetadata
 from mloader.types import (
     ChapterLike,
     ExporterFactoryLike,
@@ -32,23 +27,13 @@ from mloader.utils import escape_path
 log = logging.getLogger(__name__)
 
 
-@dataclass(slots=True)
-class _MutableDownloadSummary:
-    """Mutable run counters used during one download execution."""
+class DownloadInterruptedError(RuntimeError):
+    """Raised when a download run is interrupted by user signal."""
 
-    downloaded: int = 0
-    skipped_manifest: int = 0
-    failed: int = 0
-    failed_chapter_ids: list[int] = field(default_factory=list)
-
-    def as_immutable(self) -> DownloadSummary:
-        """Build immutable summary payload for public API return value."""
-        return DownloadSummary(
-            downloaded=self.downloaded,
-            skipped_manifest=self.skipped_manifest,
-            failed=self.failed,
-            failed_chapter_ids=tuple(self.failed_chapter_ids),
-        )
+    def __init__(self, summary: DownloadSummary) -> None:
+        """Store partial run summary for CLI reporting."""
+        super().__init__("Download interrupted by user.")
+        self.summary = summary
 
 
 class DownloadMixin:
@@ -62,6 +47,7 @@ class DownloadMixin:
     request_timeout: tuple[float, float]
     resume: bool
     manifest_reset: bool
+    services: DownloadServices
 
     def _prepare_normalized_manga_list(
         self,
@@ -106,7 +92,7 @@ class DownloadMixin:
         last_chapter: bool = False,
     ) -> DownloadSummary:
         """Start a download run using already validated filters."""
-        summary = _MutableDownloadSummary()
+        report = RunReport()
         self._clear_api_caches_for_run()
         try:
             normalized_mapping = self._prepare_normalized_manga_list(
@@ -116,20 +102,22 @@ class DownloadMixin:
                 max_chapter,
                 last_chapter,
             )
-            self._download(normalized_mapping, summary)
+            self._download(normalized_mapping, report)
+        except KeyboardInterrupt as interrupted:
+            raise DownloadInterruptedError(report.as_summary()) from interrupted
         finally:
             self._clear_api_caches_for_run()
-        return summary.as_immutable()
+        return report.as_summary()
 
     def _download(
         self,
         manga_mapping: Mapping[int, Collection[int]],
-        summary: _MutableDownloadSummary,
+        report: RunReport,
     ) -> None:
         """Iterate through normalized titles and process them one by one."""
         total_titles = len(manga_mapping)
         for title_index, (title_id, chapter_ids) in enumerate(manga_mapping.items(), 1):
-            self._process_title(title_index, total_titles, title_id, chapter_ids, summary=summary)
+            self._process_title(title_index, total_titles, title_id, chapter_ids, report=report)
 
     def _process_title(
         self,
@@ -138,7 +126,7 @@ class DownloadMixin:
         title_id: int,
         chapter_ids: Collection[int],
         *,
-        summary: _MutableDownloadSummary,
+        report: RunReport,
     ) -> None:
         """Download and export all selected chapters for one title."""
         manifest: TitleDownloadManifest | None = None
@@ -173,7 +161,7 @@ class DownloadMixin:
                     chapters_to_download,
                     manifest,
                 )
-                summary.skipped_manifest += skipped_manifest
+                report.mark_manifest_skipped(skipped_manifest)
 
             if not chapters_to_download:
                 log.info(f"    All chapters for '{title_detail.name}' are already downloaded.")
@@ -190,13 +178,19 @@ class DownloadMixin:
                         chapter_id,
                         manifest=manifest if self.resume else None,
                     )
-                    summary.downloaded += 1
+                    report.mark_downloaded()
+                except KeyboardInterrupt:
+                    if self.resume and manifest is not None:
+                        manifest.mark_failed(chapter_id, error="Interrupted by user.")
+                        manifest.flush()
+                    report.mark_failed(chapter_id)
+                    log.warning("    Interrupted while downloading chapter %s.", chapter_id)
+                    raise
                 except Exception as error:
                     if self.resume and manifest is not None:
                         manifest.mark_failed(chapter_id, error=str(error))
                         manifest.flush()
-                    summary.failed += 1
-                    summary.failed_chapter_ids.append(chapter_id)
+                    report.mark_failed(chapter_id)
                     log.error("    Failed chapter %s: %s", chapter_id, error)
         finally:
             if self.resume and manifest is not None:
@@ -257,7 +251,7 @@ class DownloadMixin:
         exporter: ExporterLike,
     ) -> None:
         """Download all chapter pages and pass them to the exporter."""
-        PageExportService.export_pages(
+        self._services().page_export_service.export_pages(
             pages,
             chapter_name,
             exporter,
@@ -266,7 +260,7 @@ class DownloadMixin:
 
     def _download_image(self, url: str) -> bytes:
         """Download an image blob from ``url``."""
-        return PageImageService.download_image(
+        return self._services().page_image_service.download_image(
             self.session,
             self.request_timeout,
             url,
@@ -274,7 +268,7 @@ class DownloadMixin:
 
     def _fetch_page_image(self, page: MangaPageLike) -> bytes:
         """Return raw or decrypted image bytes for one manga page."""
-        return PageImageService.fetch_page_image(
+        return self._services().page_image_service.fetch_page_image(
             page,
             download_image=self._download_image,
             decrypt_image=self._decrypt_image,
@@ -300,12 +294,19 @@ class DownloadMixin:
             resolved_chapter_data = chapter_data_or_export_dir
             resolved_export_dir = export_dir
 
-        MetadataWriter.dump_title_metadata(title_dump, resolved_chapter_data, resolved_export_dir)
+        self._services().metadata_writer.dump_title_metadata(
+            title_dump,
+            resolved_chapter_data,
+            resolved_export_dir,
+        )
         log.info(f"    Metadata for title '{title_dump.title.name}' exported")
 
     def _extract_chapter_data(self, title_dump: TitleDumpLike) -> dict[int, ChapterMetadata]:
         """Collect chapter metadata from all chapter groups into one mapping."""
-        return ChapterPlanner.extract_chapter_data(title_dump, self._prepare_filename)
+        return self._services().chapter_planner.extract_chapter_data(
+            title_dump,
+            self._prepare_filename,
+        )
 
     def _get_existing_files(self, export_path: Path) -> list[str]:
         """Return existing chapter stems for single-file output formats."""
@@ -336,7 +337,7 @@ class DownloadMixin:
         requested_chapter_ids: Collection[int],
     ) -> list[int]:
         """Return chapter IDs that are requested and not already exported."""
-        return ChapterPlanner.filter_chapters_to_download(
+        return self._services().chapter_planner.filter_chapters_to_download(
             chapter_data,
             title_dump,
             title_detail,
@@ -363,12 +364,15 @@ class DownloadMixin:
         sub_title: str,
     ) -> str:
         """Build normalized filename stem expected for chapter-level outputs."""
-        del self
-        return ChapterPlanner.build_expected_filename(title_name, chapter_obj, sub_title)
+        return self._services().chapter_planner.build_expected_filename(
+            title_name,
+            chapter_obj,
+            sub_title,
+        )
 
     def _find_chapter_by_id(self, title_dump: TitleDumpLike, chapter_id: int) -> ChapterLike | None:
         """Find and return a chapter object by ``chapter_id`` if available."""
-        return ChapterPlanner.find_chapter_by_id(title_dump, chapter_id)
+        return self._services().chapter_planner.find_chapter_by_id(title_dump, chapter_id)
 
     def _has_last_page(self, viewer: MangaViewerLike) -> bool:
         """Return whether ``viewer`` includes a valid terminal page payload."""
@@ -382,3 +386,9 @@ class DownloadMixin:
         except (UnicodeEncodeError, UnicodeDecodeError):
             log.warning(f"    Encoding fix skipped for: {text}")
         return escape_path(fixed_text)
+
+    def _services(self) -> DownloadServices:
+        """Return configured downloader services, defaulting to concrete bindings."""
+        if not hasattr(self, "services"):
+            self.services = DownloadServices.defaults()
+        return self.services

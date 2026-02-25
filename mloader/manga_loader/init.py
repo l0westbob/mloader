@@ -14,6 +14,7 @@ from mloader.types import ExporterFactoryLike, PayloadCaptureLike
 from .api import APILoaderMixin
 from .capture import APIPayloadCapture
 from .decryption import DecryptionMixin
+from .download_services import DownloadServices
 from .downloader import DownloadMixin
 from .normalization import NormalizationMixin
 
@@ -36,6 +37,7 @@ class _LoaderRuntime(APILoaderMixin, NormalizationMixin, DownloadMixin, Decrypti
         capture_api_dir: str | None,
         resume: bool,
         manifest_reset: bool,
+        services: DownloadServices,
     ) -> None:
         """Initialize runtime dependencies and transport settings."""
         self.meta = meta
@@ -47,6 +49,7 @@ class _LoaderRuntime(APILoaderMixin, NormalizationMixin, DownloadMixin, Decrypti
         self.request_timeout = request_timeout
         self.resume = resume
         self.manifest_reset = manifest_reset
+        self.services = services
         self.payload_capture = APIPayloadCapture(capture_api_dir) if capture_api_dir else None
         self.session = session or Session()
         self._configure_transport(self.session, retries)
@@ -93,6 +96,7 @@ class MangaLoader:
         capture_api_dir: str | None = None,
         resume: bool = True,
         manifest_reset: bool = False,
+        services: DownloadServices | None = None,
     ) -> None:
         """Initialize the composed runtime and preserve public constructor contract."""
         self._runtime = _LoaderRuntime(
@@ -109,6 +113,7 @@ class MangaLoader:
             capture_api_dir=capture_api_dir,
             resume=resume,
             manifest_reset=manifest_reset,
+            services=services or DownloadServices.defaults(),
         )
 
     @property

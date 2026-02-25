@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import json
-from typing import Any, Iterable, Mapping
+from typing import Any, Iterable, Mapping, Sequence
 
 import click
 
 from mloader.application import workflows
+from mloader.cli.examples import CliExample
 from mloader.domain.requests import DownloadSummary
 from mloader.manga_loader.capture_verify import CaptureVerificationSummary
 
@@ -100,6 +101,36 @@ class CliPresenter:
         if summary.failed_chapter_ids:
             failed_ids = " ".join(str(chapter_id) for chapter_id in summary.failed_chapter_ids)
             click.echo(f"Failed chapter IDs: {failed_ids}")
+
+    def emit_examples(self, examples: Sequence[CliExample]) -> None:
+        """Emit CLI example catalog for human and JSON output modes."""
+        if self.json_output:
+            self.emit_json(
+                {
+                    "status": "ok",
+                    "mode": "show_examples",
+                    "exit_code": 0,
+                    "count": len(examples),
+                    "examples": [
+                        {
+                            "title": example.title,
+                            "command": example.command,
+                            "description": example.description,
+                        }
+                        for example in examples
+                    ],
+                }
+            )
+            return
+
+        click.echo("mloader example catalog")
+        click.echo("These examples are intentionally exhaustive and option-complete.")
+        click.echo()
+        for index, example in enumerate(examples, 1):
+            click.echo(f"{index}. {example.title}")
+            click.echo(f"   $ {example.command}")
+            click.echo(f"   {example.description}")
+            click.echo()
 
     def emit_json(self, payload: Mapping[str, Any]) -> None:
         """Emit one machine-readable JSON object to stdout."""

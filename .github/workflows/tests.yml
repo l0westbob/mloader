@@ -130,4 +130,6 @@ jobs:
           pip install -e .[dev]
 
       - name: Run docs lint tests
-        run: pytest -q tests/test_readme_cli_options.py
+        run: |
+          python scripts/sync_readme_cli_reference.py --check
+          pytest -q tests/test_readme_cli_options.py tests/test_cli_readme_reference.py

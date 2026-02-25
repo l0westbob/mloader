@@ -6,6 +6,7 @@ import json
 
 import pytest
 
+from mloader.cli.examples import CliExample
 from mloader.cli.presenter import CliPresenter
 from mloader.domain.requests import DownloadSummary
 from mloader.manga_loader.capture_verify import CaptureVerificationSummary
@@ -101,3 +102,42 @@ def test_presenter_suppresses_download_summary_in_quiet_mode(
     )
 
     assert capsys.readouterr().out == ""
+
+
+def test_presenter_emits_examples_human_mode(capsys: pytest.CaptureFixture[str]) -> None:
+    """Verify presenter prints example catalog in human mode."""
+    presenter = CliPresenter(json_output=False, quiet=False)
+    presenter.emit_examples(
+        [
+            CliExample(
+                title="Example title",
+                command="mloader --chapter 102277",
+                description="Example description.",
+            )
+        ]
+    )
+
+    output = capsys.readouterr().out
+    assert "mloader example catalog" in output
+    assert "Example title" in output
+    assert "mloader --chapter 102277" in output
+
+
+def test_presenter_emits_examples_json_mode(capsys: pytest.CaptureFixture[str]) -> None:
+    """Verify presenter emits structured example catalog in JSON mode."""
+    presenter = CliPresenter(json_output=True, quiet=False)
+    presenter.emit_examples(
+        [
+            CliExample(
+                title="Example title",
+                command="mloader --chapter 102277",
+                description="Example description.",
+            )
+        ]
+    )
+
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["status"] == "ok"
+    assert payload["mode"] == "show_examples"
+    assert payload["count"] == 1
+    assert payload["examples"][0]["command"] == "mloader --chapter 102277"

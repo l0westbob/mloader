@@ -9,6 +9,7 @@ import requests
 
 from mloader.application import workflows
 from mloader.domain.requests import DownloadRequest, DownloadSummary
+from mloader.manga_loader.downloader import DownloadInterruptedError
 
 
 class DummyRawExporter:
@@ -72,6 +73,22 @@ class RequestFailingLoader(DummyLoader):
         """Raise request exception for external-dependency mapping tests."""
         del kwargs
         raise requests.RequestException("network")
+
+
+class InterruptingLoader(DummyLoader):
+    """Loader test double that raises interrupt wrapper with partial summary."""
+
+    def download(self, **kwargs: Any) -> None:
+        """Raise interrupted-download error to verify workflow mapping behavior."""
+        del kwargs
+        raise DownloadInterruptedError(
+            DownloadSummary(
+                downloaded=3,
+                skipped_manifest=1,
+                failed=1,
+                failed_chapter_ids=(77,),
+            )
+        )
 
 
 class NoneReturningLoader:
@@ -289,6 +306,27 @@ def test_execute_download_wraps_request_errors_as_external_dependency_failure() 
             pdf_exporter=DummyPdfExporter,
             cbz_exporter=DummyCbzExporter,
         )
+
+
+def test_execute_download_wraps_interrupt_as_workflow_interrupt() -> None:
+    """Verify interrupted downloader runs are normalized with partial summary."""
+    request = _build_request(raw=False, output_format="cbz")
+
+    with pytest.raises(workflows.DownloadInterrupted) as interrupted:
+        workflows.execute_download(
+            request,
+            loader_factory=InterruptingLoader,
+            raw_exporter=DummyRawExporter,
+            pdf_exporter=DummyPdfExporter,
+            cbz_exporter=DummyCbzExporter,
+        )
+
+    assert interrupted.value.summary == DownloadSummary(
+        downloaded=3,
+        skipped_manifest=1,
+        failed=1,
+        failed_chapter_ids=(77,),
+    )
 
 
 def test_execute_download_falls_back_when_loader_returns_non_summary() -> None:

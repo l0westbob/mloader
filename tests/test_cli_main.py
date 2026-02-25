@@ -13,6 +13,7 @@ from mloader.cli import main as cli_main
 from mloader.cli.exit_codes import EXTERNAL_FAILURE, INTERNAL_BUG, VALIDATION_ERROR
 from mloader.domain.requests import DownloadSummary
 from mloader.errors import SubscriptionRequiredError
+from mloader.manga_loader.downloader import DownloadInterruptedError
 from mloader.manga_loader.capture_verify import CaptureVerificationError, CaptureVerificationSummary
 
 
@@ -104,6 +105,22 @@ class PartialFailureLoader(DummyLoader):
             skipped_manifest=1,
             failed=2,
             failed_chapter_ids=(12, 13),
+        )
+
+
+class InterruptedLoader(DummyLoader):
+    """Loader test double raising interrupt wrapper with partial summary."""
+
+    def download(self, **kwargs: Any) -> DownloadSummary:
+        """Raise downloader interrupt error containing partial run summary."""
+        del kwargs
+        raise DownloadInterruptedError(
+            DownloadSummary(
+                downloaded=1,
+                skipped_manifest=1,
+                failed=1,
+                failed_chapter_ids=(44,),
+            )
         )
 
 
@@ -217,6 +234,40 @@ def test_cli_without_ids_prints_help_and_exits_cleanly() -> None:
 
     assert result.exit_code == 0
     assert "Usage:" in result.output
+    assert "Examples:" not in result.output
+
+
+def test_cli_show_examples_exits_without_download(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify --show-examples prints catalog and exits before download workflow."""
+    invoked = {"download_called": False}
+
+    def _raise_if_called(*args: Any, **kwargs: Any) -> None:
+        del args, kwargs
+        invoked["download_called"] = True
+        raise AssertionError("execute_download should not be called in --show-examples mode")
+
+    monkeypatch.setattr(cli_main.workflows, "execute_download", _raise_if_called)
+
+    runner = CliRunner()
+    result = runner.invoke(cli_main.main, ["--show-examples"])
+
+    assert result.exit_code == 0
+    assert "mloader example catalog" in result.output
+    assert "--manifest-reset" in result.output
+    assert invoked["download_called"] is False
+
+
+def test_cli_show_examples_json_mode_returns_catalog() -> None:
+    """Verify --show-examples with --json emits structured example payload."""
+    runner = CliRunner()
+    result = runner.invoke(cli_main.main, ["--show-examples", "--json"])
+
+    assert result.exit_code == 0
+    payload = json.loads(result.output)
+    assert payload["status"] == "ok"
+    assert payload["mode"] == "show_examples"
+    assert payload["count"] > 0
+    assert isinstance(payload["examples"], list)
 
 
 def test_cli_returns_subscription_message(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -427,6 +478,21 @@ def test_cli_maps_request_failures_to_external_exit_code(
     assert "Download request failed: network down" in result.output
 
 
+def test_cli_maps_interrupted_download_to_external_exit_code(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify interrupted runs include partial summary and map to external failure."""
+    monkeypatch.setattr(cli_main, "MangaLoader", InterruptedLoader)
+
+    runner = CliRunner()
+    result = runner.invoke(cli_main.main, ["--chapter", "55"])
+
+    assert result.exit_code == EXTERNAL_FAILURE
+    assert "Download summary: downloaded=1, skipped_manifest=1, failed=1" in result.output
+    assert "Failed chapter IDs: 44" in result.output
+    assert "Download interrupted by user." in result.output
+
+
 def test_cli_returns_external_failure_when_summary_has_failed_chapters(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -460,5 +526,29 @@ def test_cli_json_mode_includes_failed_summary_payload(
             "skipped_manifest": 1,
             "failed": 2,
             "failed_chapter_ids": [12, 13],
+        },
+    }
+
+
+def test_cli_json_mode_includes_interrupted_summary_payload(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify interrupted runs emit JSON error payload including partial summary."""
+    monkeypatch.setattr(cli_main, "MangaLoader", InterruptedLoader)
+
+    runner = CliRunner()
+    result = runner.invoke(cli_main.main, ["--json", "--chapter", "55"])
+
+    assert result.exit_code == EXTERNAL_FAILURE
+    payload = json.loads(result.output)
+    assert payload == {
+        "status": "error",
+        "exit_code": EXTERNAL_FAILURE,
+        "message": "Download interrupted by user.",
+        "summary": {
+            "downloaded": 1,
+            "skipped_manifest": 1,
+            "failed": 1,
+            "failed_chapter_ids": [44],
         },
     }

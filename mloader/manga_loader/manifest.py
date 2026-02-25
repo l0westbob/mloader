@@ -6,17 +6,81 @@ import json
 from datetime import UTC, datetime
 from pathlib import Path
 from tempfile import NamedTemporaryFile
+from collections.abc import Callable
 from typing import Any
 
 from filelock import FileLock
 
 MANIFEST_FILENAME = ".mloader-manifest.json"
-MANIFEST_VERSION = 1
+MANIFEST_SCHEMA = "mloader.title_download_manifest"
+MANIFEST_VERSION = 2
+
+type ManifestEntry = dict[str, Any]
+type ManifestChapters = dict[str, ManifestEntry]
+type ManifestPayload = dict[str, Any]
 
 
 def _utc_timestamp() -> str:
     """Return a stable UTC timestamp string for manifest updates."""
     return datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
+def _coerce_chapter_entries(raw_chapters: object) -> ManifestChapters:
+    """Return chapter-entry mapping containing only dict chapter payload values."""
+    if not isinstance(raw_chapters, dict):
+        return {}
+    return {
+        str(chapter_id): dict(entry)
+        for chapter_id, entry in raw_chapters.items()
+        if isinstance(entry, dict)
+    }
+
+
+def _migrate_v0_to_v1(payload: ManifestPayload) -> ManifestPayload:
+    """Migrate legacy/unversioned payloads into version-1 structure."""
+    chapters = _coerce_chapter_entries(payload.get("chapters"))
+    if not chapters:
+        chapters = _coerce_chapter_entries(payload)
+    return {
+        "version": 1,
+        "chapters": chapters,
+    }
+
+
+def _migrate_v1_to_v2(payload: ManifestPayload) -> ManifestPayload:
+    """Migrate version-1 payloads by adding explicit schema metadata."""
+    return {
+        "version": 2,
+        "schema": MANIFEST_SCHEMA,
+        "chapters": _coerce_chapter_entries(payload.get("chapters")),
+    }
+
+
+MANIFEST_MIGRATIONS: dict[int, Callable[[ManifestPayload], ManifestPayload]] = {
+    0: _migrate_v0_to_v1,
+    1: _migrate_v1_to_v2,
+}
+
+
+def _normalize_payload(payload: ManifestPayload) -> tuple[ManifestChapters, bool]:
+    """Normalize and migrate payload to current schema, returning ``(chapters, migrated)``."""
+    raw_version = payload.get("version")
+    version = raw_version if isinstance(raw_version, int) and raw_version >= 0 else 0
+    normalized: ManifestPayload = dict(payload)
+
+    if version > MANIFEST_VERSION:
+        return _coerce_chapter_entries(normalized.get("chapters")), False
+
+    migrated = False
+    while version < MANIFEST_VERSION:
+        migrator = MANIFEST_MIGRATIONS.get(version)
+        if migrator is None:
+            return {}, False
+        normalized = migrator(normalized)
+        version += 1
+        migrated = True
+
+    return _coerce_chapter_entries(normalized.get("chapters")), migrated
 
 
 class TitleDownloadManifest:
@@ -62,24 +126,17 @@ class TitleDownloadManifest:
             self._dirty = False
             return
 
-        raw_chapters = payload.get("chapters")
-        if not isinstance(raw_chapters, dict):
-            self._chapters = {}
-            self._dirty = False
-            return
-
-        self._chapters = {
-            str(chapter_id): entry
-            for chapter_id, entry in raw_chapters.items()
-            if isinstance(entry, dict)
-        }
-        self._dirty = False
+        self._chapters, migrated = _normalize_payload(payload)
+        self._dirty = migrated
+        if migrated and self._autosave:
+            self._save_unlocked()
 
     def _save_unlocked(self) -> None:
         """Persist current manifest content to disk atomically without locking."""
         self.path.parent.mkdir(parents=True, exist_ok=True)
         payload = {
             "version": MANIFEST_VERSION,
+            "schema": MANIFEST_SCHEMA,
             "chapters": self._chapters,
         }
         with NamedTemporaryFile("w", encoding="utf-8", delete=False, dir=self.path.parent) as tmp:

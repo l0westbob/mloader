@@ -13,6 +13,7 @@ from mloader.domain.requests import (
     DiscoveryRequest,
     EffectiveOutputFormat,
 )
+from mloader.manga_loader.downloader import DownloadInterruptedError
 from mloader.manga_loader.init import MangaLoader
 from mloader.types import ExporterFactoryLike
 
@@ -27,6 +28,15 @@ class DiscoveryError(WorkflowError):
 
 class ExternalDependencyError(WorkflowError):
     """Raise when external systems fail during download execution."""
+
+
+class DownloadInterrupted(ExternalDependencyError):
+    """Raise when user interrupts download while preserving partial summary."""
+
+    def __init__(self, summary: DownloadSummary) -> None:
+        """Store partial summary generated before interruption."""
+        super().__init__("Download interrupted by user.")
+        self.summary = summary
 
 
 class TitleDiscoveryGateway(Protocol):
@@ -185,6 +195,8 @@ def execute_download(
             max_chapter=request.max_chapter,
             last_chapter=request.last,
         )
+    except DownloadInterruptedError as exc:
+        raise DownloadInterrupted(exc.summary) from exc
     except requests.RequestException as exc:
         raise ExternalDependencyError(f"Download request failed: {exc}") from exc
 

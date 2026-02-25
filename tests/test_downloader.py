@@ -14,7 +14,8 @@ import pytest
 from mloader.constants import PageType
 from mloader.domain.requests import DownloadSummary
 from mloader.errors import SubscriptionRequiredError
-from mloader.manga_loader.downloader import DownloadMixin
+from mloader.manga_loader.downloader import DownloadInterruptedError, DownloadMixin
+from mloader.manga_loader.run_report import RunReport
 from mloader.manga_loader.services import ChapterMetadata
 
 
@@ -101,14 +102,9 @@ def _group(chapters: list[SimpleNamespace]) -> SimpleNamespace:
     )
 
 
-def _run_summary() -> SimpleNamespace:
-    """Return mutable run-summary namespace compatible with downloader internals."""
-    return SimpleNamespace(
-        downloaded=0,
-        skipped_manifest=0,
-        failed=0,
-        failed_chapter_ids=[],
-    )
+def _run_report() -> RunReport:
+    """Return mutable run report instance compatible with downloader internals."""
+    return RunReport()
 
 
 def test_filter_chapters_to_download_skips_existing_files() -> None:
@@ -261,9 +257,9 @@ def test_download_calls_prepare_and_download() -> None:
             calls["prepare"] = args
             return {42: {1}}
 
-        def _download(self, mapping: dict[int, set[int]], summary: Any) -> None:
+        def _download(self, mapping: dict[int, set[int]], report: RunReport) -> None:
             """Capture the mapping forwarded to _download."""
-            del summary
+            del report
             calls["download"] = mapping
 
     loader = Orchestrator()
@@ -297,9 +293,9 @@ def test_download_clears_run_cache_before_and_after_execution() -> None:
             del args
             return {}
 
-        def _download(self, mapping: dict[int, set[int]], summary: Any) -> None:
+        def _download(self, mapping: dict[int, set[int]], report: RunReport) -> None:
             """Record download invocation payload."""
-            del mapping, summary
+            del mapping, report
             calls.append("download")
 
         def _clear_api_caches_for_run(self) -> None:
@@ -310,6 +306,37 @@ def test_download_clears_run_cache_before_and_after_execution() -> None:
     loader.download(title_ids={1}, chapter_ids=None, min_chapter=0, max_chapter=10)
 
     assert calls == ["clear_run", "download", "clear_run"]
+
+
+def test_download_raises_interrupted_error_with_partial_summary() -> None:
+    """Verify interrupted runs raise partial-summary wrapper error."""
+    class Interrupting(DummyDownloader):
+        """Downloader double raising keyboard interrupt after partial progress."""
+
+        def _prepare_normalized_manga_list(self, *args: Any) -> dict[int, set[int]]:
+            """Return deterministic normalized mapping."""
+            del args
+            return {42: {1}}
+
+        def _download(self, mapping: dict[int, set[int]], report: RunReport) -> None:
+            """Mark counters, then emulate user interrupt."""
+            del mapping
+            report.mark_downloaded()
+            report.mark_manifest_skipped(2)
+            report.mark_failed(99)
+            raise KeyboardInterrupt
+
+    loader = Interrupting()
+
+    with pytest.raises(DownloadInterruptedError) as interrupted:
+        loader.download(title_ids={1}, chapter_ids=None, min_chapter=0, max_chapter=10)
+
+    assert interrupted.value.summary == DownloadSummary(
+        downloaded=1,
+        skipped_manifest=2,
+        failed=1,
+        failed_chapter_ids=(99,),
+    )
 
 
 def test_download_iterates_titles() -> None:
@@ -326,14 +353,14 @@ def test_download_iterates_titles() -> None:
             title_id: int,
             chapter_ids: set[int],
             *,
-            summary: Any,
+            report: RunReport,
         ) -> None:
             """Record _process_title invocation payloads."""
-            del summary
+            del report
             calls.append((title_index, total_titles, title_id, chapter_ids))
 
     loader = Iterating()
-    loader._download({10: {1, 2}, 20: {3}}, summary=_run_summary())
+    loader._download({10: {1, 2}, 20: {3}}, report=_run_report())
 
     assert calls == [(1, 2, 10, {1, 2}), (2, 2, 20, {3})]
 
@@ -353,7 +380,7 @@ def test_process_title_with_no_chapters_to_download(
     monkeypatch.setattr(downloader, "_get_existing_files", lambda _path: [])
     monkeypatch.setattr(downloader, "_filter_chapters_to_download", lambda *args, **kwargs: [])
 
-    downloader._process_title(1, 1, 10, {1}, summary=_run_summary())
+    downloader._process_title(1, 1, 10, {1}, report=_run_report())
 
 
 def test_process_title_clears_title_cache_after_processing(
@@ -377,7 +404,7 @@ def test_process_title_clears_title_cache_after_processing(
         lambda title_id, chapter_ids: clear_calls.append((title_id, set(chapter_ids))),
     )
 
-    downloader._process_title(1, 1, 10, {1, 2}, summary=_run_summary())
+    downloader._process_title(1, 1, 10, {1, 2}, report=_run_report())
 
     assert clear_calls == [(10, {1, 2})]
 
@@ -408,7 +435,7 @@ def test_process_title_downloads_sorted_chapters(
         lambda title, index, total, chapter_id, **kwargs: processed.append((index, total, chapter_id)),
     )
 
-    downloader._process_title(1, 1, 10, {2, 3, 5}, summary=_run_summary())
+    downloader._process_title(1, 1, 10, {2, 3, 5}, report=_run_report())
 
     assert processed == [(1, 3, 2), (2, 3, 3), (3, 3, 5)]
 
@@ -435,7 +462,7 @@ def test_process_title_dumps_metadata_when_enabled(
         lambda *_args, **_kwargs: calls.__setitem__("metadata", calls["metadata"] + 1),
     )
 
-    downloader._process_title(1, 1, 10, {1}, summary=_run_summary())
+    downloader._process_title(1, 1, 10, {1}, report=_run_report())
 
     assert calls["metadata"] == 1
 
@@ -477,14 +504,14 @@ def test_process_title_skips_manifest_completed_chapters(
         lambda _title, _index, _total, chapter_id, **kwargs: processed.append(chapter_id),
     )
 
-    summary = _run_summary()
-    downloader._process_title(1, 1, 10, {1, 2, 3}, summary=summary)
+    report = _run_report()
+    downloader._process_title(1, 1, 10, {1, 2, 3}, report=report)
 
     assert processed == [1, 3]
-    assert summary.skipped_manifest == 1
+    assert report.skipped_manifest == 1
 
 
-def test_process_title_records_failed_chapter_summary(
+def test_process_title_records_failed_chapter_report(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Verify per-chapter failures are collected and run continues."""
@@ -535,15 +562,130 @@ def test_process_title_records_failed_chapter_summary(
     )
     monkeypatch.setattr(downloader, "_process_chapter", _process_chapter)
 
-    summary = _run_summary()
-    downloader._process_title(1, 1, 10, {1, 2, 3}, summary=summary)
+    report = _run_report()
+    downloader._process_title(1, 1, 10, {1, 2, 3}, report=report)
 
     assert processed == [1, 3]
-    assert summary.downloaded == 2
-    assert summary.failed == 1
-    assert summary.failed_chapter_ids == [2]
+    assert report.downloaded == 2
+    assert report.failed == 1
+    assert report.failed_chapter_ids == [2]
     assert marked_failed == [2]
     assert flush_calls >= 2
+
+
+def test_process_title_on_keyboard_interrupt_marks_manifest_and_raises(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify interrupt during chapter processing marks failure, flushes, and re-raises."""
+    downloader = FullDownloader()
+    title_dump = SimpleNamespace(
+        title=SimpleNamespace(name="My Manga", author="A"),
+        chapter_data={},
+    )
+    marked_failed: list[int] = []
+    flush_calls = 0
+
+    class FakeManifest:
+        def __init__(self, _export_path: Path, *, autosave: bool = False) -> None:
+            del autosave
+
+        def is_completed(self, chapter_id: int) -> bool:
+            del chapter_id
+            return False
+
+        def mark_failed(self, chapter_id: int, *, error: str) -> None:
+            del error
+            marked_failed.append(chapter_id)
+
+        def flush(self) -> None:
+            nonlocal flush_calls
+            flush_calls += 1
+
+    monkeypatch.setattr(downloader, "_get_title_details", lambda _tid: title_dump, raising=False)
+    monkeypatch.setattr(downloader, "_extract_chapter_data", lambda _dump: {}, raising=False)
+    monkeypatch.setattr(downloader, "_get_existing_files", lambda _path: [])
+    monkeypatch.setattr(downloader, "_filter_chapters_to_download", lambda *args, **kwargs: [1])
+    monkeypatch.setattr(
+        "mloader.manga_loader.downloader.TitleDownloadManifest",
+        FakeManifest,
+    )
+    monkeypatch.setattr(
+        downloader,
+        "_process_chapter",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(KeyboardInterrupt()),
+    )
+
+    report = _run_report()
+    with pytest.raises(KeyboardInterrupt):
+        downloader._process_title(1, 1, 10, {1}, report=report)
+
+    assert report.failed == 1
+    assert report.failed_chapter_ids == [1]
+    assert marked_failed == [1]
+    assert flush_calls >= 2
+
+
+def test_process_title_resume_skips_completed_and_retries_failed_after_restart(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Verify manifest resume across two runs skips completed and retries failed chapters."""
+    title_dump = SimpleNamespace(
+        title=SimpleNamespace(name="My Manga", author="A"),
+        chapter_data={},
+    )
+
+    first_run = FullDownloader(destination=str(tmp_path))
+    first_attempts: list[int] = []
+
+    def _first_process_chapter(
+        _title: Any,
+        _index: int,
+        _total: int,
+        chapter_id: int,
+        **kwargs: Any,
+    ) -> None:
+        manifest = kwargs.get("manifest")
+        first_attempts.append(chapter_id)
+        if chapter_id == 2:
+            raise RuntimeError("boom")
+        if manifest is not None:
+            manifest.mark_completed(chapter_id)
+
+    monkeypatch.setattr(first_run, "_get_title_details", lambda _tid: title_dump, raising=False)
+    monkeypatch.setattr(first_run, "_extract_chapter_data", lambda _dump: {}, raising=False)
+    monkeypatch.setattr(first_run, "_get_existing_files", lambda _path: [])
+    monkeypatch.setattr(first_run, "_filter_chapters_to_download", lambda *args, **kwargs: [1, 2])
+    monkeypatch.setattr(first_run, "_process_chapter", _first_process_chapter)
+
+    first_report = _run_report()
+    first_run._process_title(1, 1, 10, {1, 2}, report=first_report)
+
+    assert first_attempts == [1, 2]
+    assert first_report.downloaded == 1
+    assert first_report.failed == 1
+    assert first_report.failed_chapter_ids == [2]
+
+    second_run = FullDownloader(destination=str(tmp_path))
+    second_attempts: list[int] = []
+
+    monkeypatch.setattr(second_run, "_get_title_details", lambda _tid: title_dump, raising=False)
+    monkeypatch.setattr(second_run, "_extract_chapter_data", lambda _dump: {}, raising=False)
+    monkeypatch.setattr(second_run, "_get_existing_files", lambda _path: [])
+    monkeypatch.setattr(second_run, "_filter_chapters_to_download", lambda *args, **kwargs: [1, 2])
+    monkeypatch.setattr(
+        second_run,
+        "_process_chapter",
+        lambda _title, _index, _total, chapter_id, **kwargs: second_attempts.append(chapter_id),
+    )
+
+    second_report = _run_report()
+    second_run._process_title(1, 1, 10, {1, 2}, report=second_report)
+
+    assert second_attempts == [2]
+    assert second_report.downloaded == 1
+    assert second_report.skipped_manifest == 1
+    assert second_report.failed == 0
 
 
 def test_process_title_disables_manifest_when_resume_is_false(
@@ -568,11 +710,11 @@ def test_process_title_disables_manifest_when_resume_is_false(
         lambda _title, _index, _total, chapter_id, **kwargs: processed.append(chapter_id),
     )
 
-    summary = _run_summary()
-    downloader._process_title(1, 1, 10, {1, 2}, summary=summary)
+    report = _run_report()
+    downloader._process_title(1, 1, 10, {1, 2}, report=report)
 
     assert processed == [1, 2]
-    assert summary.skipped_manifest == 0
+    assert report.skipped_manifest == 0
 
 
 def test_process_title_resets_manifest_when_requested(
@@ -611,7 +753,7 @@ def test_process_title_resets_manifest_when_requested(
         FakeManifest,
     )
 
-    downloader._process_title(1, 1, 10, {1}, summary=_run_summary())
+    downloader._process_title(1, 1, 10, {1}, report=_run_report())
 
     assert reset_calls == 1
 

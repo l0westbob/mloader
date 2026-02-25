@@ -9,12 +9,13 @@ import click
 
 from mloader import __version__ as about
 from mloader.application import workflows
+from mloader.cli import examples as cli_examples
 from mloader.cli import title_discovery
 from mloader.cli.config import setup_logging
 from mloader.cli.exit_codes import EXTERNAL_FAILURE, INTERNAL_BUG, SUCCESS, VALIDATION_ERROR
 from mloader.cli.presenter import CliPresenter
 from mloader.cli.validators import validate_ids, validate_urls
-from mloader.domain.requests import DownloadRequest
+from mloader.domain.requests import DownloadRequest, DownloadSummary
 from mloader.errors import SubscriptionRequiredError
 from mloader.exporters.init import CBZExporter, PDFExporter, RawExporter
 from mloader.manga_loader.capture_verify import (
@@ -26,27 +27,6 @@ from mloader.manga_loader.capture_verify import (
 from mloader.manga_loader.init import MangaLoader
 
 log = logging.getLogger(__name__)
-
-EPILOG = f"""
-Examples:
-
-{click.style('• download manga chapter 1 as CBZ archive', fg="green")}
-
-    $ mloader https://mangaplus.shueisha.co.jp/viewer/1
-
-{click.style('• download all chapters for manga title 2 and save to current directory', fg="green")}
-
-    $ mloader https://mangaplus.shueisha.co.jp/titles/2 -o .
-
-{click.style('• download chapter 1 AND all available chapters from title 2 (can be two different manga) in low quality and save as separate images', fg="green")}
-
-    $ mloader https://mangaplus.shueisha.co.jp/viewer/1
-    https://mangaplus.shueisha.co.jp/titles/2 -r -q low
-
-{click.style('• discover and download all English titles as PDF', fg="green")}
-
-    $ mloader --all --language english --format pdf
-"""
 
 
 class MloaderCliError(click.ClickException):
@@ -60,7 +40,6 @@ class MloaderCliError(click.ClickException):
 
 @click.command(
     help=about.__description__,
-    epilog=EPILOG,
 )
 @click.version_option(
     about.__version__,
@@ -81,6 +60,13 @@ class MloaderCliError(click.ClickException):
     default=False,
     show_default=True,
     help="Suppress non-error human-readable output",
+)
+@click.option(
+    "--show-examples",
+    is_flag=True,
+    default=False,
+    show_default=True,
+    help="Print exhaustive command examples and exit",
 )
 @click.option(
     "--verbose",
@@ -213,7 +199,7 @@ class MloaderCliError(click.ClickException):
     "-c",
     type=click.INT,
     multiple=True,
-    help="Chapter id",
+    help="Chapter ID (integer, e.g. 102277)",
     expose_value=False,
     callback=validate_ids,
 )
@@ -222,7 +208,7 @@ class MloaderCliError(click.ClickException):
     "-t",
     type=click.INT,
     multiple=True,
-    help="Title id",
+    help="Title ID (integer, usually 6 digits, e.g. 100312)",
     expose_value=False,
     callback=validate_ids,
 )
@@ -288,6 +274,7 @@ def main(
     ctx: click.Context,
     json_output: bool,
     quiet: bool,
+    show_examples: bool,
     verbose: int,
     out_dir: str,
     verify_capture_schema_dir: str | None,
@@ -319,6 +306,11 @@ def main(
     setup_logging(level=_resolve_log_level(quiet=quiet, verbose=verbose, json_output=json_output))
     presenter = CliPresenter(json_output=json_output, quiet=quiet)
     presenter.emit_intro(about.__intro__)
+
+    if show_examples:
+        examples = cli_examples.build_cli_examples(prog_name=ctx.info_name or about.__title__)
+        presenter.emit_examples(examples)
+        return
 
     if verify_capture_baseline_dir and not verify_capture_schema_dir:
         _fail(
@@ -402,6 +394,14 @@ def main(
             pdf_exporter=PDFExporter,
             cbz_exporter=CBZExporter,
         )
+    except workflows.DownloadInterrupted as exc:
+        presenter.emit_download_summary(exc.summary)
+        _fail(
+            "Download interrupted by user.",
+            presenter=presenter,
+            exit_code=EXTERNAL_FAILURE,
+            details={"summary": _summary_payload(exc.summary)},
+        )
     except SubscriptionRequiredError as exc:
         _fail(str(exc), presenter=presenter, exit_code=EXTERNAL_FAILURE)
     except workflows.ExternalDependencyError as exc:
@@ -412,12 +412,7 @@ def main(
         _fail("Download failed", presenter=presenter, exit_code=INTERNAL_BUG)
 
     presenter.emit_download_summary(download_summary)
-    summary_payload = {
-        "downloaded": download_summary.downloaded,
-        "skipped_manifest": download_summary.skipped_manifest,
-        "failed": download_summary.failed,
-        "failed_chapter_ids": list(download_summary.failed_chapter_ids),
-    }
+    summary_payload = _summary_payload(download_summary)
     if download_summary.has_failures:
         _fail(
             f"Download completed with {download_summary.failed} failed chapter(s).",
@@ -452,6 +447,16 @@ def _resolve_log_level(*, quiet: bool, verbose: int, json_output: bool) -> int:
     if json_output:
         return logging.WARNING
     return logging.INFO
+
+
+def _summary_payload(summary: DownloadSummary) -> dict[str, object]:
+    """Build JSON-serializable summary payload from immutable summary model."""
+    return {
+        "downloaded": summary.downloaded,
+        "skipped_manifest": summary.skipped_manifest,
+        "failed": summary.failed,
+        "failed_chapter_ids": list(summary.failed_chapter_ids),
+    }
 
 
 def _run_capture_verification_mode(

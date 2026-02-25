@@ -7,7 +7,12 @@ from pathlib import Path
 
 import pytest
 
-from mloader.manga_loader.manifest import MANIFEST_FILENAME, TitleDownloadManifest
+from mloader.manga_loader.manifest import (
+    MANIFEST_FILENAME,
+    MANIFEST_SCHEMA,
+    MANIFEST_VERSION,
+    TitleDownloadManifest,
+)
 
 
 def _load_manifest(path: Path) -> dict[str, object]:
@@ -39,6 +44,106 @@ def test_manifest_tracks_started_completed_and_failed_states(tmp_path: Path) -> 
     chapter_failed = payload_failed["chapters"]["2"]
     assert chapter_failed["status"] == "failed"
     assert chapter_failed["error"] == "boom"
+
+
+def test_manifest_load_migrates_v1_payload_and_persists_current_schema(tmp_path: Path) -> None:
+    """Verify versioned legacy payloads are migrated to latest schema on load."""
+    manifest_path = tmp_path / MANIFEST_FILENAME
+    manifest_path.write_text(
+        json.dumps(
+            {
+                "version": 1,
+                "chapters": {
+                    "3": {
+                        "chapter_id": 3,
+                        "status": "completed",
+                    }
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    manifest = TitleDownloadManifest(tmp_path)
+
+    assert manifest.is_completed(3) is True
+    migrated_payload = _load_manifest(manifest_path)
+    assert migrated_payload["version"] == MANIFEST_VERSION
+    assert migrated_payload["schema"] == MANIFEST_SCHEMA
+
+
+def test_manifest_load_migrates_unversioned_payload_shape(tmp_path: Path) -> None:
+    """Verify old unversioned chapter-map payloads are migrated and preserved."""
+    manifest_path = tmp_path / MANIFEST_FILENAME
+    manifest_path.write_text(
+        json.dumps(
+            {
+                "7": {
+                    "chapter_id": 7,
+                    "status": "completed",
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    manifest = TitleDownloadManifest(tmp_path)
+
+    assert manifest.is_completed(7) is True
+    migrated_payload = _load_manifest(manifest_path)
+    assert migrated_payload["version"] == MANIFEST_VERSION
+    assert migrated_payload["schema"] == MANIFEST_SCHEMA
+    assert migrated_payload["chapters"]["7"]["status"] == "completed"
+
+
+def test_manifest_load_accepts_future_version_without_migration(tmp_path: Path) -> None:
+    """Verify newer unknown manifest versions still load chapter completion state."""
+    manifest_path = tmp_path / MANIFEST_FILENAME
+    manifest_path.write_text(
+        json.dumps(
+            {
+                "version": MANIFEST_VERSION + 1,
+                "chapters": {
+                    "9": {
+                        "chapter_id": 9,
+                        "status": "completed",
+                    }
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    manifest = TitleDownloadManifest(tmp_path)
+
+    assert manifest.is_completed(9) is True
+
+
+def test_manifest_load_returns_empty_when_migration_step_is_missing(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Verify missing migration mapping fails closed with empty in-memory chapter state."""
+    manifest_path = tmp_path / MANIFEST_FILENAME
+    manifest_path.write_text(
+        json.dumps(
+            {
+                "version": 0,
+                "chapters": {
+                    "1": {
+                        "chapter_id": 1,
+                        "status": "completed",
+                    }
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr("mloader.manga_loader.manifest.MANIFEST_MIGRATIONS", {})
+
+    manifest = TitleDownloadManifest(tmp_path)
+
+    assert manifest.is_completed(1) is False
 
 
 @pytest.mark.parametrize(
