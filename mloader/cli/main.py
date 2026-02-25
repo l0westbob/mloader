@@ -199,7 +199,15 @@ class MloaderCliError(click.ClickException):
     "-c",
     type=click.INT,
     multiple=True,
-    help="Chapter ID (integer, e.g. 102277)",
+    help="Chapter number (integer, e.g. 1, 12)",
+    expose_value=False,
+    callback=validate_ids,
+)
+@click.option(
+    "--chapter-id",
+    type=click.INT,
+    multiple=True,
+    help="Chapter API ID (integer, e.g. 102277)",
     expose_value=False,
     callback=validate_ids,
 )
@@ -300,6 +308,7 @@ def main(
     resume: bool,
     manifest_reset: bool,
     chapters: set[int] | None = None,
+    chapter_ids: set[int] | None = None,
     titles: set[int] | None = None,
 ) -> None:
     """Run the CLI command and start the configured download flow."""
@@ -360,6 +369,7 @@ def main(
         resume=resume,
         manifest_reset=manifest_reset,
         chapters=chapters,
+        chapter_ids=chapter_ids,
         titles=titles,
     )
 
@@ -431,6 +441,7 @@ def main(
                 "targets": {
                     "titles": len(request.titles),
                     "chapters": len(request.chapters),
+                    "chapter_ids": len(request.chapter_ids),
                 },
                 "discovery": discovery_metadata,
                 "summary": summary_payload,

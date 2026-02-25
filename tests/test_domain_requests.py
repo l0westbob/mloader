@@ -23,6 +23,7 @@ def _build_request(*, end: int | None = None) -> DownloadRequest:
         resume=True,
         manifest_reset=False,
         chapters=frozenset(),
+        chapter_ids=frozenset(),
         titles=frozenset(),
     )
 
@@ -71,6 +72,7 @@ def test_download_request_has_targets_reflects_titles_or_chapters() -> None:
         resume=True,
         manifest_reset=False,
         chapters=frozenset({77}),
+        chapter_ids=frozenset(),
         titles=frozenset(),
     )
 

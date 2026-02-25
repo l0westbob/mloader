@@ -194,7 +194,8 @@ def execute_download(
     try:
         summary = loader.download(
             title_ids=request.titles or None,
-            chapter_ids=request.chapters or None,
+            chapter_numbers=request.chapters or None,
+            chapter_ids=request.chapter_ids or None,
             min_chapter=request.begin,
             max_chapter=request.max_chapter,
             last_chapter=request.last,
@@ -255,6 +256,7 @@ def build_download_request(
     resume: bool,
     manifest_reset: bool,
     chapters: Collection[int] | None,
+    chapter_ids: Collection[int] | None,
     titles: Collection[int] | None,
 ) -> DownloadRequest:
     """Create a typed download request from CLI-normalized values."""
@@ -275,6 +277,7 @@ def build_download_request(
         resume=resume,
         manifest_reset=manifest_reset,
         chapters=frozenset(chapters or set()),
+        chapter_ids=frozenset(chapter_ids or set()),
         titles=frozenset(titles or set()),
     )
 
@@ -304,6 +307,7 @@ def to_chapter_id_debug_map(
     return {
         "target_titles": len(request.titles),
         "target_chapters": len(request.chapters),
+        "target_chapter_ids": len(request.chapter_ids),
         "begin": request.begin,
         "end": request.end,
         "raw": request.raw,

@@ -36,9 +36,14 @@ _EXAMPLE_SPECS: tuple[tuple[str, str, str], ...] = (
         "Uses positional URL target plus output format and destination overrides.",
     ),
     (
-        "Target by explicit title and chapter IDs",
-        "{prog} --title 100312 --chapter 102277",
-        "Use integer IDs directly without MangaPlus URLs.",
+        "Target by title and chapter number",
+        "{prog} --title 100312 --chapter 12",
+        "Resolve chapter number to API chapter ID within selected titles.",
+    ),
+    (
+        "Target by explicit chapter API ID",
+        "{prog} --chapter-id 102277",
+        "Useful when a viewer URL or known API chapter ID is available.",
     ),
     (
         "Download multiple titles with chapter range bounds",
@@ -122,17 +127,17 @@ _EXAMPLE_SPECS: tuple[tuple[str, str, str], ...] = (
     ),
     (
         "Emit machine-readable JSON output",
-        "{prog} --json --chapter 102277",
+        "{prog} --json --chapter-id 102277",
         "Structured output mode for automation and scripting.",
     ),
     (
         "Suppress non-error human output",
-        "{prog} --quiet --chapter 102277",
+        "{prog} --quiet --chapter-id 102277",
         "Keeps stdout quieter in interactive shells.",
     ),
     (
         "Enable debug logging",
-        "{prog} --verbose --chapter 102277",
+        "{prog} --verbose --chapter-id 102277",
         "Repeat --verbose for additional detail (for example: -vv).",
     ),
     (
@@ -158,4 +163,3 @@ def build_cli_examples(*, prog_name: str) -> tuple[CliExample, ...]:
         )
         for title, command, description in _EXAMPLE_SPECS
     )
-

@@ -143,6 +143,7 @@ def _build_request(*, raw: bool = False, output_format: str = "cbz") -> Download
         resume=True,
         manifest_reset=False,
         chapters=frozenset({10, 11}),
+        chapter_ids=frozenset({102277}),
         titles=frozenset({100001}),
     )
 
@@ -247,7 +248,8 @@ def test_execute_download_wires_loader_and_download_targets() -> None:
     assert DummyLoader.init_args["manifest_reset"] is False
     assert DummyLoader.init_args["quality"] == "high"
     assert DummyLoader.download_args["title_ids"] == frozenset({100001})
-    assert DummyLoader.download_args["chapter_ids"] == frozenset({10, 11})
+    assert DummyLoader.download_args["chapter_numbers"] == frozenset({10, 11})
+    assert DummyLoader.download_args["chapter_ids"] == frozenset({102277})
     assert DummyLoader.download_args["min_chapter"] == 1
     assert DummyLoader.download_args["max_chapter"] == 5
     assert DummyLoader.download_args["last_chapter"] is True
@@ -278,6 +280,7 @@ def test_execute_download_omits_empty_target_filters() -> None:
         resume=True,
         manifest_reset=False,
         chapters=frozenset(),
+        chapter_ids=frozenset(),
         titles=frozenset(),
     )
 
@@ -291,6 +294,7 @@ def test_execute_download_omits_empty_target_filters() -> None:
 
     assert DummyLoader.download_args is not None
     assert DummyLoader.download_args["title_ids"] is None
+    assert DummyLoader.download_args["chapter_numbers"] is None
     assert DummyLoader.download_args["chapter_ids"] is None
 
 
@@ -373,6 +377,7 @@ def test_build_request_helpers_create_immutable_domain_models() -> None:
         resume=False,
         manifest_reset=True,
         chapters={5, 5},
+        chapter_ids={102277, 102277},
         titles={100010, 100010},
     )
     discovery_request = workflows.build_discovery_request(
@@ -385,6 +390,7 @@ def test_build_request_helpers_create_immutable_domain_models() -> None:
 
     assert download_request.output_format == "pdf"
     assert download_request.chapters == frozenset({5})
+    assert download_request.chapter_ids == frozenset({102277})
     assert download_request.titles == frozenset({100010})
     assert download_request.resume is False
     assert download_request.manifest_reset is True
@@ -400,6 +406,7 @@ def test_to_chapter_id_debug_map_includes_expected_keys() -> None:
     assert debug_map == {
         "target_titles": 1,
         "target_chapters": 2,
+        "target_chapter_ids": 1,
         "begin": 1,
         "end": 5,
         "raw": False,

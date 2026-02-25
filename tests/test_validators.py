@@ -10,8 +10,8 @@ import pytest
 from mloader.cli.validators import validate_ids, validate_urls
 
 
-def test_validate_urls_collects_chapters_and_titles() -> None:
-    """Verify URL callback extracts viewer and title IDs into context sets."""
+def test_validate_urls_collects_chapter_ids_and_titles() -> None:
+    """Verify URL callback extracts viewer chapter IDs and title IDs into context sets."""
     ctx = click.Context(click.Command("mloader"))
 
     value = (
@@ -23,7 +23,7 @@ def test_validate_urls_collects_chapters_and_titles() -> None:
     returned = validate_urls(ctx, None, value)
 
     assert returned == value
-    assert ctx.params["chapters"] == {102277, 102278}
+    assert ctx.params["chapter_ids"] == {102277, 102278}
     assert ctx.params["titles"] == {100312}
 
 
@@ -57,14 +57,16 @@ def test_validate_urls_accepts_empty_input() -> None:
     assert validate_urls(ctx, None, ()) == ()
 
 
-def test_validate_ids_updates_context_for_chapter_and_title() -> None:
-    """Verify ID callback updates corresponding chapter and title sets."""
+def test_validate_ids_updates_context_for_all_supported_target_types() -> None:
+    """Verify ID callback updates chapter-number, chapter-ID, and title target sets."""
     ctx = click.Context(click.Command("mloader"))
 
-    validate_ids(ctx, SimpleNamespace(name="chapter"), (102277, 102278, 102278))
+    validate_ids(ctx, SimpleNamespace(name="chapter"), (12, 13, 13))
+    validate_ids(ctx, SimpleNamespace(name="chapter_id"), (102277, 102278, 102278))
     validate_ids(ctx, SimpleNamespace(name="title"), (100312,))
 
-    assert ctx.params["chapters"] == {102277, 102278}
+    assert ctx.params["chapters"] == {12, 13}
+    assert ctx.params["chapter_ids"] == {102277, 102278}
     assert ctx.params["titles"] == {100312}
 
 

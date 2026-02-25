@@ -265,13 +265,14 @@ def test_download_calls_prepare_and_download() -> None:
     loader = Orchestrator()
     summary = loader.download(
         title_ids={100312},
+        chapter_numbers=None,
         chapter_ids={102277},
         min_chapter=1,
         max_chapter=5,
         last_chapter=True,
     )
 
-    assert calls["prepare"] == ({100312}, {102277}, 1, 5, True)
+    assert calls["prepare"] == ({100312}, None, {102277}, 1, 5, True)
     assert calls["download"] == {42: {1}}
     assert summary == DownloadSummary(
         downloaded=0,
@@ -303,7 +304,13 @@ def test_download_clears_run_cache_before_and_after_execution() -> None:
             calls.append("clear_run")
 
     loader = Orchestrator()
-    loader.download(title_ids={100312}, chapter_ids=None, min_chapter=0, max_chapter=10)
+    loader.download(
+        title_ids={100312},
+        chapter_numbers=None,
+        chapter_ids=None,
+        min_chapter=0,
+        max_chapter=10,
+    )
 
     assert calls == ["clear_run", "download", "clear_run"]
 
@@ -329,7 +336,13 @@ def test_download_raises_interrupted_error_with_partial_summary() -> None:
     loader = Interrupting()
 
     with pytest.raises(DownloadInterruptedError) as interrupted:
-        loader.download(title_ids={100312}, chapter_ids=None, min_chapter=0, max_chapter=10)
+        loader.download(
+            title_ids={100312},
+            chapter_numbers=None,
+            chapter_ids=None,
+            min_chapter=0,
+            max_chapter=10,
+        )
 
     assert interrupted.value.summary == DownloadSummary(
         downloaded=1,
@@ -1111,7 +1124,15 @@ def test_filter_chapters_accepts_dataclass_metadata_values() -> None:
 def test_download_mixin_placeholders_raise_not_implemented() -> None:
     """Verify abstract data-loader placeholders raise ``NotImplementedError``."""
     with pytest.raises(NotImplementedError):
-        DownloadMixin._prepare_normalized_manga_list(None, None, None, 0, 0, False)  # type: ignore[arg-type]
+        DownloadMixin._prepare_normalized_manga_list(
+            None,
+            None,
+            None,
+            None,
+            0,
+            0,
+            False,
+        )  # type: ignore[arg-type]
 
     with pytest.raises(NotImplementedError):
         DownloadMixin._get_title_details(None, 1)  # type: ignore[arg-type]

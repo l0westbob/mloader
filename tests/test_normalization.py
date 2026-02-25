@@ -46,18 +46,18 @@ def test_normalize_ids_requires_at_least_one_input() -> None:
     normalizer = DummyNormalizer({}, {})
 
     with pytest.raises(ValueError):
-        normalizer._normalize_ids([], [], 0, 999)
+        normalizer._normalize_ids([], [], [], 0, 999)
 
 
-def test_normalize_ids_uses_title_details_and_filters_by_range() -> None:
-    """Verify title-only normalization filters chapters by numeric range."""
+def test_normalize_ids_uses_title_details_and_filters_by_chapter_numbers() -> None:
+    """Verify title-only normalization resolves chapter numbers to chapter IDs."""
     title_details = {
         100312: SimpleNamespace(
             chapter_list_group=[
                 _group(
                     [
-                        _chapter(102277, "#102277"),
-                        _chapter(102278, "#102278"),
+                        _chapter(102277, "#1"),
+                        _chapter(102278, "#2"),
                         _chapter(102279, "Special"),
                     ]
                 )
@@ -66,9 +66,9 @@ def test_normalize_ids_uses_title_details_and_filters_by_range() -> None:
     }
     normalizer = DummyNormalizer({}, title_details)
 
-    result = normalizer._normalize_ids([100312], [], min_chapter=102277, max_chapter=102278)
+    result = normalizer._normalize_ids([100312], [2], [], min_chapter=0, max_chapter=999)
 
-    assert result == {100312: {102277, 102278}}
+    assert result == {100312: {102278}}
 
 
 def test_normalize_ids_last_chapter_picks_only_final_entry() -> None:
@@ -91,6 +91,7 @@ def test_normalize_ids_last_chapter_picks_only_final_entry() -> None:
     result = normalizer._normalize_ids(
         [100312],
         [],
+        [],
         min_chapter=0,
         max_chapter=2_147_483_647,
         last_chapter=True,
@@ -99,32 +100,49 @@ def test_normalize_ids_last_chapter_picks_only_final_entry() -> None:
     assert result == {100312: {102279}}
 
 
-def test_normalize_ids_merges_chapter_and_title_requests() -> None:
-    """Verify normalization merges chapter-derived and title-derived chapter IDs."""
+def test_normalize_ids_merges_chapter_id_and_title_number_requests() -> None:
+    """Verify normalization merges chapter-ID and chapter-number-based targets."""
     viewers = {
         102277: SimpleNamespace(
             title_id=100312,
             chapter_id=102277,
-            chapter_name="#102277",
-            chapters=[_chapter(102277, "#102277"), _chapter(102278, "#102278")],
+            chapter_name="#1",
+            chapters=[_chapter(102277, "#1"), _chapter(102278, "#2")],
         ),
         102377: SimpleNamespace(
             title_id=100412,
             chapter_id=102377,
-            chapter_name="#102377",
-            chapters=[_chapter(102377, "#102377")],
+            chapter_name="#7",
+            chapters=[_chapter(102377, "#7")],
         ),
     }
-    normalizer = DummyNormalizer(viewers, {})
+    title_details = {
+        100312: SimpleNamespace(
+            chapter_list_group=[
+                _group([_chapter(102277, "#1"), _chapter(102278, "#2"), _chapter(102279, "#3")])
+            ]
+        ),
+        100412: SimpleNamespace(chapter_list_group=[_group([_chapter(102377, "#7")])]),
+    }
+    normalizer = DummyNormalizer(viewers, title_details)
 
     result = normalizer._normalize_ids(
         [100312],
-        [102277, 102377],
+        [2],
+        [102377],
         min_chapter=0,
         max_chapter=2_147_483_647,
     )
 
-    assert result == {100312: {102277, 102278}, 100412: {102377}}
+    assert result == {100312: {102278}, 100412: {102377}}
+
+
+def test_normalize_ids_rejects_chapter_numbers_without_title_context() -> None:
+    """Verify chapter-number-only requests fail without titles or chapter IDs."""
+    normalizer = DummyNormalizer({}, {})
+
+    with pytest.raises(ValueError, match="Chapter numbers require"):
+        normalizer._normalize_ids([], [1], [], min_chapter=0, max_chapter=999)
 
 
 def test_prepare_normalized_manga_list_delegates_to_normalize_ids(
@@ -140,7 +158,14 @@ def test_prepare_normalized_manga_list_delegates_to_normalize_ids(
         lambda *args: sentinel,
     )
 
-    result = normalizer._prepare_normalized_manga_list([100312], [102277], 0, 2_147_483_647, False)
+    result = normalizer._prepare_normalized_manga_list(
+        [100312],
+        [1],
+        [102277],
+        0,
+        2_147_483_647,
+        False,
+    )
     assert result is sentinel
 
 

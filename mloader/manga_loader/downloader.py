@@ -52,6 +52,7 @@ class DownloadMixin:
     def _prepare_normalized_manga_list(
         self,
         title_ids: Collection[int] | None,
+        chapter_numbers: Collection[int] | None,
         chapter_ids: Collection[int] | None,
         min_chapter: int,
         max_chapter: int,
@@ -86,6 +87,7 @@ class DownloadMixin:
         self,
         *,
         title_ids: Collection[int] | None = None,
+        chapter_numbers: Collection[int] | None = None,
         chapter_ids: Collection[int] | None = None,
         min_chapter: int,
         max_chapter: int,
@@ -97,6 +99,7 @@ class DownloadMixin:
         try:
             normalized_mapping = self._prepare_normalized_manga_list(
                 title_ids,
+                chapter_numbers,
                 chapter_ids,
                 min_chapter,
                 max_chapter,

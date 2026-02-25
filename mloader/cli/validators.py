@@ -42,7 +42,7 @@ def validate_urls(
         results[key].add(id_value)
 
     ctx.params.setdefault("titles", set()).update(results["titles"])
-    ctx.params.setdefault("chapters", set()).update(results["viewer"])
+    ctx.params.setdefault("chapter_ids", set()).update(results["viewer"])
     return value
 
 
@@ -57,6 +57,13 @@ def validate_ids(
     if param is None:
         raise click.BadParameter("Unexpected missing parameter metadata")
 
-    assert param.name in ("chapter", "title"), f"Unexpected parameter: {param.name}"
-    ctx.params.setdefault(f"{param.name}s", set()).update(value)
-    return value
+    if param.name == "chapter":
+        ctx.params.setdefault("chapters", set()).update(value)
+        return value
+    if param.name == "chapter_id":
+        ctx.params.setdefault("chapter_ids", set()).update(value)
+        return value
+    if param.name == "title":
+        ctx.params.setdefault("titles", set()).update(value)
+        return value
+    raise click.BadParameter(f"Unexpected parameter: {param.name}")

@@ -111,7 +111,7 @@ def test_presenter_emits_examples_human_mode(capsys: pytest.CaptureFixture[str])
         [
             CliExample(
                 title="Example title",
-                command="mloader --chapter 102277",
+                command="mloader --chapter-id 102277",
                 description="Example description.",
             )
         ]
@@ -120,7 +120,7 @@ def test_presenter_emits_examples_human_mode(capsys: pytest.CaptureFixture[str])
     output = capsys.readouterr().out
     assert "mloader example catalog" in output
     assert "Example title" in output
-    assert "mloader --chapter 102277" in output
+    assert "mloader --chapter-id 102277" in output
 
 
 def test_presenter_emits_examples_json_mode(capsys: pytest.CaptureFixture[str]) -> None:
@@ -130,7 +130,7 @@ def test_presenter_emits_examples_json_mode(capsys: pytest.CaptureFixture[str]) 
         [
             CliExample(
                 title="Example title",
-                command="mloader --chapter 102277",
+                command="mloader --chapter-id 102277",
                 description="Example description.",
             )
         ]
@@ -140,4 +140,4 @@ def test_presenter_emits_examples_json_mode(capsys: pytest.CaptureFixture[str]) 
     assert payload["status"] == "ok"
     assert payload["mode"] == "show_examples"
     assert payload["count"] == 1
-    assert payload["examples"][0]["command"] == "mloader --chapter 102277"
+    assert payload["examples"][0]["command"] == "mloader --chapter-id 102277"

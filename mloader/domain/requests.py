@@ -40,6 +40,7 @@ class DownloadRequest:
     resume: bool
     manifest_reset: bool
     chapters: frozenset[int]
+    chapter_ids: frozenset[int]
     titles: frozenset[int]
 
     @property
@@ -55,7 +56,7 @@ class DownloadRequest:
     @property
     def has_targets(self) -> bool:
         """Return whether at least one title/chapter target is configured."""
-        return bool(self.chapters or self.titles)
+        return bool(self.chapters or self.chapter_ids or self.titles)
 
 
 @dataclass(frozen=True, slots=True)

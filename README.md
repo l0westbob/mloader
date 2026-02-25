@@ -52,7 +52,7 @@ pytest --cov=mloader --cov-report=term-missing --cov-fail-under=100
 
 Copy the url of the chapter or title you want to download and pass it to `mloader`.
 
-You can use `--title` and `--chapter` command line argument to download by title and chapter id.
+Use `--title` with `--chapter` to target chapter numbers, or `--chapter-id` for direct API chapter IDs.
 
 You can download individual chapters or full title (but only available chapters).
 
@@ -63,7 +63,8 @@ Typical MangaPlus IDs are multi-digit integers (title IDs are commonly 6 digits)
 ```bash
 mloader https://mangaplus.shueisha.co.jp/viewer/102277
 mloader https://mangaplus.shueisha.co.jp/titles/100312 -f pdf
-mloader --title 100312 --chapter 102277
+mloader --title 100312 --chapter 12
+mloader --chapter-id 102277
 ```
 
 For an exhaustive, option-complete command catalog (including discovery, capture, resume, and output modes):
@@ -161,7 +162,8 @@ Options:
   -q, --quality [super_high|high|low]
                                   Image quality  [default: super_high]
   -s, --split                     Split combined images
-  -c, --chapter INTEGER           Chapter id
+  -c, --chapter INTEGER           Chapter number
+  --chapter-id INTEGER            Chapter API ID
   -t, --title INTEGER             Title id
   -b, --begin INTEGER RANGE       Minimal chapter to try to download
                                   [default: 0;x>=0]
@@ -218,7 +220,8 @@ This section is generated from CLI metadata. Update it with `python scripts/sync
 | `--capture-api` | Dump raw API payload captures (protobuf + metadata) to this directory | `-` | `MLOADER_CAPTURE_API_DIR` |
 | `--quality`, `-q` | Image quality | `super_high` | `MLOADER_QUALITY` |
 | `--split`, `-s` | Split combined images | `false` | `MLOADER_SPLIT` |
-| `--chapter`, `-c` | Chapter ID (integer, e.g. 102277) | `-` | `-` |
+| `--chapter`, `-c` | Chapter number (integer, e.g. 1, 12) | `-` | `-` |
+| `--chapter-id` | Chapter API ID (integer, e.g. 102277) | `-` | `-` |
 | `--title`, `-t` | Title ID (integer, usually 6 digits, e.g. 100312) | `-` | `-` |
 | `--begin`, `-b` | Minimal chapter to download | `0` | `-` |
 | `--end`, `-e` | Maximal chapter to download | `-` | `-` |

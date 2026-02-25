@@ -154,6 +154,7 @@ class MangaLoader:
         self,
         *,
         title_ids: set[int] | frozenset[int] | None = None,
+        chapter_numbers: set[int] | frozenset[int] | None = None,
         chapter_ids: set[int] | frozenset[int] | None = None,
         min_chapter: int,
         max_chapter: int,
@@ -162,6 +163,7 @@ class MangaLoader:
         """Delegate download orchestration to the composed runtime."""
         return self._runtime.download(
             title_ids=title_ids,
+            chapter_numbers=chapter_numbers,
             chapter_ids=chapter_ids,
             min_chapter=min_chapter,
             max_chapter=max_chapter,
