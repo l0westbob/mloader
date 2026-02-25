@@ -312,13 +312,3 @@ docker compose logs -f mloader
 
 See `CONTRIBUTING.md` for architecture and extension details.
 Detailed architecture notes are in `docs/ARCHITECTURE.md`.
-
-## 🚀 Releases
-
-`release-please` automation is configured to generate semantic-version release PRs and changelog updates from conventional commits.
-
-- Workflow: `.github/workflows/release-please.yml`
-- Config: `.release-please-config.json`
-- Version manifest: `.release-please-manifest.json`
-
-Publishing to PyPI is handled by `.github/workflows/publish-to-pypi.yml` on published releases (and tag pushes).
