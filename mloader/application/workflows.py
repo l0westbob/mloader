@@ -8,6 +8,7 @@ from typing import Callable, Collection, Mapping, Protocol, Sequence, TypeAlias,
 import requests
 
 from mloader.domain.requests import (
+    ApiOutputFormat,
     DownloadSummary,
     DownloadRequest,
     DiscoveryRequest,
@@ -166,18 +167,21 @@ def execute_download(
         pdf_exporter=pdf_exporter,
         cbz_exporter=cbz_exporter,
     )
-    exporter_factory = cast(
+    typed_exporter_factory = cast(
         ExporterFactoryLike,
-        partial(
-            exporter_class,
-            destination=request.out_dir,
-            add_chapter_title=request.chapter_title,
-            add_chapter_subdir=request.chapter_subdir,
+        cast(
+            object,
+            partial(
+                exporter_class,
+                destination=request.out_dir,
+                add_chapter_title=request.chapter_title,
+                add_chapter_subdir=request.chapter_subdir,
+            ),
         ),
     )
 
     loader = loader_factory(
-        exporter_factory,
+        typed_exporter_factory,
         request.quality,
         request.split,
         request.meta,
@@ -233,6 +237,7 @@ def verify_discovery_flags(
         return "--language requires --all."
     return None
 
+
 def build_download_request(
     *,
     out_dir: str,
@@ -253,10 +258,11 @@ def build_download_request(
     titles: Collection[int] | None,
 ) -> DownloadRequest:
     """Create a typed download request from CLI-normalized values."""
+    api_output_format: ApiOutputFormat = "pdf" if output_format == "pdf" else "cbz"
     return DownloadRequest(
         out_dir=out_dir,
         raw=raw,
-        output_format=("pdf" if output_format == "pdf" else "cbz"),
+        output_format=api_output_format,
         capture_api_dir=capture_api_dir,
         quality=quality,
         split=split,

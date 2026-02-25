@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import NoReturn
+from typing import NoReturn, cast
 
 import click
 
@@ -502,7 +502,7 @@ def _resolve_all_mode_targets(
     try:
         discovered_title_ids, notices = workflows.discover_title_ids(
             discovery_request,
-            gateway=title_discovery,
+            gateway=cast(workflows.TitleDiscoveryGateway, title_discovery),
         )
     except workflows.DiscoveryError as exc:
         _fail(str(exc), presenter=presenter, exit_code=EXTERNAL_FAILURE)

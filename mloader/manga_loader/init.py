@@ -9,7 +9,7 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 from mloader.domain.requests import DownloadSummary
-from mloader.types import ExporterFactoryLike, PayloadCaptureLike
+from mloader.types import ExporterFactoryLike, PayloadCaptureLike, SessionLike
 
 from .api import APILoaderMixin
 from .capture import APIPayloadCapture
@@ -30,7 +30,7 @@ class _LoaderRuntime(APILoaderMixin, NormalizationMixin, DownloadMixin, Decrypti
         meta: bool,
         destination: str,
         output_format: Literal["raw", "cbz", "pdf"],
-        session: Session | None,
+        session: SessionLike | None,
         api_url: str,
         request_timeout: tuple[float, float],
         retries: int,
@@ -51,7 +51,7 @@ class _LoaderRuntime(APILoaderMixin, NormalizationMixin, DownloadMixin, Decrypti
         self.manifest_reset = manifest_reset
         self.services = services
         self.payload_capture = APIPayloadCapture(capture_api_dir) if capture_api_dir else None
-        self.session = session or Session()
+        self.session = session if session is not None else Session()
         self._configure_transport(self.session, retries)
         self.session.headers.update(
             {
@@ -61,21 +61,25 @@ class _LoaderRuntime(APILoaderMixin, NormalizationMixin, DownloadMixin, Decrypti
         self._api_url = api_url
 
     @staticmethod
-    def _configure_transport(session: Session, retries: int) -> None:
+    def _configure_transport(session: SessionLike, retries: int) -> None:
         """Configure HTTP retry policy for transient API failures."""
-        retry_policy = Retry(
-            total=retries,
-            connect=retries,
-            read=retries,
-            status=retries,
-            backoff_factor=0.5,
-            status_forcelist=(429, 500, 502, 503, 504),
-            allowed_methods=frozenset({"GET"}),
-            raise_on_status=False,
-        )
-        adapter = HTTPAdapter(max_retries=retry_policy)
-        session.mount("https://", adapter)
-        session.mount("http://", adapter)
+        configure_transport(session, retries)
+
+
+def configure_transport(session: SessionLike, retries: int) -> None:
+    """Configure HTTPS retry policy for transient API failures."""
+    retry_policy = Retry(
+        total=retries,
+        connect=retries,
+        read=retries,
+        status=retries,
+        backoff_factor=0.5,
+        status_forcelist=(429, 500, 502, 503, 504),
+        allowed_methods=frozenset({"GET"}),
+        raise_on_status=False,
+    )
+    adapter = HTTPAdapter(max_retries=retry_policy)
+    session.mount("https://", adapter)
 
 
 class MangaLoader:
@@ -89,7 +93,7 @@ class MangaLoader:
         meta: bool,
         destination: str = "mloader_downloads",
         output_format: Literal["raw", "cbz", "pdf"] = "cbz",
-        session: Session | None = None,
+        session: SessionLike | None = None,
         api_url: str = "https://jumpg-api.tokyo-cdn.com",
         request_timeout: tuple[float, float] = (5.0, 30.0),
         retries: int = 3,
@@ -117,7 +121,7 @@ class MangaLoader:
         )
 
     @property
-    def session(self) -> Session:
+    def session(self) -> SessionLike:
         """Expose active HTTP session for tests and runtime introspection."""
         return self._runtime.session
 
@@ -142,9 +146,9 @@ class MangaLoader:
         return self._runtime.payload_capture
 
     @staticmethod
-    def _configure_transport(session: Session, retries: int) -> None:
+    def _configure_transport(session: SessionLike, retries: int) -> None:
         """Proxy transport configuration for compatibility with existing tests/usages."""
-        _LoaderRuntime._configure_transport(session, retries)
+        configure_transport(session, retries)
 
     def download(
         self,

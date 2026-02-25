@@ -108,10 +108,9 @@ Supported `--language` values:
 
 As of February 24, 2026, all of the languages above are present in the live `allV2` payload.
 
-Install browser fallback support locally with:
+Install browser runtime locally with:
 
 ```bash
-pip install '.[bulk]'
 playwright install chromium
 ```
 

@@ -17,7 +17,7 @@ DEFAULT_LIST_PAGES: tuple[str, str, str] = (
 )
 DEFAULT_TITLE_INDEX_ENDPOINT = "https://jumpg-webapi.tokyo-cdn.com/api/title_list/allV2"
 # Match both '/titles/123' and escaped '\/titles\/123' shapes.
-TITLE_ID_PATTERN = re.compile(r"(?:\\?/titles\\?/)(?P<title_id>\d+)(?:\\?/|$|[?#\"'])")
+TITLE_ID_PATTERN = re.compile(r"\\?/titles\\?/(?P<title_id>\d+)(?:\\?/|$|[?#\"'])")
 LANGUAGE_FILTER_CODES: dict[str, set[int]] = {
     language.name.lower(): {language.value} for language in Language
 }
