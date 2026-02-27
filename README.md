@@ -48,6 +48,12 @@ Coverage is enforced at **100%** in CI:
 pytest --cov=mloader --cov-report=term-missing --cov-fail-under=100
 ```
 
+Verify README example targets against live MangaPlus API responses:
+
+```bash
+python scripts/verify_readme_examples.py
+```
+
 ## 📙 Usage
 
 Copy the url of the chapter or title you want to download and pass it to `mloader`.
@@ -200,39 +206,39 @@ This section is generated from CLI metadata. Update it with `python scripts/sync
 `URLS`:
 - Positional MangaPlus URLs (`viewer/<id>` and `titles/<id>`).
 
-| Option | Description | Default | Env |
-| --- | --- | --- | --- |
-| `--version` | Show the version and exit. | `false` | `-` |
-| `--json` | Emit structured JSON output to stdout | `false` | `-` |
-| `--quiet` | Suppress non-error human-readable output | `false` | `-` |
-| `--show-examples` | Print exhaustive command examples and exit | `false` | `-` |
-| `--verbose`, `-v` | Increase logging verbosity (repeatable) | `0` | `-` |
-| `--out`, `-o` | Output directory for downloads | `mloader_downloads` | `MLOADER_EXTRACT_OUT_DIR` |
-| `--verify-capture-schema` | Verify captured API payloads against required response schema fields and exit | `-` | `-` |
-| `--verify-capture-baseline` | Compare verified capture schema signatures against a baseline capture directory | `-` | `-` |
-| `--all` | Discover all available titles and download them | `false` | `-` |
-| `--page` | MangaPlus list page to scrape for title links (repeatable) | `https://mangaplus.shueisha.co.jp/manga_list/ongoing, https://mangaplus.shueisha.co.jp/manga_list/completed, https://mangaplus.shueisha.co.jp/manga_list/one_shot` | `-` |
-| `--title-index-endpoint` | MangaPlus web API endpoint used for API-first title discovery | `https://jumpg-webapi.tokyo-cdn.com/api/title_list/allV2` | `MLOADER_TITLE_INDEX_ENDPOINT` |
-| `--id-length` | If set, keep only title IDs with this exact digit length | `-` | `-` |
-| `--language` | Restrict --all discovery to one or more languages (repeatable) | `-` | `-` |
-| `--list-only` | Only print discovered title IDs for --all and exit | `false` | `-` |
-| `--browser-fallback`, `--no-browser-fallback` | Use Playwright-rendered scraping when static page fetch yields no title IDs | `true` | `-` |
-| `--raw`, `-r` | Save raw images | `false` | `MLOADER_RAW` |
-| `--format`, `-f` | Save as CBZ or PDF | `cbz` | `MLOADER_OUTPUT_FORMAT` |
-| `--capture-api` | Dump raw API payload captures (protobuf + metadata) to this directory | `-` | `MLOADER_CAPTURE_API_DIR` |
-| `--quality`, `-q` | Image quality | `super_high` | `MLOADER_QUALITY` |
-| `--split`, `-s` | Split combined images | `false` | `MLOADER_SPLIT` |
-| `--chapter`, `-c` | Chapter number (integer, e.g. 1, 12) | `-` | `-` |
-| `--chapter-id` | Chapter API ID (integer, e.g. 1024959) | `-` | `-` |
-| `--title`, `-t` | Title ID (integer, usually 6 digits, e.g. 100312) | `-` | `-` |
-| `--begin`, `-b` | Minimal chapter to download | `0` | `-` |
-| `--end`, `-e` | Maximal chapter to download | `-` | `-` |
-| `--last`, `-l` | Download only the last chapter for each title | `false` | `-` |
-| `--chapter-title` | Include chapter titles in filenames | `false` | `-` |
-| `--chapter-subdir` | Save raw images in subdirectories by chapter | `false` | `-` |
-| `--meta`, `-m` | Export additional metadata as JSON | `false` | `-` |
-| `--resume`, `--no-resume` | Use per-title manifest state to skip already completed chapters | `true` | `-` |
-| `--manifest-reset` | Reset per-title manifest state before downloading | `false` | `-` |
+| Option                                        | Description                                                                     | Default                                                                                                                                                            | Env                            |
+|-----------------------------------------------|---------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------|
+| `--version`                                   | Show the version and exit.                                                      | `false`                                                                                                                                                            | `-`                            |
+| `--json`                                      | Emit structured JSON output to stdout                                           | `false`                                                                                                                                                            | `-`                            |
+| `--quiet`                                     | Suppress non-error human-readable output                                        | `false`                                                                                                                                                            | `-`                            |
+| `--show-examples`                             | Print exhaustive command examples and exit                                      | `false`                                                                                                                                                            | `-`                            |
+| `--verbose`, `-v`                             | Increase logging verbosity (repeatable)                                         | `0`                                                                                                                                                                | `-`                            |
+| `--out`, `-o`                                 | Output directory for downloads                                                  | `mloader_downloads`                                                                                                                                                | `MLOADER_EXTRACT_OUT_DIR`      |
+| `--verify-capture-schema`                     | Verify captured API payloads against required response schema fields and exit   | `-`                                                                                                                                                                | `-`                            |
+| `--verify-capture-baseline`                   | Compare verified capture schema signatures against a baseline capture directory | `-`                                                                                                                                                                | `-`                            |
+| `--all`                                       | Discover all available titles and download them                                 | `false`                                                                                                                                                            | `-`                            |
+| `--page`                                      | MangaPlus list page to scrape for title links (repeatable)                      | `https://mangaplus.shueisha.co.jp/manga_list/ongoing, https://mangaplus.shueisha.co.jp/manga_list/completed, https://mangaplus.shueisha.co.jp/manga_list/one_shot` | `-`                            |
+| `--title-index-endpoint`                      | MangaPlus web API endpoint used for API-first title discovery                   | `https://jumpg-webapi.tokyo-cdn.com/api/title_list/allV2`                                                                                                          | `MLOADER_TITLE_INDEX_ENDPOINT` |
+| `--id-length`                                 | If set, keep only title IDs with this exact digit length                        | `-`                                                                                                                                                                | `-`                            |
+| `--language`                                  | Restrict --all discovery to one or more languages (repeatable)                  | `-`                                                                                                                                                                | `-`                            |
+| `--list-only`                                 | Only print discovered title IDs for --all and exit                              | `false`                                                                                                                                                            | `-`                            |
+| `--browser-fallback`, `--no-browser-fallback` | Use Playwright-rendered scraping when static page fetch yields no title IDs     | `true`                                                                                                                                                             | `-`                            |
+| `--raw`, `-r`                                 | Save raw images                                                                 | `false`                                                                                                                                                            | `MLOADER_RAW`                  |
+| `--format`, `-f`                              | Save as CBZ or PDF                                                              | `cbz`                                                                                                                                                              | `MLOADER_OUTPUT_FORMAT`        |
+| `--capture-api`                               | Dump raw API payload captures (protobuf + metadata) to this directory           | `-`                                                                                                                                                                | `MLOADER_CAPTURE_API_DIR`      |
+| `--quality`, `-q`                             | Image quality                                                                   | `super_high`                                                                                                                                                       | `MLOADER_QUALITY`              |
+| `--split`, `-s`                               | Split combined images                                                           | `false`                                                                                                                                                            | `MLOADER_SPLIT`                |
+| `--chapter`, `-c`                             | Chapter number (integer, e.g. 1, 12)                                            | `-`                                                                                                                                                                | `-`                            |
+| `--chapter-id`                                | Chapter API ID (integer, e.g. 1024959)                                          | `-`                                                                                                                                                                | `-`                            |
+| `--title`, `-t`                               | Title ID (integer, usually 6 digits, e.g. 100312)                               | `-`                                                                                                                                                                | `-`                            |
+| `--begin`, `-b`                               | Minimal chapter to download                                                     | `0`                                                                                                                                                                | `-`                            |
+| `--end`, `-e`                                 | Maximal chapter to download                                                     | `-`                                                                                                                                                                | `-`                            |
+| `--last`, `-l`                                | Download only the last chapter for each title                                   | `false`                                                                                                                                                            | `-`                            |
+| `--chapter-title`                             | Include chapter titles in filenames                                             | `false`                                                                                                                                                            | `-`                            |
+| `--chapter-subdir`                            | Save raw images in subdirectories by chapter                                    | `false`                                                                                                                                                            | `-`                            |
+| `--meta`, `-m`                                | Export additional metadata as JSON                                              | `false`                                                                                                                                                            | `-`                            |
+| `--resume`, `--no-resume`                     | Use per-title manifest state to skip already completed chapters                 | `true`                                                                                                                                                             | `-`                            |
+| `--manifest-reset`                            | Reset per-title manifest state before downloading                               | `false`                                                                                                                                                            | `-`                            |
 <!-- cli-reference:end -->
 
 Deterministic exit-code mapping:
