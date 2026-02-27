@@ -16,7 +16,7 @@ from mloader.errors import SubscriptionRequiredError
 from mloader.manga_loader.downloader import DownloadInterruptedError
 from mloader.manga_loader.capture_verify import CaptureVerificationError, CaptureVerificationSummary
 
-CHAPTER_ID = "102277"
+CHAPTER_ID = "1024959"
 CHAPTER_ID_ALT = "102278"
 FAILED_CHAPTER_ID_A = 102300
 FAILED_CHAPTER_ID_B = 102301

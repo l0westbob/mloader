@@ -27,7 +27,7 @@ _EXAMPLE_SPECS: tuple[tuple[str, str, str], ...] = (
     ),
     (
         "Download from a chapter viewer URL",
-        "{prog} https://mangaplus.shueisha.co.jp/viewer/102277",
+        "{prog} https://mangaplus.shueisha.co.jp/viewer/1024959",
         "Default output format is CBZ.",
     ),
     (
@@ -42,7 +42,7 @@ _EXAMPLE_SPECS: tuple[tuple[str, str, str], ...] = (
     ),
     (
         "Target by explicit chapter API ID",
-        "{prog} --chapter-id 102277",
+        "{prog} --chapter-id 1024959",
         "Useful when a viewer URL or known API chapter ID is available.",
     ),
     (
@@ -127,17 +127,17 @@ _EXAMPLE_SPECS: tuple[tuple[str, str, str], ...] = (
     ),
     (
         "Emit machine-readable JSON output",
-        "{prog} --json --chapter-id 102277",
+        "{prog} --json --chapter-id 1024959",
         "Structured output mode for automation and scripting.",
     ),
     (
         "Suppress non-error human output",
-        "{prog} --quiet --chapter-id 102277",
+        "{prog} --quiet --chapter-id 1024959",
         "Keeps stdout quieter in interactive shells.",
     ),
     (
         "Enable debug logging",
-        "{prog} --verbose --chapter-id 102277",
+        "{prog} --verbose --chapter-id 1024959",
         "Repeat --verbose for additional detail (for example: -vv).",
     ),
     (

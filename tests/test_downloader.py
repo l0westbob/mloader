@@ -111,10 +111,10 @@ def test_filter_chapters_to_download_skips_existing_files() -> None:
     """Verify existing chapter files are skipped from download candidates."""
     downloader = DummyDownloader()
     chapter_data = {
-        102277: {"chapter_id": 102277, "sub_title": "Chapter One"},
+        1024959: {"chapter_id": 1024959, "sub_title": "Chapter One"},
         102278: {"chapter_id": 102278, "sub_title": "Chapter Two"},
     }
-    chapter1 = _chapter(102277, "#102277")
+    chapter1 = _chapter(1024959, "#1024959")
     chapter2 = _chapter(102278, "#102278")
     title_dump = SimpleNamespace(chapter_list_group=[_group([chapter1, chapter2])])
     title_detail = SimpleNamespace(name="My Manga")
@@ -126,7 +126,7 @@ def test_filter_chapters_to_download_skips_existing_files() -> None:
         title_dump,
         title_detail,
         existing_files=existing,
-        requested_chapter_ids={102277, 102278},
+        requested_chapter_ids={1024959, 102278},
     )
 
     assert result == [102278]
@@ -185,14 +185,14 @@ def test_dump_title_metadata_supports_explicit_chapter_mapping(tmp_path: Path) -
         overview="overview",
         title=SimpleNamespace(name="my manga", author="author", portrait_image_url="http://img"),
     )
-    chapter_data = {102277: ChapterMetadata(thumbnail_url="t1", chapter_id=102277, sub_title="A")}
+    chapter_data = {1024959: ChapterMetadata(thumbnail_url="t1", chapter_id=1024959, sub_title="A")}
     export_dir = tmp_path / "My Manga"
 
     downloader._dump_title_metadata(title_dump, chapter_data, export_dir)
 
     content = json.loads((export_dir / "title_metadata.json").read_text(encoding="utf-8"))
-    assert content["chapters"]["102277"]["chapter_id"] == 102277
-    assert content["chapters"]["102277"]["sub_title"] == "A"
+    assert content["chapters"]["1024959"]["chapter_id"] == 1024959
+    assert content["chapters"]["1024959"]["sub_title"] == "A"
 
 
 def test_process_chapter_pages_handles_double_pages(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -266,13 +266,13 @@ def test_download_calls_prepare_and_download() -> None:
     summary = loader.download(
         title_ids={100312},
         chapter_numbers=None,
-        chapter_ids={102277},
+        chapter_ids={1024959},
         min_chapter=1,
         max_chapter=5,
         last_chapter=True,
     )
 
-    assert calls["prepare"] == ({100312}, None, {102277}, 1, 5, True)
+    assert calls["prepare"] == ({100312}, None, {1024959}, 1, 5, True)
     assert calls["download"] == {42: {1}}
     assert summary == DownloadSummary(
         downloaded=0,
@@ -996,7 +996,7 @@ def test_extract_chapter_data_from_all_groups() -> None:
         chapter_list_group=[
             SimpleNamespace(
                 first_chapter_list=[
-                    SimpleNamespace(sub_title="A", thumbnail_url="t1", chapter_id=102277)
+                    SimpleNamespace(sub_title="A", thumbnail_url="t1", chapter_id=1024959)
                 ],
                 mid_chapter_list=[
                     SimpleNamespace(sub_title="B", thumbnail_url="t2", chapter_id=102278)
@@ -1010,7 +1010,7 @@ def test_extract_chapter_data_from_all_groups() -> None:
 
     result = downloader._extract_chapter_data(title_dump)
 
-    assert result[102277]["chapter_id"] == 102277
+    assert result[1024959]["chapter_id"] == 1024959
     assert result[102278]["chapter_id"] == 102278
     assert result[102279]["chapter_id"] == 102279
     assert result[102278]["sub_title"] == "B"
@@ -1023,7 +1023,7 @@ def test_extract_chapter_data_keeps_duplicate_subtitles_by_chapter_id() -> None:
         chapter_list_group=[
             SimpleNamespace(
                 first_chapter_list=[
-                    SimpleNamespace(sub_title="Same", thumbnail_url="t1", chapter_id=102277),
+                    SimpleNamespace(sub_title="Same", thumbnail_url="t1", chapter_id=1024959),
                     SimpleNamespace(sub_title="Same", thumbnail_url="t2", chapter_id=102278),
                 ],
                 mid_chapter_list=[],
@@ -1034,8 +1034,8 @@ def test_extract_chapter_data_keeps_duplicate_subtitles_by_chapter_id() -> None:
 
     result = downloader._extract_chapter_data(title_dump)
 
-    assert set(result.keys()) == {102277, 102278}
-    assert result[102277]["sub_title"] == "Same"
+    assert set(result.keys()) == {1024959, 102278}
+    assert result[1024959]["sub_title"] == "Same"
     assert result[102278]["sub_title"] == "Same"
 
 
@@ -1146,7 +1146,7 @@ def test_download_mixin_placeholders_raise_not_implemented() -> None:
 
 def test_chapter_metadata_mapping_access_and_key_error() -> None:
     """Verify compatibility mapping access on ``ChapterMetadata``."""
-    metadata = ChapterMetadata(thumbnail_url="thumb", chapter_id=102277, sub_title="Sub")
+    metadata = ChapterMetadata(thumbnail_url="thumb", chapter_id=1024959, sub_title="Sub")
 
     assert metadata["thumbnail_url"] == "thumb"
     assert metadata["sub_title"] == "Sub"
@@ -1157,10 +1157,10 @@ def test_chapter_metadata_mapping_access_and_key_error() -> None:
 def test_find_chapter_by_id_returns_match_and_none() -> None:
     """Verify chapter lookup returns chapter object when found, else None."""
     downloader = DummyDownloader()
-    chapter = _chapter(102277, "#102277")
+    chapter = _chapter(1024959, "#1024959")
     title_dump = SimpleNamespace(chapter_list_group=[_group([chapter])])
 
-    assert downloader._find_chapter_by_id(title_dump, 102277) is chapter
+    assert downloader._find_chapter_by_id(title_dump, 1024959) is chapter
     assert downloader._find_chapter_by_id(title_dump, 102278) is None
 
 

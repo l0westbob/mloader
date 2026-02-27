@@ -15,7 +15,7 @@ def test_validate_urls_collects_chapter_ids_and_titles() -> None:
     ctx = click.Context(click.Command("mloader"))
 
     value = (
-        "https://mangaplus.shueisha.co.jp/viewer/102277",
+        "https://mangaplus.shueisha.co.jp/viewer/1024959",
         "https://mangaplus.shueisha.co.jp/titles/100312",
         "viewer/102278",
     )
@@ -23,7 +23,7 @@ def test_validate_urls_collects_chapter_ids_and_titles() -> None:
     returned = validate_urls(ctx, None, value)
 
     assert returned == value
-    assert ctx.params["chapter_ids"] == {102277, 102278}
+    assert ctx.params["chapter_ids"] == {1024959, 102278}
     assert ctx.params["titles"] == {100312}
 
 
@@ -39,7 +39,7 @@ def test_validate_urls_rejects_invalid_host() -> None:
     """Verify URLs outside allowed MangaPlus hosts are rejected."""
     ctx = click.Context(click.Command("mloader"))
     with pytest.raises(click.BadParameter):
-        validate_urls(ctx, None, ("https://example.com/viewer/102277",))
+        validate_urls(ctx, None, ("https://example.com/viewer/1024959",))
 
 
 def test_validate_urls_rejects_unsupported_segment() -> None:
@@ -47,7 +47,7 @@ def test_validate_urls_rejects_unsupported_segment() -> None:
     ctx = click.Context(click.Command("mloader"))
 
     with pytest.raises(click.BadParameter):
-        validate_urls(ctx, None, ("https://mangaplus.shueisha.co.jp/chapter/102277",))
+        validate_urls(ctx, None, ("https://mangaplus.shueisha.co.jp/chapter/1024959",))
 
 
 def test_validate_urls_accepts_empty_input() -> None:
@@ -62,11 +62,11 @@ def test_validate_ids_updates_context_for_all_supported_target_types() -> None:
     ctx = click.Context(click.Command("mloader"))
 
     validate_ids(ctx, SimpleNamespace(name="chapter"), (12, 13, 13))
-    validate_ids(ctx, SimpleNamespace(name="chapter_id"), (102277, 102278, 102278))
+    validate_ids(ctx, SimpleNamespace(name="chapter_id"), (1024959, 102278, 102278))
     validate_ids(ctx, SimpleNamespace(name="title"), (100312,))
 
     assert ctx.params["chapters"] == {12, 13}
-    assert ctx.params["chapter_ids"] == {102277, 102278}
+    assert ctx.params["chapter_ids"] == {1024959, 102278}
     assert ctx.params["titles"] == {100312}
 
 
@@ -80,7 +80,7 @@ def test_validate_ids_rejects_missing_param_metadata() -> None:
     """Verify validator raises click.BadParameter when param metadata is absent."""
     ctx = click.Context(click.Command("mloader"))
     with pytest.raises(click.BadParameter):
-        validate_ids(ctx, None, (102277,))
+        validate_ids(ctx, None, (1024959,))
 
 
 def test_validate_ids_rejects_unexpected_param_name() -> None:

@@ -56,7 +56,7 @@ def test_normalize_ids_uses_title_details_and_filters_by_chapter_numbers() -> No
             chapter_list_group=[
                 _group(
                     [
-                        _chapter(102277, "#1"),
+                        _chapter(1024959, "#1"),
                         _chapter(102278, "#2"),
                         _chapter(102279, "Special"),
                     ]
@@ -78,7 +78,7 @@ def test_normalize_ids_last_chapter_picks_only_final_entry() -> None:
             chapter_list_group=[
                 _group(
                     [
-                        _chapter(102277, "#102277"),
+                        _chapter(1024959, "#1024959"),
                         _chapter(102278, "#102278"),
                         _chapter(102279, "#102279"),
                     ]
@@ -103,11 +103,11 @@ def test_normalize_ids_last_chapter_picks_only_final_entry() -> None:
 def test_normalize_ids_merges_chapter_id_and_title_number_requests() -> None:
     """Verify normalization merges chapter-ID and chapter-number-based targets."""
     viewers = {
-        102277: SimpleNamespace(
+        1024959: SimpleNamespace(
             title_id=100312,
-            chapter_id=102277,
+            chapter_id=1024959,
             chapter_name="#1",
-            chapters=[_chapter(102277, "#1"), _chapter(102278, "#2")],
+            chapters=[_chapter(1024959, "#1"), _chapter(102278, "#2")],
         ),
         102377: SimpleNamespace(
             title_id=100412,
@@ -119,7 +119,7 @@ def test_normalize_ids_merges_chapter_id_and_title_number_requests() -> None:
     title_details = {
         100312: SimpleNamespace(
             chapter_list_group=[
-                _group([_chapter(102277, "#1"), _chapter(102278, "#2"), _chapter(102279, "#3")])
+                _group([_chapter(1024959, "#1"), _chapter(102278, "#2"), _chapter(102279, "#3")])
             ]
         ),
         100412: SimpleNamespace(chapter_list_group=[_group([_chapter(102377, "#7")])]),
@@ -140,11 +140,11 @@ def test_normalize_ids_merges_chapter_id_and_title_number_requests() -> None:
 def test_normalize_ids_prefers_viewer_chapters_when_chapter_id_matches_selected_title() -> None:
     """Verify overlapping title + chapter-ID inputs expand from viewer chapter list."""
     viewers = {
-        102277: SimpleNamespace(
+        1024959: SimpleNamespace(
             title_id=100312,
-            chapter_id=102277,
+            chapter_id=1024959,
             chapter_name="#1",
-            chapters=[_chapter(102277, "#1"), _chapter(102278, "#2")],
+            chapters=[_chapter(1024959, "#1"), _chapter(102278, "#2")],
         )
     }
     normalizer = DummyNormalizer(viewers, {})
@@ -152,12 +152,12 @@ def test_normalize_ids_prefers_viewer_chapters_when_chapter_id_matches_selected_
     result = normalizer._normalize_ids(
         [100312],
         [],
-        [102277],
+        [1024959],
         min_chapter=0,
         max_chapter=2_147_483_647,
     )
 
-    assert result == {100312: {102277, 102278}}
+    assert result == {100312: {1024959, 102278}}
 
 
 def test_normalize_ids_rejects_chapter_numbers_without_title_context() -> None:
@@ -173,7 +173,7 @@ def test_prepare_normalized_manga_list_delegates_to_normalize_ids(
 ) -> None:
     """Verify wrapper method delegates to _normalize_ids and returns its result."""
     normalizer = DummyNormalizer({}, {})
-    sentinel = {100312: {102277}}
+    sentinel = {100312: {1024959}}
 
     monkeypatch.setattr(
         normalizer,
@@ -184,7 +184,7 @@ def test_prepare_normalized_manga_list_delegates_to_normalize_ids(
     result = normalizer._prepare_normalized_manga_list(
         [100312],
         [1],
-        [102277],
+        [1024959],
         0,
         2_147_483_647,
         False,

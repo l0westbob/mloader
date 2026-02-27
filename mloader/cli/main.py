@@ -207,7 +207,7 @@ class MloaderCliError(click.ClickException):
     "--chapter-id",
     type=click.INT,
     multiple=True,
-    help="Chapter API ID (integer, e.g. 102277)",
+    help="Chapter API ID (integer, e.g. 1024959)",
     expose_value=False,
     callback=validate_ids,
 )

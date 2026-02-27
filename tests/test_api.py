@@ -46,7 +46,7 @@ class DummyLoader(api.APILoaderMixin):
 
 def test_parse_manga_viewer_response(monkeypatch: pytest.MonkeyPatch) -> None:
     """Verify viewer parser extracts ``success.manga_viewer`` payload."""
-    sentinel = SimpleNamespace(title_id=100312, chapter_id=102277, pages=[SimpleNamespace()])
+    sentinel = SimpleNamespace(title_id=100312, chapter_id=1024959, pages=[SimpleNamespace()])
 
     class FakeResponse:
         @staticmethod
