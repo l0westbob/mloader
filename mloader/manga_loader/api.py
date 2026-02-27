@@ -6,14 +6,34 @@ from collections import OrderedDict
 from typing import Collection, Mapping, Union, cast
 
 from mloader.config import AUTH_PARAMS
+from mloader.errors import APIResponseError
 from mloader.response_pb2 import Response  # type: ignore
 from mloader.types import MangaViewerLike, PayloadCaptureLike, SessionLike, TitleDumpLike
 
 
+def _has_message_field(message: object, field_name: str) -> bool:
+    """Return whether protobuf ``message`` has explicit ``field_name`` set."""
+    has_field = getattr(message, "HasField", None)
+    if not callable(has_field):
+        return True
+    try:
+        return bool(has_field(field_name))
+    except ValueError:
+        return False
+
+
 def _parse_manga_viewer_response(content: bytes) -> MangaViewerLike:
-    """Parse the API response to extract the MangaViewer object."""
+    """Parse and validate the API response to extract ``MangaViewer`` payload."""
     parsed = Response.FromString(content)
-    return cast(MangaViewerLike, parsed.success.manga_viewer)
+    success = parsed.success
+    if not _has_message_field(success, "manga_viewer"):
+        raise APIResponseError("MangaPlus API returned no manga_viewer payload.")
+    viewer = success.manga_viewer
+    if viewer.title_id == 0 or viewer.chapter_id == 0:
+        raise APIResponseError("MangaPlus API returned manga_viewer payload without title/chapter IDs.")
+    if len(viewer.pages) == 0:
+        raise APIResponseError("MangaPlus API returned manga_viewer payload without pages.")
+    return cast(MangaViewerLike, viewer)
 
 
 def _build_title_detail_params(title_id: Union[str, int]) -> dict[str, str | int]:
@@ -22,9 +42,25 @@ def _build_title_detail_params(title_id: Union[str, int]) -> dict[str, str | int
 
 
 def _parse_title_detail_response(content: bytes) -> TitleDumpLike:
-    """Parse the API response to extract the TitleDetailView object."""
+    """Parse and validate the API response to extract ``TitleDetailView`` payload."""
     parsed = Response.FromString(content)
-    return cast(TitleDumpLike, parsed.success.title_detail_view)
+    success = parsed.success
+    if not _has_message_field(success, "title_detail_view"):
+        raise APIResponseError("MangaPlus API returned no title_detail_view payload.")
+    title_detail = success.title_detail_view
+    title = title_detail.title
+    if title.title_id == 0 or not title.name:
+        raise APIResponseError("MangaPlus API returned title_detail_view without title identity.")
+    chapter_groups = title_detail.chapter_list_group
+    if len(chapter_groups) == 0:
+        raise APIResponseError("MangaPlus API returned title_detail_view without chapter groups.")
+    has_chapters = any(
+        group.first_chapter_list or group.mid_chapter_list or group.last_chapter_list
+        for group in chapter_groups
+    )
+    if not has_chapters:
+        raise APIResponseError("MangaPlus API returned title_detail_view without chapter entries.")
+    return cast(TitleDumpLike, title_detail)
 
 
 class APILoaderMixin:

@@ -9,3 +9,7 @@ class MLoaderError(Exception):
 
 class SubscriptionRequiredError(MLoaderError):
     """Raised when a chapter requires a subscription unavailable to the caller."""
+
+
+class APIResponseError(MLoaderError):
+    """Raised when MangaPlus API returns an invalid or non-success payload."""

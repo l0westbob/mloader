@@ -14,6 +14,7 @@ from mloader.domain.requests import (
     DiscoveryRequest,
     EffectiveOutputFormat,
 )
+from mloader.errors import APIResponseError
 from mloader.manga_loader.downloader import DownloadInterruptedError
 from mloader.manga_loader.init import MangaLoader
 from mloader.types import ExporterFactoryLike
@@ -202,7 +203,7 @@ def execute_download(
         )
     except DownloadInterruptedError as exc:
         raise DownloadInterrupted(exc.summary) from exc
-    except requests.RequestException as exc:
+    except (requests.RequestException, APIResponseError) as exc:
         raise ExternalDependencyError(f"Download request failed: {exc}") from exc
 
     if isinstance(summary, DownloadSummary):

@@ -9,6 +9,7 @@ import requests
 
 from mloader.application import workflows
 from mloader.domain.requests import DownloadRequest, DownloadSummary
+from mloader.errors import APIResponseError
 from mloader.manga_loader.downloader import DownloadInterruptedError
 
 
@@ -73,6 +74,15 @@ class RequestFailingLoader(DummyLoader):
         """Raise request exception for external-dependency mapping tests."""
         del kwargs
         raise requests.RequestException("network")
+
+
+class InvalidPayloadLoader(DummyLoader):
+    """Loader test double that fails with API payload validation errors."""
+
+    def download(self, **kwargs: Any) -> None:
+        """Raise APIResponseError for workflow external-dependency mapping tests."""
+        del kwargs
+        raise APIResponseError("MangaPlus API returned no manga_viewer payload.")
 
 
 class InterruptingLoader(DummyLoader):
@@ -306,6 +316,23 @@ def test_execute_download_wraps_request_errors_as_external_dependency_failure() 
         workflows.execute_download(
             request,
             loader_factory=RequestFailingLoader,
+            raw_exporter=DummyRawExporter,
+            pdf_exporter=DummyPdfExporter,
+            cbz_exporter=DummyCbzExporter,
+        )
+
+
+def test_execute_download_wraps_api_payload_errors_as_external_dependency_failure() -> None:
+    """Verify invalid API payload failures map to workflow external errors."""
+    request = _build_request(raw=False, output_format="cbz")
+
+    with pytest.raises(
+        workflows.ExternalDependencyError,
+        match="Download request failed: MangaPlus API returned no manga_viewer payload.",
+    ):
+        workflows.execute_download(
+            request,
+            loader_factory=InvalidPayloadLoader,
             raw_exporter=DummyRawExporter,
             pdf_exporter=DummyPdfExporter,
             cbz_exporter=DummyCbzExporter,

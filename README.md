@@ -61,10 +61,14 @@ Chapters can be saved in different formats (check the `--help` output for the av
 Typical MangaPlus IDs are multi-digit integers (title IDs are commonly 6 digits), for example:
 
 ```bash
-mloader https://mangaplus.shueisha.co.jp/viewer/102277
+mloader https://mangaplus.shueisha.co.jp/viewer/1024959
 mloader https://mangaplus.shueisha.co.jp/titles/100312 -f pdf
+<<<<<<< HEAD
 mloader --title 100312 --chapter 12
 mloader --chapter-id 102277
+=======
+mloader --title 100312 --chapter 1024959
+>>>>>>> dev
 ```
 
 For an exhaustive, option-complete command catalog (including discovery, capture, resume, and output modes):
