@@ -63,12 +63,8 @@ Typical MangaPlus IDs are multi-digit integers (title IDs are commonly 6 digits)
 ```bash
 mloader https://mangaplus.shueisha.co.jp/viewer/1024959
 mloader https://mangaplus.shueisha.co.jp/titles/100312 -f pdf
-<<<<<<< HEAD
 mloader --title 100312 --chapter 12
-mloader --chapter-id 102277
-=======
-mloader --title 100312 --chapter 1024959
->>>>>>> dev
+mloader --chapter-id 1024959
 ```
 
 For an exhaustive, option-complete command catalog (including discovery, capture, resume, and output modes):
@@ -227,7 +223,7 @@ This section is generated from CLI metadata. Update it with `python scripts/sync
 | `--quality`, `-q` | Image quality | `super_high` | `MLOADER_QUALITY` |
 | `--split`, `-s` | Split combined images | `false` | `MLOADER_SPLIT` |
 | `--chapter`, `-c` | Chapter number (integer, e.g. 1, 12) | `-` | `-` |
-| `--chapter-id` | Chapter API ID (integer, e.g. 102277) | `-` | `-` |
+| `--chapter-id` | Chapter API ID (integer, e.g. 1024959) | `-` | `-` |
 | `--title`, `-t` | Title ID (integer, usually 6 digits, e.g. 100312) | `-` | `-` |
 | `--begin`, `-b` | Minimal chapter to download | `0` | `-` |
 | `--end`, `-e` | Maximal chapter to download | `-` | `-` |
