@@ -7,6 +7,7 @@ from typing import Any
 
 import pytest
 
+from mloader.errors import APIResponseError
 from mloader.manga_loader import api
 
 
@@ -45,7 +46,7 @@ class DummyLoader(api.APILoaderMixin):
 
 def test_parse_manga_viewer_response(monkeypatch: pytest.MonkeyPatch) -> None:
     """Verify viewer parser extracts ``success.manga_viewer`` payload."""
-    sentinel = object()
+    sentinel = SimpleNamespace(title_id=100312, chapter_id=102277, pages=[SimpleNamespace()])
 
     class FakeResponse:
         @staticmethod
@@ -60,7 +61,10 @@ def test_parse_manga_viewer_response(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def test_parse_title_detail_response(monkeypatch: pytest.MonkeyPatch) -> None:
     """Verify title-detail parser extracts ``success.title_detail_view`` payload."""
-    sentinel = object()
+    sentinel = SimpleNamespace(
+        title=SimpleNamespace(title_id=100312, name="Test"),
+        chapter_list_group=[SimpleNamespace(first_chapter_list=[SimpleNamespace()], mid_chapter_list=[], last_chapter_list=[])],
+    )
 
     class FakeResponse:
         @staticmethod
@@ -71,6 +75,143 @@ def test_parse_title_detail_response(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(api, "Response", FakeResponse)
 
     assert api._parse_title_detail_response(b"raw") is sentinel
+
+
+def test_parse_manga_viewer_response_raises_for_missing_payload(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify viewer parser rejects payloads without ``success.manga_viewer``."""
+
+    class SuccessEnvelope:
+        def HasField(self, name: str) -> bool:
+            return name != "manga_viewer"
+
+    class FakeResponse:
+        @staticmethod
+        def FromString(_content: bytes) -> SimpleNamespace:
+            return SimpleNamespace(success=SuccessEnvelope())
+
+    monkeypatch.setattr(api, "Response", FakeResponse)
+
+    with pytest.raises(APIResponseError, match="no manga_viewer payload"):
+        api._parse_manga_viewer_response(b"raw")
+
+
+def test_parse_title_detail_response_raises_for_missing_payload(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify title parser rejects payloads without ``success.title_detail_view``."""
+
+    class SuccessEnvelope:
+        def HasField(self, name: str) -> bool:
+            return name != "title_detail_view"
+
+    class FakeResponse:
+        @staticmethod
+        def FromString(_content: bytes) -> SimpleNamespace:
+            return SimpleNamespace(success=SuccessEnvelope())
+
+    monkeypatch.setattr(api, "Response", FakeResponse)
+
+    with pytest.raises(APIResponseError, match="no title_detail_view payload"):
+        api._parse_title_detail_response(b"raw")
+
+
+def test_has_message_field_handles_non_protobuf_messages() -> None:
+    """Verify ``_has_message_field`` returns true for objects without ``HasField``."""
+    assert api._has_message_field(object(), "any") is True
+
+
+def test_has_message_field_handles_invalid_field_name() -> None:
+    """Verify ``_has_message_field`` returns false when protobuf rejects field name."""
+
+    class Message:
+        def HasField(self, _name: str) -> bool:
+            raise ValueError("unknown field")
+
+    assert api._has_message_field(Message(), "missing") is False
+
+
+def test_parse_manga_viewer_response_raises_for_missing_ids(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify viewer parser rejects payloads missing title/chapter IDs."""
+    viewer = SimpleNamespace(title_id=0, chapter_id=0, pages=[SimpleNamespace()])
+
+    class FakeResponse:
+        @staticmethod
+        def FromString(_content: bytes) -> SimpleNamespace:
+            return SimpleNamespace(success=SimpleNamespace(manga_viewer=viewer))
+
+    monkeypatch.setattr(api, "Response", FakeResponse)
+
+    with pytest.raises(APIResponseError, match="without title/chapter IDs"):
+        api._parse_manga_viewer_response(b"raw")
+
+
+def test_parse_manga_viewer_response_raises_for_missing_pages(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify viewer parser rejects payloads with no page entries."""
+    viewer = SimpleNamespace(title_id=1, chapter_id=2, pages=[])
+
+    class FakeResponse:
+        @staticmethod
+        def FromString(_content: bytes) -> SimpleNamespace:
+            return SimpleNamespace(success=SimpleNamespace(manga_viewer=viewer))
+
+    monkeypatch.setattr(api, "Response", FakeResponse)
+
+    with pytest.raises(APIResponseError, match="without pages"):
+        api._parse_manga_viewer_response(b"raw")
+
+
+def test_parse_title_detail_response_raises_for_missing_title_identity(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify title parser rejects payloads missing title identity fields."""
+    title_detail = SimpleNamespace(
+        title=SimpleNamespace(title_id=0, name=""),
+        chapter_list_group=[SimpleNamespace(first_chapter_list=[SimpleNamespace()], mid_chapter_list=[], last_chapter_list=[])],
+    )
+
+    class FakeResponse:
+        @staticmethod
+        def FromString(_content: bytes) -> SimpleNamespace:
+            return SimpleNamespace(success=SimpleNamespace(title_detail_view=title_detail))
+
+    monkeypatch.setattr(api, "Response", FakeResponse)
+
+    with pytest.raises(APIResponseError, match="without title identity"):
+        api._parse_title_detail_response(b"raw")
+
+
+def test_parse_title_detail_response_raises_for_missing_groups(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify title parser rejects payloads with no chapter groups."""
+    title_detail = SimpleNamespace(
+        title=SimpleNamespace(title_id=1, name="T"),
+        chapter_list_group=[],
+    )
+
+    class FakeResponse:
+        @staticmethod
+        def FromString(_content: bytes) -> SimpleNamespace:
+            return SimpleNamespace(success=SimpleNamespace(title_detail_view=title_detail))
+
+    monkeypatch.setattr(api, "Response", FakeResponse)
+
+    with pytest.raises(APIResponseError, match="without chapter groups"):
+        api._parse_title_detail_response(b"raw")
+
+
+def test_parse_title_detail_response_raises_for_missing_entries(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify title parser rejects groups that contain no chapters."""
+    title_detail = SimpleNamespace(
+        title=SimpleNamespace(title_id=1, name="T"),
+        chapter_list_group=[SimpleNamespace(first_chapter_list=[], mid_chapter_list=[], last_chapter_list=[])],
+    )
+
+    class FakeResponse:
+        @staticmethod
+        def FromString(_content: bytes) -> SimpleNamespace:
+            return SimpleNamespace(success=SimpleNamespace(title_detail_view=title_detail))
+
+    monkeypatch.setattr(api, "Response", FakeResponse)
+
+    with pytest.raises(APIResponseError, match="without chapter entries"):
+        api._parse_title_detail_response(b"raw")
 
 
 def test_build_title_detail_params_includes_auth_values() -> None:
