@@ -15,6 +15,7 @@ from mloader.domain.requests import DownloadSummary
 from mloader.errors import SubscriptionRequiredError
 from mloader.manga_loader.downloader import DownloadInterruptedError
 from mloader.manga_loader.capture_verify import CaptureVerificationError, CaptureVerificationSummary
+from mloader.config import AuthSettings
 
 CHAPTER_ID = "1024959"
 CHAPTER_ID_ALT = "102278"
@@ -146,6 +147,28 @@ def test_cli_uses_default_info_logging_level(monkeypatch: pytest.MonkeyPatch) ->
 
     assert result.exit_code == 0
     assert observed_level == 20
+
+
+def test_cli_exits_when_auth_os_value_is_unsupported(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify CLI warns and exits when auth OS config value is unsupported."""
+    monkeypatch.setattr(
+        cli_main,
+        "AUTH_SETTINGS",
+        AuthSettings(
+            app_ver="97",
+            os="Windows_NT",
+            os_ver="18.1",
+            secret="secret",
+        ),
+    )
+    monkeypatch.setattr(cli_main, "MangaLoader", DummyLoader)
+
+    runner = CliRunner()
+    result = runner.invoke(cli_main.main, ["--chapter-id", CHAPTER_ID])
+
+    assert result.exit_code == VALIDATION_ERROR
+    assert "Unsupported API auth OS value" in result.output
+    assert "Windows_NT" in result.output
 
 
 def test_cli_uses_warning_logging_level_in_quiet_mode(monkeypatch: pytest.MonkeyPatch) -> None:
