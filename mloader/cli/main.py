@@ -15,6 +15,7 @@ from mloader.cli.config import setup_logging
 from mloader.cli.exit_codes import EXTERNAL_FAILURE, INTERNAL_BUG, SUCCESS, VALIDATION_ERROR
 from mloader.cli.presenter import CliPresenter
 from mloader.cli.validators import validate_ids, validate_urls
+from mloader.config import AUTH_SETTINGS
 from mloader.domain.requests import DownloadRequest, DownloadSummary
 from mloader.errors import SubscriptionRequiredError
 from mloader.exporters.init import CBZExporter, PDFExporter, RawExporter
@@ -27,6 +28,7 @@ from mloader.manga_loader.capture_verify import (
 from mloader.manga_loader.init import MangaLoader
 
 log = logging.getLogger(__name__)
+SUPPORTED_AUTH_OS_VALUES: frozenset[str] = frozenset({"ios", "android"})
 
 
 class MloaderCliError(click.ClickException):
@@ -315,6 +317,13 @@ def main(
     setup_logging(level=_resolve_log_level(quiet=quiet, verbose=verbose, json_output=json_output))
     presenter = CliPresenter(json_output=json_output, quiet=quiet)
     presenter.emit_intro(about.__intro__)
+    if AUTH_SETTINGS.os.lower() not in SUPPORTED_AUTH_OS_VALUES:
+        _fail(
+            "Warning: Unsupported API auth OS value configured via environment/config: "
+            f"'{AUTH_SETTINGS.os}'. Supported values are: ios, android.",
+            presenter=presenter,
+            exit_code=VALIDATION_ERROR,
+        )
 
     if show_examples:
         examples = cli_examples.build_cli_examples(prog_name=ctx.info_name or about.__title__)
