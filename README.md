@@ -21,7 +21,7 @@
 The recommended installation method is using `pip`:
 
 ```bash
-pip install mloader
+pip install mloader-rewrite
 ```
 
 After installation, the `mloader` command will be available. Check the [command line](%EF%B8%8F-command-line-interface) section for supported commands.
@@ -29,12 +29,15 @@ After installation, the `mloader` command will be available. Check the [command 
 ## 🛠 Development
 
 ```bash
-git clone https://github.com/hurlenko/mloader.git
+git clone https://github.com/l0westbob/mloader.git
 cd mloader
 python3.14 -m venv .venv
 source .venv/bin/activate
 pip install -e .[dev]
 ```
+
+This package is published as `mloader-rewrite` (temporary maintained rewrite fork).
+The CLI command remains `mloader`.
 
 ## ✅ Testing
 

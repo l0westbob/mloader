@@ -3,7 +3,7 @@ requires = ["hatchling>=1.27.0"]
 build-backend = "hatchling.build"
 
 [project]
-name = "mloader"
+name = "mloader-rewrite"
 version = "2.0.0"
 description = "Command-line tool to download manga from mangaplus"
 readme = "README.md"
@@ -25,7 +25,8 @@ dependencies = [
 ]
 
 [project.urls]
-Source = "https://github.com/hurlenko/mloader"
+Source = "https://github.com/l0westbob/mloader"
+Upstream = "https://github.com/hurlenko/mloader"
 
 [project.scripts]
 mloader = "mloader.__main__:main"
