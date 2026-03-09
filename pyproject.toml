@@ -3,8 +3,8 @@ requires = ["hatchling>=1.27.0"]
 build-backend = "hatchling.build"
 
 [project]
-name = "mloader-rewrite"
-version = "2.0.0"
+name = "mloader-ng"
+version = "2.0.2"
 description = "Command-line tool to download manga from mangaplus"
 readme = "README.md"
 requires-python = ">=3.14"
