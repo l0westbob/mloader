@@ -266,6 +266,13 @@ class MloaderCliError(click.ClickException):
     help="Export additional metadata as JSON",
 )
 @click.option(
+    "--cover",
+    is_flag=True,
+    default=False,
+    show_default=True,
+    help="Download each title cover image as PNG",
+)
+@click.option(
     "--resume/--no-resume",
     default=True,
     show_default=True,
@@ -307,6 +314,7 @@ def main(
     chapter_title: bool,
     chapter_subdir: bool,
     meta: bool,
+    cover: bool,
     resume: bool,
     manifest_reset: bool,
     chapters: set[int] | None = None,
@@ -375,6 +383,7 @@ def main(
         chapter_title=chapter_title,
         chapter_subdir=chapter_subdir,
         meta=meta,
+        cover=cover,
         resume=resume,
         manifest_reset=manifest_reset,
         chapters=chapters,

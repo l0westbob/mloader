@@ -28,6 +28,7 @@ class _LoaderRuntime(APILoaderMixin, NormalizationMixin, DownloadMixin, Decrypti
         quality: str,
         split: bool,
         meta: bool,
+        cover: bool,
         destination: str,
         output_format: Literal["raw", "cbz", "pdf"],
         session: SessionLike | None,
@@ -41,6 +42,7 @@ class _LoaderRuntime(APILoaderMixin, NormalizationMixin, DownloadMixin, Decrypti
     ) -> None:
         """Initialize runtime dependencies and transport settings."""
         self.meta = meta
+        self.cover = cover
         self.exporter = exporter
         self.destination = destination
         self.output_format = output_format
@@ -91,6 +93,7 @@ class MangaLoader:
         quality: str,
         split: bool,
         meta: bool,
+        cover: bool = False,
         destination: str = "mloader_downloads",
         output_format: Literal["raw", "cbz", "pdf"] = "cbz",
         session: SessionLike | None = None,
@@ -108,6 +111,7 @@ class MangaLoader:
             quality=quality,
             split=split,
             meta=meta,
+            cover=cover,
             destination=destination,
             output_format=output_format,
             session=session,

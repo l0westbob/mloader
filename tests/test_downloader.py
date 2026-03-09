@@ -4,12 +4,14 @@ from __future__ import annotations
 
 import json
 from contextlib import contextmanager
+from io import BytesIO
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, Iterator
 
 import click
 import pytest
+from PIL import Image
 
 from mloader.constants import PageType
 from mloader.domain.requests import DownloadSummary
@@ -29,6 +31,7 @@ class DummyDownloader(DownloadMixin):
         self.output_format = "pdf"
         self.request_timeout = (0.1, 0.1)
         self.meta = False
+        self.cover = False
         self.resume = True
         self.manifest_reset = False
 
@@ -55,6 +58,7 @@ class FullDownloader(DownloadMixin):
         self.output_format = "pdf"
         self.request_timeout = (0.1, 0.1)
         self.meta = False
+        self.cover = False
         self.resume = True
         self.manifest_reset = False
         self.session = DummySession(DummyResponse(content=b"default"))
@@ -193,6 +197,105 @@ def test_dump_title_metadata_supports_explicit_chapter_mapping(tmp_path: Path) -
     content = json.loads((export_dir / "title_metadata.json").read_text(encoding="utf-8"))
     assert content["chapters"]["1024959"]["chapter_id"] == 1024959
     assert content["chapters"]["1024959"]["sub_title"] == "A"
+
+
+def test_resolve_cover_image_url_prefers_main_and_falls_back_to_portrait() -> None:
+    """Verify cover URL resolution prefers title_image_url then portrait fallback."""
+    downloader = DummyDownloader()
+    with_main = SimpleNamespace(
+        title_image_url="https://img/main.webp",
+        title=SimpleNamespace(
+            portrait_image_url="https://img/portrait.webp",
+            landscape_image_url="https://img/landscape.webp",
+        ),
+    )
+    without_main = SimpleNamespace(
+        title_image_url="",
+        title=SimpleNamespace(
+            portrait_image_url="https://img/portrait.webp",
+            landscape_image_url="https://img/landscape.webp",
+        ),
+    )
+
+    assert downloader._resolve_cover_image_url(with_main) == "https://img/main.webp"
+    assert downloader._resolve_cover_image_url(without_main) == "https://img/portrait.webp"
+
+
+def test_resolve_cover_image_url_falls_back_to_landscape_then_none() -> None:
+    """Verify cover URL resolution uses landscape fallback and returns None when absent."""
+    downloader = DummyDownloader()
+    landscape_only = SimpleNamespace(
+        title_image_url="",
+        title=SimpleNamespace(portrait_image_url="", landscape_image_url="https://img/landscape.webp"),
+    )
+    no_cover = SimpleNamespace(
+        title_image_url="",
+        title=SimpleNamespace(portrait_image_url="", landscape_image_url=""),
+    )
+
+    assert downloader._resolve_cover_image_url(landscape_only) == "https://img/landscape.webp"
+    assert downloader._resolve_cover_image_url(no_cover) is None
+
+
+def test_dump_title_cover_downloads_and_saves_png(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify cover export downloads bytes and stores PNG output."""
+    downloader = DummyDownloader(destination=str(tmp_path))
+    image_bytes = BytesIO()
+    Image.new("RGB", (1, 1), (255, 0, 0)).save(image_bytes, format="JPEG")
+    image_blob = image_bytes.getvalue()
+
+    monkeypatch.setattr(downloader, "_download_image", lambda _url: image_blob)
+
+    title_dump = SimpleNamespace(
+        title_image_url="https://img/main.webp",
+        title=SimpleNamespace(name="my manga", portrait_image_url="", landscape_image_url=""),
+    )
+    export_dir = tmp_path / "My Manga"
+
+    downloader._dump_title_cover(title_dump, export_dir)
+
+    cover_path = export_dir / "cover.png"
+    assert cover_path.exists()
+    assert cover_path.read_bytes().startswith(b"\x89PNG\r\n\x1a\n")
+
+
+def test_dump_title_cover_skips_when_cover_url_is_missing(
+    tmp_path: Path,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Verify cover export logs and returns when no cover URL is available."""
+    downloader = DummyDownloader(destination=str(tmp_path))
+    title_dump = SimpleNamespace(
+        title_image_url="",
+        title=SimpleNamespace(name="my manga", portrait_image_url="", landscape_image_url=""),
+    )
+
+    downloader._dump_title_cover(title_dump, tmp_path / "My Manga")
+
+    assert "Cover export skipped" in caplog.text
+
+
+def test_dump_title_cover_skips_when_cover_file_already_exists(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify cover export does not re-download when cover.png already exists."""
+    downloader = DummyDownloader(destination=str(tmp_path))
+    title_dump = SimpleNamespace(
+        title_image_url="https://img/main.webp",
+        title=SimpleNamespace(name="my manga", portrait_image_url="", landscape_image_url=""),
+    )
+    export_dir = tmp_path / "My Manga"
+    export_dir.mkdir(parents=True, exist_ok=True)
+    (export_dir / "cover.png").write_bytes(b"already")
+
+    monkeypatch.setattr(
+        downloader,
+        "_download_image",
+        lambda _url: (_ for _ in ()).throw(AssertionError("cover should not be downloaded twice")),
+    )
+
+    downloader._dump_title_cover(title_dump, export_dir)
 
 
 def test_process_chapter_pages_handles_double_pages(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -478,6 +581,62 @@ def test_process_title_dumps_metadata_when_enabled(
     downloader._process_title(1, 1, 10, {1}, report=_run_report())
 
     assert calls["metadata"] == 1
+
+
+def test_process_title_dumps_cover_when_enabled(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify cover export is invoked when loader cover flag is enabled."""
+    downloader = DummyDownloader()
+    downloader.cover = True
+    title_dump = SimpleNamespace(
+        title=SimpleNamespace(name="Title", author="Author"),
+        chapter_list_group=[],
+        chapter_data={},
+    )
+    calls = {"cover": 0}
+
+    monkeypatch.setattr(downloader, "_get_title_details", lambda _tid: title_dump, raising=False)
+    monkeypatch.setattr(downloader, "_extract_chapter_data", lambda _dump: {}, raising=False)
+    monkeypatch.setattr(
+        downloader,
+        "_dump_title_cover",
+        lambda *_args, **_kwargs: calls.__setitem__("cover", calls["cover"] + 1),
+        raising=False,
+    )
+    monkeypatch.setattr(downloader, "_filter_chapters_to_download", lambda *args, **kwargs: [])
+
+    downloader._process_title(1, 1, 10, {1}, report=_run_report())
+
+    assert calls["cover"] == 1
+
+
+def test_process_title_cover_export_failure_logs_warning_and_continues(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Verify cover export failures do not abort title processing."""
+    downloader = DummyDownloader()
+    downloader.cover = True
+    title_dump = SimpleNamespace(
+        title=SimpleNamespace(name="Title", author="Author"),
+        chapter_list_group=[],
+        chapter_data={},
+    )
+
+    monkeypatch.setattr(downloader, "_get_title_details", lambda _tid: title_dump, raising=False)
+    monkeypatch.setattr(downloader, "_extract_chapter_data", lambda _dump: {}, raising=False)
+    monkeypatch.setattr(
+        downloader,
+        "_dump_title_cover",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(RuntimeError("cover failed")),
+        raising=False,
+    )
+    monkeypatch.setattr(downloader, "_filter_chapters_to_download", lambda *args, **kwargs: [])
+
+    downloader._process_title(1, 1, 10, {1}, report=_run_report())
+
+    assert "Cover export failed" in caplog.text
 
 
 def test_process_title_skips_manifest_completed_chapters(

@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+from io import BytesIO
 import logging
 from pathlib import Path
 from typing import Collection, Literal, Mapping
+
+from PIL import Image
 
 from mloader.domain.requests import DownloadSummary
 from mloader.errors import SubscriptionRequiredError
@@ -40,6 +43,7 @@ class DownloadMixin:
     """Provide download and export orchestration for manga content."""
 
     meta: bool
+    cover: bool
     destination: str
     output_format: Literal["raw", "cbz", "pdf"]
     exporter: ExporterFactoryLike
@@ -141,6 +145,11 @@ class DownloadMixin:
             log.info(f"    Author: {title_detail.author}")
 
             export_path = Path(self.destination) / escape_path(title_detail.name).title()
+            if self.cover:
+                try:
+                    self._dump_title_cover(title_dump, export_path)
+                except Exception as error:
+                    log.warning("    Cover export failed for '%s': %s", title_detail.name, error)
             if self.resume or self.manifest_reset:
                 manifest = TitleDownloadManifest(export_path, autosave=False)
                 if self.manifest_reset:
@@ -303,6 +312,43 @@ class DownloadMixin:
             resolved_export_dir,
         )
         log.info(f"    Metadata for title '{title_dump.title.name}' exported")
+
+    def _resolve_cover_image_url(self, title_dump: TitleDumpLike) -> str | None:
+        """Resolve the best available cover URL from title-detail payload data."""
+        primary_cover_url = str(getattr(title_dump, "title_image_url", "")).strip()
+        if primary_cover_url:
+            return primary_cover_url
+        portrait_cover_url = str(getattr(title_dump.title, "portrait_image_url", "")).strip()
+        if portrait_cover_url:
+            return portrait_cover_url
+        landscape_cover_url = str(getattr(title_dump.title, "landscape_image_url", "")).strip()
+        if landscape_cover_url:
+            return landscape_cover_url
+        return None
+
+    def _dump_title_cover(
+        self,
+        title_dump: TitleDumpLike,
+        export_dir: str | Path,
+    ) -> None:
+        """Download and store one title cover image as ``cover.png``."""
+        cover_url = self._resolve_cover_image_url(title_dump)
+        if cover_url is None:
+            log.warning("    Cover export skipped for '%s': no cover URL found.", title_dump.title.name)
+            return
+
+        export_dir_path = Path(export_dir)
+        export_dir_path.mkdir(parents=True, exist_ok=True)
+        cover_path = export_dir_path / "cover.png"
+        if cover_path.exists():
+            log.info("    Cover for title '%s' already exists.", title_dump.title.name)
+            return
+
+        image_blob = self._download_image(cover_url)
+        with Image.open(BytesIO(image_blob)) as image:
+            converted = image.convert("RGBA")
+            converted.save(cover_path, format="PNG")
+        log.info("    Cover for title '%s' exported.", title_dump.title.name)
 
     def _extract_chapter_data(self, title_dump: TitleDumpLike) -> dict[int, ChapterMetadata]:
         """Collect chapter metadata from all chapter groups into one mapping."""
