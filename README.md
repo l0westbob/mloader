@@ -21,7 +21,7 @@
 The recommended installation method is using `pip`:
 
 ```bash
-pip install mloader-rewrite
+pip install mloader-ng
 ```
 
 After installation, the `mloader` command will be available. Check the [command line](%EF%B8%8F-command-line-interface) section for supported commands.
@@ -36,7 +36,7 @@ source .venv/bin/activate
 pip install -e .[dev]
 ```
 
-This package is published as `mloader-rewrite` (temporary maintained rewrite fork).
+This package is published as `mloader-ng` (temporary maintained rewrite fork).
 The CLI command remains `mloader`.
 
 ## ✅ Testing
