@@ -199,8 +199,8 @@ def test_dump_title_metadata_supports_explicit_chapter_mapping(tmp_path: Path) -
     assert content["chapters"]["1024959"]["sub_title"] == "A"
 
 
-def test_resolve_cover_image_url_prefers_main_and_falls_back_to_portrait() -> None:
-    """Verify cover URL resolution prefers title_image_url then portrait fallback."""
+def test_resolve_cover_image_url_prefers_portrait_and_falls_back_to_main() -> None:
+    """Verify cover URL resolution prefers portrait image URL over title image URL."""
     downloader = DummyDownloader()
     with_main = SimpleNamespace(
         title_image_url="https://img/main.webp",
@@ -217,7 +217,7 @@ def test_resolve_cover_image_url_prefers_main_and_falls_back_to_portrait() -> No
         ),
     )
 
-    assert downloader._resolve_cover_image_url(with_main) == "https://img/main.webp"
+    assert downloader._resolve_cover_image_url(with_main) == "https://img/portrait.webp"
     assert downloader._resolve_cover_image_url(without_main) == "https://img/portrait.webp"
 
 

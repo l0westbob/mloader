@@ -315,12 +315,12 @@ class DownloadMixin:
 
     def _resolve_cover_image_url(self, title_dump: TitleDumpLike) -> str | None:
         """Resolve the best available cover URL from title-detail payload data."""
-        primary_cover_url = str(getattr(title_dump, "title_image_url", "")).strip()
-        if primary_cover_url:
-            return primary_cover_url
         portrait_cover_url = str(getattr(title_dump.title, "portrait_image_url", "")).strip()
         if portrait_cover_url:
             return portrait_cover_url
+        primary_cover_url = str(getattr(title_dump, "title_image_url", "")).strip()
+        if primary_cover_url:
+            return primary_cover_url
         landscape_cover_url = str(getattr(title_dump.title, "landscape_image_url", "")).strip()
         if landscape_cover_url:
             return landscape_cover_url
