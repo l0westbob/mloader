@@ -37,6 +37,7 @@ class DummyLoader:
         quality: str,
         split: bool,
         meta: bool,
+        cover: bool,
         destination: str,
         output_format: str,
         capture_api_dir: str | None,
@@ -49,6 +50,7 @@ class DummyLoader:
             "quality": quality,
             "split": split,
             "meta": meta,
+            "cover": cover,
             "destination": destination,
             "output_format": output_format,
             "capture_api_dir": capture_api_dir,
@@ -110,6 +112,7 @@ class NoneReturningLoader:
         quality: str,
         split: bool,
         meta: bool,
+        cover: bool,
         destination: str,
         output_format: str,
         capture_api_dir: str | None,
@@ -122,6 +125,7 @@ class NoneReturningLoader:
             quality,
             split,
             meta,
+            cover,
             destination,
             output_format,
             capture_api_dir,
@@ -150,6 +154,7 @@ def _build_request(*, raw: bool = False, output_format: str = "cbz") -> Download
         chapter_title=True,
         chapter_subdir=False,
         meta=True,
+        cover=False,
         resume=True,
         manifest_reset=False,
         chapters=frozenset({10, 11}),
@@ -256,6 +261,7 @@ def test_execute_download_wires_loader_and_download_targets() -> None:
     assert DummyLoader.init_args["capture_api_dir"] == "/tmp/capture"
     assert DummyLoader.init_args["resume"] is True
     assert DummyLoader.init_args["manifest_reset"] is False
+    assert DummyLoader.init_args["cover"] is False
     assert DummyLoader.init_args["quality"] == "high"
     assert DummyLoader.download_args["title_ids"] == frozenset({100001})
     assert DummyLoader.download_args["chapter_numbers"] == frozenset({10, 11})
@@ -287,6 +293,7 @@ def test_execute_download_omits_empty_target_filters() -> None:
         chapter_title=False,
         chapter_subdir=False,
         meta=False,
+        cover=False,
         resume=True,
         manifest_reset=False,
         chapters=frozenset(),
@@ -401,6 +408,7 @@ def test_build_request_helpers_create_immutable_domain_models() -> None:
         chapter_title=False,
         chapter_subdir=False,
         meta=False,
+        cover=True,
         resume=False,
         manifest_reset=True,
         chapters={5, 5},
@@ -419,6 +427,7 @@ def test_build_request_helpers_create_immutable_domain_models() -> None:
     assert download_request.chapters == frozenset({5})
     assert download_request.chapter_ids == frozenset({1024959})
     assert download_request.titles == frozenset({100010})
+    assert download_request.cover is True
     assert download_request.resume is False
     assert download_request.manifest_reset is True
     assert discovery_request.title_index_endpoint == "https://api.example/allV2"
@@ -438,6 +447,7 @@ def test_to_chapter_id_debug_map_includes_expected_keys() -> None:
         "end": 5,
         "raw": False,
         "format": "cbz",
+        "cover": False,
         "resume": True,
         "manifest_reset": False,
     }

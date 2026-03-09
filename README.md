@@ -71,6 +71,7 @@ mloader https://mangaplus.shueisha.co.jp/viewer/1024959
 mloader https://mangaplus.shueisha.co.jp/titles/100312 -f pdf
 mloader --title 100312 --chapter 12
 mloader --chapter-id 1024959
+mloader --title 100312 --cover
 ```
 
 For an exhaustive, option-complete command catalog (including discovery, capture, resume, and output modes):
@@ -237,6 +238,7 @@ This section is generated from CLI metadata. Update it with `python scripts/sync
 | `--chapter-title` | Include chapter titles in filenames | `false` | `-` |
 | `--chapter-subdir` | Save raw images in subdirectories by chapter | `false` | `-` |
 | `--meta`, `-m` | Export additional metadata as JSON | `false` | `-` |
+| `--cover` | Download each title cover image as PNG | `false` | `-` |
 | `--resume`, `--no-resume` | Use per-title manifest state to skip already completed chapters | `true` | `-` |
 | `--manifest-reset` | Reset per-title manifest state before downloading | `false` | `-` |
 <!-- cli-reference:end -->

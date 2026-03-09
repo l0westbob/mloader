@@ -20,6 +20,7 @@ class TitleLike(Protocol):
     name: str
     author: str
     portrait_image_url: str
+    landscape_image_url: str
     language: int
 
 
@@ -35,6 +36,7 @@ class TitleDumpLike(Protocol):
     """Shape for title details payload used by downloader."""
 
     title: TitleLike
+    title_image_url: str
     chapter_list_group: Sequence[ChapterGroupLike]
     non_appearance_info: str
     number_of_views: int

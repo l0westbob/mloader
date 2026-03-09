@@ -35,6 +35,7 @@ class DummyLoader:
         quality: str,
         split: bool,
         meta: bool,
+        cover: bool,
         destination: str,
         output_format: str,
         capture_api_dir: str | None,
@@ -47,6 +48,7 @@ class DummyLoader:
             "quality": quality,
             "split": split,
             "meta": meta,
+            "cover": cover,
             "destination": destination,
             "output_format": output_format,
             "capture_api_dir": capture_api_dir,
@@ -319,6 +321,18 @@ def test_cli_forwards_capture_directory(monkeypatch: pytest.MonkeyPatch) -> None
     assert result.exit_code == 0
     assert DummyLoader.init_args is not None
     assert DummyLoader.init_args["capture_api_dir"] == "/tmp/captures"
+
+
+def test_cli_forwards_cover_flag(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify --cover enables title-cover download mode in loader initialization."""
+    monkeypatch.setattr(cli_main, "MangaLoader", DummyLoader)
+
+    runner = CliRunner()
+    result = runner.invoke(cli_main.main, ["--chapter-id", CHAPTER_ID, "--cover"])
+
+    assert result.exit_code == 0
+    assert DummyLoader.init_args is not None
+    assert DummyLoader.init_args["cover"] is True
 
 
 def test_cli_forwards_resume_and_manifest_reset_options(monkeypatch: pytest.MonkeyPatch) -> None:

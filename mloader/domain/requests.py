@@ -37,6 +37,7 @@ class DownloadRequest:
     chapter_title: bool
     chapter_subdir: bool
     meta: bool
+    cover: bool
     resume: bool
     manifest_reset: bool
     chapters: frozenset[int]

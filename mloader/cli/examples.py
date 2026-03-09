@@ -71,6 +71,11 @@ _EXAMPLE_SPECS: tuple[tuple[str, str, str], ...] = (
         "Writes title metadata and per-chapter metadata into output directory.",
     ),
     (
+        "Download title cover image as PNG",
+        "{prog} --title 100312 --cover",
+        "Stores one cover image per title as cover.png.",
+    ),
+    (
         "Capture API payloads for regression analysis",
         "{prog} --title 100312 --capture-api ./capture/new-run",
         "Stores protobuf payloads and metadata for future schema checks.",
