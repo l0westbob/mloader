@@ -46,7 +46,9 @@ class MloaderCliError(click.ClickException):
 @click.version_option(
     about.__version__,
     prog_name=about.__title__,
-    message="%(prog)s by Hurlenko, version %(version)s\nCheck {url} for more info".format(url=about.__url__),
+    message="%(prog)s by Hurlenko, version %(version)s\nCheck {url} for more info".format(
+        url=about.__url__
+    ),
 )
 @click.option(
     "--json",

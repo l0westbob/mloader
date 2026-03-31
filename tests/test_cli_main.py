@@ -316,7 +316,9 @@ def test_cli_forwards_capture_directory(monkeypatch: pytest.MonkeyPatch) -> None
     monkeypatch.setattr(cli_main, "MangaLoader", DummyLoader)
 
     runner = CliRunner()
-    result = runner.invoke(cli_main.main, ["--chapter-id", CHAPTER_ID, "--capture-api", "/tmp/captures"])
+    result = runner.invoke(
+        cli_main.main, ["--chapter-id", CHAPTER_ID, "--capture-api", "/tmp/captures"]
+    )
 
     assert result.exit_code == 0
     assert DummyLoader.init_args is not None

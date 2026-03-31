@@ -5,7 +5,7 @@ from __future__ import annotations
 from io import BytesIO
 import logging
 from pathlib import Path
-from typing import Collection, Literal, Mapping
+from typing import Collection, Literal, Mapping, cast
 
 from PIL import Image
 
@@ -221,13 +221,13 @@ class DownloadMixin:
         """Download and export a single chapter."""
         viewer = self._load_pages(chapter_id)
         if not self._has_last_page(viewer):
-            raise SubscriptionRequiredError("A MAX subscription is required to download this chapter.")
+            raise SubscriptionRequiredError(
+                "A MAX subscription is required to download this chapter."
+            )
 
         last_page = viewer.pages[-1].last_page
         current_chapter = last_page.current_chapter
-        next_chapter = (
-            last_page.next_chapter if last_page.next_chapter.chapter_id != 0 else None
-        )
+        next_chapter = last_page.next_chapter if last_page.next_chapter.chapter_id != 0 else None
 
         current_chapter.sub_title = self._prepare_filename(current_chapter.sub_title)
         log.info(
@@ -248,6 +248,10 @@ class DownloadMixin:
             next_chapter=next_chapter,
         )
         pages = [page.manga_page for page in viewer.pages if page.manga_page.image_url]
+        if not pages:
+            raise RuntimeError(
+                f"MangaPlus API returned no downloadable pages for chapter {chapter_id}."
+            )
         self._process_chapter_pages(pages, viewer.chapter_name, exporter)
         exporter.close()
 
@@ -289,21 +293,26 @@ class DownloadMixin:
     def _dump_title_metadata(
         self,
         title_dump: TitleDumpLike,
-        chapter_data_or_export_dir: Mapping[int, ChapterMetadata | Mapping[str, object]] | str | Path,
+        chapter_data_or_export_dir: Mapping[int, ChapterMetadata | Mapping[str, object]]
+        | str
+        | Path,
         export_dir: str | Path | None = None,
     ) -> None:
         """Write title-level metadata JSON into ``export_dir``."""
         resolved_chapter_data: Mapping[int, ChapterMetadata | Mapping[str, object]]
         resolved_export_dir: str | Path
         if export_dir is None:
-            if isinstance(chapter_data_or_export_dir, Mapping):
+            if not isinstance(chapter_data_or_export_dir, (str, Path)):
                 raise TypeError("Expected export directory when chapter metadata is omitted.")
             resolved_chapter_data = self._extract_chapter_data(title_dump)
             resolved_export_dir = chapter_data_or_export_dir
         else:
             if not isinstance(chapter_data_or_export_dir, Mapping):
                 raise TypeError("Expected chapter metadata mapping when export_dir is provided.")
-            resolved_chapter_data = chapter_data_or_export_dir
+            resolved_chapter_data = cast(
+                Mapping[int, ChapterMetadata | Mapping[str, object]],
+                chapter_data_or_export_dir,
+            )
             resolved_export_dir = export_dir
 
         self._services().metadata_writer.dump_title_metadata(
@@ -334,7 +343,9 @@ class DownloadMixin:
         """Download and store one title cover image as ``cover.png``."""
         cover_url = self._resolve_cover_image_url(title_dump)
         if cover_url is None:
-            log.warning("    Cover export skipped for '%s': no cover URL found.", title_dump.title.name)
+            log.warning(
+                "    Cover export skipped for '%s': no cover URL found.", title_dump.title.name
+            )
             return
 
         export_dir_path = Path(export_dir)
@@ -400,10 +411,14 @@ class DownloadMixin:
         manifest: TitleDownloadManifest,
     ) -> tuple[list[int], int]:
         """Exclude chapter IDs already marked completed in the title manifest."""
-        pending = [chapter_id for chapter_id in chapter_ids if not manifest.is_completed(chapter_id)]
+        pending = [
+            chapter_id for chapter_id in chapter_ids if not manifest.is_completed(chapter_id)
+        ]
         skipped_count = len(chapter_ids) - len(pending)
         if skipped_count:
-            log.info(f"    Skipping {skipped_count} chapter(s) already marked completed in manifest.")
+            log.info(
+                f"    Skipping {skipped_count} chapter(s) already marked completed in manifest."
+            )
         return pending, skipped_count
 
     def _build_expected_filename(
@@ -432,7 +447,7 @@ class DownloadMixin:
         fixed_text = text
         try:
             fixed_text = text.encode("latin1").decode("utf8")
-        except (UnicodeEncodeError, UnicodeDecodeError):
+        except UnicodeEncodeError, UnicodeDecodeError:
             log.warning(f"    Encoding fix skipped for: {text}")
         return escape_path(fixed_text)
 

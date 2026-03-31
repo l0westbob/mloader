@@ -251,7 +251,9 @@ def test_manifest_mark_entry_noops_when_update_is_identical_autosave_true(
     tmp_path: Path,
 ) -> None:
     """Verify autosave mode skips writes when chapter entry does not change."""
-    monkeypatch.setattr("mloader.manga_loader.manifest._utc_timestamp", lambda: "2026-02-24T00:00:00Z")
+    monkeypatch.setattr(
+        "mloader.manga_loader.manifest._utc_timestamp", lambda: "2026-02-24T00:00:00Z"
+    )
     manifest = TitleDownloadManifest(tmp_path)
     manifest.mark_failed(1, error="boom")
     payload_before = _load_manifest(tmp_path / MANIFEST_FILENAME)
@@ -267,7 +269,9 @@ def test_manifest_mark_entry_noops_when_update_is_identical_autosave_false(
     tmp_path: Path,
 ) -> None:
     """Verify autosave-disabled mode skips dirtying when chapter entry is unchanged."""
-    monkeypatch.setattr("mloader.manga_loader.manifest._utc_timestamp", lambda: "2026-02-24T00:00:00Z")
+    monkeypatch.setattr(
+        "mloader.manga_loader.manifest._utc_timestamp", lambda: "2026-02-24T00:00:00Z"
+    )
     manifest = TitleDownloadManifest(tmp_path, autosave=False)
     manifest.mark_failed(2, error="boom")
     manifest._dirty = False

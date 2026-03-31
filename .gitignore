@@ -52,6 +52,7 @@ log.txt
 ######################
 extra/
 venv/
+.venv/
 # [date]full_name(id) report folders
 \[*\]*\(*\)/
 *.egg-info
@@ -59,4 +60,6 @@ mloader_downloads/
 build
 capture/
 captures/
+.uv-cache/
+.ruff_cache/
 !tests/fixtures/**/*.json

@@ -29,11 +29,11 @@ def _coerce_chapter_entries(raw_chapters: object) -> ManifestChapters:
     """Return chapter-entry mapping containing only dict chapter payload values."""
     if not isinstance(raw_chapters, dict):
         return {}
-    return {
-        str(chapter_id): dict(entry)
-        for chapter_id, entry in raw_chapters.items()
-        if isinstance(entry, dict)
-    }
+    entries: ManifestChapters = {}
+    for chapter_id, entry in raw_chapters.items():
+        if isinstance(entry, dict):
+            entries[str(chapter_id)] = {str(key): value for key, value in entry.items()}
+    return entries
 
 
 def _migrate_v0_to_v1(payload: ManifestPayload) -> ManifestPayload:
@@ -116,7 +116,7 @@ class TitleDownloadManifest:
 
         try:
             payload = json.loads(self.path.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError):
+        except OSError, json.JSONDecodeError:
             self._chapters = {}
             self._dirty = False
             return

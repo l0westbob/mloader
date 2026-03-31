@@ -18,22 +18,22 @@
 
 ## 💾 Installation
 
-The recommended installation method is using `pip`:
+The recommended installation method is using `uv`:
 
 ```bash
-pip install mloader-ng
+uv tool install mloader-ng
 ```
 
 After installation, the `mloader` command will be available. Check the [command line](%EF%B8%8F-command-line-interface) section for supported commands.
+
+If you prefer `pip`, `pip install mloader-ng` still works.
 
 ## 🛠 Development
 
 ```bash
 git clone https://github.com/l0westbob/mloader.git
 cd mloader
-python3.14 -m venv .venv
-source .venv/bin/activate
-pip install -e .[dev]
+uv sync
 ```
 
 This package is published as `mloader-ng` (temporary maintained rewrite fork).
@@ -42,19 +42,32 @@ The CLI command remains `mloader`.
 ## ✅ Testing
 
 ```bash
-pytest
+uv run pytest
 ```
 
 Coverage is enforced at **100%** in CI:
 
 ```bash
-pytest --cov=mloader --cov-report=term-missing --cov-fail-under=100
+uv run pytest --cov=mloader --cov-report=term-missing --cov-fail-under=100
+```
+
+Lint and format checks run through Ruff:
+
+```bash
+uv run ruff check .
+uv run ruff format --check .
+```
+
+Type checking runs through ty:
+
+```bash
+uv run ty check mloader scripts
 ```
 
 Verify README example targets against live MangaPlus API responses:
 
 ```bash
-python scripts/verify_readme_examples.py
+uv run python scripts/verify_readme_examples.py
 ```
 
 ## 📙 Usage
@@ -204,7 +217,7 @@ Download run summaries include:
 
 ### Parameter reference
 
-This section is generated from CLI metadata. Update it with `python scripts/sync_readme_cli_reference.py`.
+This section is generated from CLI metadata. Update it with `uv run python scripts/sync_readme_cli_reference.py`.
 
 <!-- cli-reference:start -->
 `URLS`:

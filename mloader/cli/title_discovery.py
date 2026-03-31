@@ -124,7 +124,7 @@ def collect_title_ids_with_browser(
         from playwright.sync_api import sync_playwright
     except ImportError as exc:  # pragma: no cover - import path is covered by CLI tests
         raise RuntimeError(
-            "Playwright is not installed. Install with 'pip install .[bulk]' and run "
+            "Playwright is not installed. Install project dependencies with 'uv sync' and run "
             "'playwright install chromium'."
         ) from exc
 

@@ -81,7 +81,9 @@ def test_cbz_exporter_creates_archive_with_images(tmp_path: Path) -> None:
 
     with zipfile.ZipFile(exporter.path, "r") as archive:
         names = set(archive.namelist())
-        comicinfo = archive.read(Path(exporter.chapter_name, "ComicInfo.xml").as_posix()).decode("utf-8")
+        comicinfo = archive.read(Path(exporter.chapter_name, "ComicInfo.xml").as_posix()).decode(
+            "utf-8"
+        )
 
     assert any(name.endswith(".jpg") for name in names)
     assert "<ComicInfo>" in comicinfo
@@ -100,7 +102,9 @@ def test_cbz_exporter_comicinfo_escapes_metadata(tmp_path: Path) -> None:
     exporter.close()
 
     with zipfile.ZipFile(exporter.path, "r") as archive:
-        comicinfo = archive.read(Path(exporter.chapter_name, "ComicInfo.xml").as_posix()).decode("utf-8")
+        comicinfo = archive.read(Path(exporter.chapter_name, "ComicInfo.xml").as_posix()).decode(
+            "utf-8"
+        )
 
     assert "<Series>a &amp; b</Series>" in comicinfo
     assert "<Writer>x &lt; y</Writer>" in comicinfo
@@ -167,14 +171,18 @@ def test_pdf_exporter_skips_when_pdf_exists(tmp_path: Path) -> None:
 
 def test_pdf_exporter_close_without_images_is_noop(tmp_path: Path) -> None:
     """Verify closing PDF exporter without images does not create output."""
-    exporter = PDFExporter(destination=str(tmp_path), title=_title(name="other"), chapter=_chapter())
+    exporter = PDFExporter(
+        destination=str(tmp_path), title=_title(name="other"), chapter=_chapter()
+    )
     exporter.close()
     assert exporter.path.exists() is False
 
 
 def test_pdf_exporter_cleans_temp_page_buffers_after_close(tmp_path: Path) -> None:
     """Verify PDF exporter releases temporary buffering state once closed."""
-    exporter = PDFExporter(destination=str(tmp_path), title=_title(name="buffers"), chapter=_chapter())
+    exporter = PDFExporter(
+        destination=str(tmp_path), title=_title(name="buffers"), chapter=_chapter()
+    )
 
     exporter.add_image(_jpeg_bytes(), 5)
     exporter.add_image(_jpeg_bytes(color=(0, 255, 0)), 1)
@@ -187,7 +195,9 @@ def test_pdf_exporter_cleans_temp_page_buffers_after_close(tmp_path: Path) -> No
 
 def test_pdf_exporter_add_image_noops_when_temp_dir_is_missing(tmp_path: Path) -> None:
     """Verify add_image exits cleanly when temp buffering is unexpectedly unavailable."""
-    exporter = PDFExporter(destination=str(tmp_path), title=_title(name="no-temp"), chapter=_chapter())
+    exporter = PDFExporter(
+        destination=str(tmp_path), title=_title(name="no-temp"), chapter=_chapter()
+    )
     exporter._temp_dir = None
     exporter.close()
 

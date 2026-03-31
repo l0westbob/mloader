@@ -191,10 +191,13 @@ def test_extract_title_ids_from_api_payload_skips_non_positive_ids() -> None:
     title = group.titles.add()
     title.title_id = 0
 
-    assert title_discovery.extract_title_ids_from_api_payload(
-        parsed.SerializeToString(),
-        id_length=None,
-    ) == set()
+    assert (
+        title_discovery.extract_title_ids_from_api_payload(
+            parsed.SerializeToString(),
+            id_length=None,
+        )
+        == set()
+    )
 
 
 def test_extract_title_ids_from_api_payload_filters_languages() -> None:

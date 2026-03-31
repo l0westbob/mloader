@@ -63,7 +63,11 @@ def test_parse_title_detail_response(monkeypatch: pytest.MonkeyPatch) -> None:
     """Verify title-detail parser extracts ``success.title_detail_view`` payload."""
     sentinel = SimpleNamespace(
         title=SimpleNamespace(title_id=100312, name="Test"),
-        chapter_list_group=[SimpleNamespace(first_chapter_list=[SimpleNamespace()], mid_chapter_list=[], last_chapter_list=[])],
+        chapter_list_group=[
+            SimpleNamespace(
+                first_chapter_list=[SimpleNamespace()], mid_chapter_list=[], last_chapter_list=[]
+            )
+        ],
     )
 
     class FakeResponse:
@@ -77,7 +81,9 @@ def test_parse_title_detail_response(monkeypatch: pytest.MonkeyPatch) -> None:
     assert api._parse_title_detail_response(b"raw") is sentinel
 
 
-def test_parse_manga_viewer_response_raises_for_missing_payload(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_parse_manga_viewer_response_raises_for_missing_payload(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Verify viewer parser rejects payloads without ``success.manga_viewer``."""
 
     class SuccessEnvelope:
@@ -95,7 +101,9 @@ def test_parse_manga_viewer_response_raises_for_missing_payload(monkeypatch: pyt
         api._parse_manga_viewer_response(b"raw")
 
 
-def test_parse_title_detail_response_raises_for_missing_payload(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_parse_title_detail_response_raises_for_missing_payload(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Verify title parser rejects payloads without ``success.title_detail_view``."""
 
     class SuccessEnvelope:
@@ -128,7 +136,9 @@ def test_has_message_field_handles_invalid_field_name() -> None:
     assert api._has_message_field(Message(), "missing") is False
 
 
-def test_parse_manga_viewer_response_raises_for_missing_ids(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_parse_manga_viewer_response_raises_for_missing_ids(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Verify viewer parser rejects payloads missing title/chapter IDs."""
     viewer = SimpleNamespace(title_id=0, chapter_id=0, pages=[SimpleNamespace()])
 
@@ -143,7 +153,9 @@ def test_parse_manga_viewer_response_raises_for_missing_ids(monkeypatch: pytest.
         api._parse_manga_viewer_response(b"raw")
 
 
-def test_parse_manga_viewer_response_raises_for_missing_pages(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_parse_manga_viewer_response_raises_for_missing_pages(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Verify viewer parser rejects payloads with no page entries."""
     viewer = SimpleNamespace(title_id=1, chapter_id=2, pages=[])
 
@@ -164,7 +176,11 @@ def test_parse_title_detail_response_raises_for_missing_title_identity(
     """Verify title parser rejects payloads missing title identity fields."""
     title_detail = SimpleNamespace(
         title=SimpleNamespace(title_id=0, name=""),
-        chapter_list_group=[SimpleNamespace(first_chapter_list=[SimpleNamespace()], mid_chapter_list=[], last_chapter_list=[])],
+        chapter_list_group=[
+            SimpleNamespace(
+                first_chapter_list=[SimpleNamespace()], mid_chapter_list=[], last_chapter_list=[]
+            )
+        ],
     )
 
     class FakeResponse:
@@ -178,7 +194,9 @@ def test_parse_title_detail_response_raises_for_missing_title_identity(
         api._parse_title_detail_response(b"raw")
 
 
-def test_parse_title_detail_response_raises_for_missing_groups(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_parse_title_detail_response_raises_for_missing_groups(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Verify title parser rejects payloads with no chapter groups."""
     title_detail = SimpleNamespace(
         title=SimpleNamespace(title_id=1, name="T"),
@@ -196,11 +214,15 @@ def test_parse_title_detail_response_raises_for_missing_groups(monkeypatch: pyte
         api._parse_title_detail_response(b"raw")
 
 
-def test_parse_title_detail_response_raises_for_missing_entries(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_parse_title_detail_response_raises_for_missing_entries(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Verify title parser rejects groups that contain no chapters."""
     title_detail = SimpleNamespace(
         title=SimpleNamespace(title_id=1, name="T"),
-        chapter_list_group=[SimpleNamespace(first_chapter_list=[], mid_chapter_list=[], last_chapter_list=[])],
+        chapter_list_group=[
+            SimpleNamespace(first_chapter_list=[], mid_chapter_list=[], last_chapter_list=[])
+        ],
     )
 
     class FakeResponse:
@@ -330,7 +352,9 @@ def test_clear_api_caches_for_run_empties_both_caches(monkeypatch: pytest.Monkey
     assert loader._get_title_cache() == {}
 
 
-def test_clear_api_caches_for_title_removes_selected_entries(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_clear_api_caches_for_title_removes_selected_entries(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Verify title-level clear removes the requested title and chapter cache entries."""
     loader = DummyLoader()
     monkeypatch.setattr(api, "_parse_manga_viewer_response", lambda content: {"parsed": content})

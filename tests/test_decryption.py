@@ -14,7 +14,9 @@ class DummyDecryptor(decryption.DecryptionMixin):
         """Store a fake session returning ``payload`` for any URL."""
         self.request_timeout = (1.0, 2.0)
         self.session = SimpleNamespace(
-            get=lambda _url, timeout: SimpleNamespace(content=payload, raise_for_status=lambda: None),
+            get=lambda _url, timeout: SimpleNamespace(
+                content=payload, raise_for_status=lambda: None
+            ),
         )
 
 
