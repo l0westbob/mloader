@@ -124,7 +124,9 @@ class ChapterPlanner:
             )
             if expected_filename not in existing_files:
                 chapters_to_download.append(metadata.chapter_id)
-        return [chapter_id for chapter_id in chapters_to_download if chapter_id in requested_chapter_ids]
+        return [
+            chapter_id for chapter_id in chapters_to_download if chapter_id in requested_chapter_ids
+        ]
 
 
 class MetadataWriter:

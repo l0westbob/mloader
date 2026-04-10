@@ -35,7 +35,9 @@ def test_readme_mentions_every_cli_long_option() -> None:
     required_options = sorted(option_names - ignored)
 
     for option_name in required_options:
-        assert option_name in readme_text, f"README is missing option documentation for {option_name}"
+        assert option_name in readme_text, (
+            f"README is missing option documentation for {option_name}"
+        )
 
 
 def test_readme_cli_reference_block_is_synced() -> None:

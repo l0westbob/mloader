@@ -30,13 +30,13 @@ class NormalizationMixin:
         raise NotImplementedError
 
     def _normalize_ids(
-            self,
-            title_ids: Collection[int] | None,
-            chapter_numbers: Collection[int] | None,
-            chapter_ids: Collection[int] | None,
-            min_chapter: int,
-            max_chapter: int,
-            last_chapter: bool = False,
+        self,
+        title_ids: Collection[int] | None,
+        chapter_numbers: Collection[int] | None,
+        chapter_ids: Collection[int] | None,
+        min_chapter: int,
+        max_chapter: int,
+        last_chapter: bool = False,
     ) -> MangaList:
         """
         Normalize manga title and chapter IDs into a mapping.
@@ -90,14 +90,16 @@ class NormalizationMixin:
                 filtered_chapters = chapters[-1:]
             elif provided_chapter_numbers:
                 filtered_chapters = [
-                    ch for ch in chapters
+                    ch
+                    for ch in chapters
                     if (chapter_number := chapter_name_to_int(ch.name)) is not None
                     and chapter_number in provided_chapter_numbers
                     and min_chapter <= chapter_number <= max_chapter
                 ]
             else:
                 filtered_chapters = [
-                    ch for ch in chapters
+                    ch
+                    for ch in chapters
                     if min_chapter <= (chapter_name_to_int(ch.name) or 0) <= max_chapter
                 ]
             resolved_ids = {ch.id for ch in filtered_chapters}
@@ -107,13 +109,13 @@ class NormalizationMixin:
         return normalized_mapping
 
     def _prepare_normalized_manga_list(
-            self,
-            title_ids: Collection[int] | None,
-            chapter_numbers: Collection[int] | None,
-            chapter_ids: Collection[int] | None,
-            min_chapter: int,
-            max_chapter: int,
-            last_chapter: bool,
+        self,
+        title_ids: Collection[int] | None,
+        chapter_numbers: Collection[int] | None,
+        chapter_ids: Collection[int] | None,
+        min_chapter: int,
+        max_chapter: int,
+        last_chapter: bool,
     ) -> MangaList:
         """
         Prepare the normalized manga mapping from title and chapter IDs.

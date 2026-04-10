@@ -192,7 +192,9 @@ def test_verify_capture_schema_fails_for_missing_raw_payload_reference(tmp_path:
     metadata["raw_payload_file"] = "missing.pb"
     meta_path.write_text(json.dumps(metadata, ensure_ascii=False, indent=2), encoding="utf-8")
 
-    with pytest.raises(CaptureVerificationError, match="Missing raw payload file referenced by metadata"):
+    with pytest.raises(
+        CaptureVerificationError, match="Missing raw payload file referenced by metadata"
+    ):
         verify_capture_schema(tmp_path)
 
 
@@ -240,7 +242,9 @@ def test_verify_title_detail_payload_rejects_empty_chapter_groups() -> None:
     parsed.success.title_detail_view.title.title_id = 100312
     parsed.success.title_detail_view.title.name = "T"
     parsed.success.title_detail_view.chapter_list_group.add()
-    with pytest.raises(CaptureVerificationError, match="No chapter entries found in chapter_list_group"):
+    with pytest.raises(
+        CaptureVerificationError, match="No chapter entries found in chapter_list_group"
+    ):
         _verify_title_detail_payload(parsed, "sample")
 
 
@@ -332,7 +336,9 @@ def test_build_schema_signature_rejects_empty_title_detail_group_list(
     """Verify schema signature rejects title_detail payloads with no groups."""
     monkeypatch.setattr(
         "mloader.manga_loader.capture_verify.MessageToDict",
-        lambda *_args, **_kwargs: {"success": {"title_detail_view": {"title": {}, "chapter_list_group": []}}},
+        lambda *_args, **_kwargs: {
+            "success": {"title_detail_view": {"title": {}, "chapter_list_group": []}}
+        },
     )
 
     with pytest.raises(CaptureVerificationError, match="Expected at least one group"):
@@ -359,7 +365,9 @@ def test_build_schema_signature_rejects_empty_first_chapter_list(
         },
     )
 
-    with pytest.raises(CaptureVerificationError, match="Expected at least one chapter in first_chapter_list"):
+    with pytest.raises(
+        CaptureVerificationError, match="Expected at least one chapter in first_chapter_list"
+    ):
         _build_schema_signature(
             endpoint="title_detailV3",
             metadata={"params": {}, "url": "https://example.invalid"},

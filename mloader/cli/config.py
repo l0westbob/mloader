@@ -19,9 +19,7 @@ def setup_logging(
     stream_handler = logging.StreamHandler(stream or sys.stderr)
     logging.basicConfig(
         handlers=[stream_handler],
-        format=(
-            "{asctime:^} | {levelname: ^8} | {filename: ^14} {lineno: <4} | {message}"
-        ),
+        format=("{asctime:^} | {levelname: ^8} | {filename: ^14} {lineno: <4} | {message}"),
         style="{",
         datefmt="%d.%m.%Y %H:%M:%S",
         level=level,

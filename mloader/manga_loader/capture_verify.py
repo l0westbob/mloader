@@ -6,7 +6,7 @@ import json
 from dataclasses import dataclass
 from hashlib import sha256
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 from urllib.parse import urlparse
 
 from google.protobuf.json_format import MessageToDict
@@ -39,21 +39,21 @@ def _load_metadata(meta_path: Path) -> dict[str, Any]:
     metadata = json.loads(meta_path.read_text(encoding="utf-8"))
     if not isinstance(metadata, dict):
         raise CaptureVerificationError(f"Metadata file is not an object: {meta_path}")
-    return metadata
+    return cast(dict[str, Any], metadata)
 
 
 def _as_dict(value: object, context: str) -> dict[str, Any]:
     """Return ``value`` as dictionary or raise descriptive verification error."""
     if not isinstance(value, dict):
         raise CaptureVerificationError(f"Expected object at {context}")
-    return value
+    return cast(dict[str, Any], value)
 
 
 def _as_list(value: object, context: str) -> list[Any]:
     """Return ``value`` as list or raise descriptive verification error."""
     if not isinstance(value, list):
         raise CaptureVerificationError(f"Expected list at {context}")
-    return value
+    return cast(list[Any], value)
 
 
 def _build_schema_signature(
@@ -85,21 +85,29 @@ def _build_schema_signature(
 
         pages = _as_list(viewer.get("pages"), "response.success.manga_viewer.pages")
         if not pages:
-            raise CaptureVerificationError("Expected at least one page in response.success.manga_viewer.pages")
+            raise CaptureVerificationError(
+                "Expected at least one page in response.success.manga_viewer.pages"
+            )
         first_page = _as_dict(pages[0], "response.success.manga_viewer.pages[0]")
         last_page = _as_dict(pages[-1], "response.success.manga_viewer.pages[-1]")
         signature["first_page_keys"] = sorted(first_page.keys())
         signature["last_page_keys"] = sorted(last_page.keys())
         signature["manga_page_keys"] = sorted(
-            _as_dict(first_page.get("manga_page"), "response.success.manga_viewer.pages[0].manga_page").keys()
+            _as_dict(
+                first_page.get("manga_page"), "response.success.manga_viewer.pages[0].manga_page"
+            ).keys()
         )
         signature["last_page_payload_keys"] = sorted(
-            _as_dict(last_page.get("last_page"), "response.success.manga_viewer.pages[-1].last_page").keys()
+            _as_dict(
+                last_page.get("last_page"), "response.success.manga_viewer.pages[-1].last_page"
+            ).keys()
         )
         return json.dumps(signature, sort_keys=True)
 
     if endpoint == "title_detailV3":
-        title_detail = _as_dict(success.get("title_detail_view"), "response.success.title_detail_view")
+        title_detail = _as_dict(
+            success.get("title_detail_view"), "response.success.title_detail_view"
+        )
         signature["payload_keys"] = sorted(title_detail.keys())
         signature["title_keys"] = sorted(
             _as_dict(title_detail.get("title"), "response.success.title_detail_view.title").keys()
@@ -154,7 +162,9 @@ def _verify_title_detail_payload(parsed: Response, stem: str) -> None:
         for group in title_detail.chapter_list_group
     )
     if not has_any_chapter:
-        raise CaptureVerificationError(f"No chapter entries found in chapter_list_group for {stem}.pb")
+        raise CaptureVerificationError(
+            f"No chapter entries found in chapter_list_group for {stem}.pb"
+        )
 
 
 def _verify_manga_viewer_payload(parsed: Response, stem: str) -> None:
@@ -177,7 +187,9 @@ def _verify_manga_viewer_payload(parsed: Response, stem: str) -> None:
         raise CaptureVerificationError(f"Missing last_page.current_chapter in {stem}.pb")
 
 
-def _verify_capture_schema_records(capture_dir_path: Path) -> tuple[CaptureVerificationSummary, list[_CaptureRecord]]:
+def _verify_capture_schema_records(
+    capture_dir_path: Path,
+) -> tuple[CaptureVerificationSummary, list[_CaptureRecord]]:
     """Verify capture directory and return summary with per-record signatures."""
     if not capture_dir_path.exists() or not capture_dir_path.is_dir():
         raise CaptureVerificationError(f"Capture directory not found: {capture_dir_path}")
@@ -199,7 +211,9 @@ def _verify_capture_schema_records(capture_dir_path: Path) -> tuple[CaptureVerif
         raw_payload_file = str(metadata.get("raw_payload_file", f"{stem}.pb"))
         raw_payload_path = capture_dir_path / raw_payload_file
         if not raw_payload_path.exists():
-            raise CaptureVerificationError(f"Missing raw payload file referenced by metadata: {raw_payload_file}")
+            raise CaptureVerificationError(
+                f"Missing raw payload file referenced by metadata: {raw_payload_file}"
+            )
 
         payload = raw_payload_path.read_bytes()
         payload_size = metadata.get("payload_size_bytes")
@@ -221,13 +235,17 @@ def _verify_capture_schema_records(capture_dir_path: Path) -> tuple[CaptureVerif
         elif endpoint == "manga_viewer":
             _verify_manga_viewer_payload(parsed, stem)
         else:
-            raise CaptureVerificationError(f"Unsupported endpoint '{endpoint}' in metadata {meta_path.name}")
+            raise CaptureVerificationError(
+                f"Unsupported endpoint '{endpoint}' in metadata {meta_path.name}"
+            )
 
         records.append(
             _CaptureRecord(
                 stem=stem,
                 endpoint=endpoint,
-                signature_json=_build_schema_signature(endpoint=endpoint, metadata=metadata, parsed=parsed),
+                signature_json=_build_schema_signature(
+                    endpoint=endpoint, metadata=metadata, parsed=parsed
+                ),
             )
         )
         endpoint_counts[endpoint] = endpoint_counts.get(endpoint, 0) + 1

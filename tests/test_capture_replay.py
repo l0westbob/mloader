@@ -72,10 +72,14 @@ def _schema_signature(meta: dict[str, Any], response: dict[str, Any]) -> dict[st
         signature["first_page_keys"] = sorted(first_page.keys())
         signature["last_page_keys"] = sorted(last_page.keys())
         signature["manga_page_keys"] = sorted(
-            _as_dict(first_page["manga_page"], "response.success.manga_viewer.pages[0].manga_page").keys()
+            _as_dict(
+                first_page["manga_page"], "response.success.manga_viewer.pages[0].manga_page"
+            ).keys()
         )
         signature["last_page_payload_keys"] = sorted(
-            _as_dict(last_page["last_page"], "response.success.manga_viewer.pages[-1].last_page").keys()
+            _as_dict(
+                last_page["last_page"], "response.success.manga_viewer.pages[-1].last_page"
+            ).keys()
         )
         return signature
 
@@ -96,7 +100,9 @@ def _schema_signature(meta: dict[str, Any], response: dict[str, Any]) -> dict[st
         )
         signature["chapter_group_keys"] = sorted(first_group.keys())
 
-        first_chapter_list = _as_list(first_group["first_chapter_list"], "chapter_group.first_chapter_list")
+        first_chapter_list = _as_list(
+            first_group["first_chapter_list"], "chapter_group.first_chapter_list"
+        )
         first_chapter = _as_dict(first_chapter_list[0], "chapter_group.first_chapter_list[0]")
         signature["chapter_keys"] = sorted(first_chapter.keys())
         return signature
@@ -179,7 +185,9 @@ def test_local_capture_schema_matches_baseline_fixture() -> None:
     for stem, meta, response in local_records:
         local_signature = _schema_signature(meta, response)
         endpoint = str(local_signature["endpoint"])
-        assert endpoint in baseline_by_endpoint, f"Unknown endpoint in local capture '{stem}': {endpoint}"
+        assert endpoint in baseline_by_endpoint, (
+            f"Unknown endpoint in local capture '{stem}': {endpoint}"
+        )
         signature_payload = json.dumps(local_signature, sort_keys=True)
         assert signature_payload in baseline_by_endpoint[endpoint], (
             f"Schema drift detected for local capture '{stem}' endpoint '{endpoint}'."

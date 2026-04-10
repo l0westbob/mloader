@@ -16,6 +16,7 @@ from mloader.config import AUTH_PARAMS
 from mloader.cli.examples import build_cli_examples
 from mloader.errors import APIResponseError
 from mloader.manga_loader.api import _parse_manga_viewer_response, _parse_title_detail_response
+from mloader.types import TitleDumpLike
 from mloader.utils import chapter_name_to_int
 
 MANGA_PLUS_HOST = "mangaplus.shueisha.co.jp"
@@ -141,7 +142,9 @@ def _build_parsed_commands(
         cli_commands = _unique_commands(
             example.command for example in build_cli_examples(prog_name="mloader")
         )
-        parsed_commands.extend(_parse_command(command, source="CLI_EXAMPLES") for command in cli_commands)
+        parsed_commands.extend(
+            _parse_command(command, source="CLI_EXAMPLES") for command in cli_commands
+        )
 
     return parsed_commands
 
@@ -180,11 +183,15 @@ def _split_validatable_commands(
     return validatable, skipped
 
 
-def _all_chapter_numbers_for_title(title_dump: object) -> set[int]:
+def _all_chapter_numbers_for_title(title_dump: TitleDumpLike) -> set[int]:
     """Extract numeric chapter numbers from all chapter groups in a title payload."""
     chapter_numbers: set[int] = set()
     for group in title_dump.chapter_list_group:
-        for chapter_list in (group.first_chapter_list, group.mid_chapter_list, group.last_chapter_list):
+        for chapter_list in (
+            group.first_chapter_list,
+            group.mid_chapter_list,
+            group.last_chapter_list,
+        ):
             for chapter in chapter_list:
                 parsed_number = chapter_name_to_int(chapter.name)
                 if parsed_number is not None:
@@ -200,9 +207,9 @@ def _validate_targets(
     """Validate README targets against live API and return all discovered issues."""
     session = requests.Session()
     issues: list[ValidationIssue] = []
-    title_cache: dict[int, object] = {}
+    title_cache: dict[int, TitleDumpLike] = {}
 
-    def _fetch_title(title_id: int, command: str) -> object | None:
+    def _fetch_title(title_id: int, command: str) -> TitleDumpLike | None:
         if title_id in title_cache:
             return title_cache[title_id]
         params = {**AUTH_PARAMS, "title_id": title_id}

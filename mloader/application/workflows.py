@@ -127,7 +127,9 @@ def discover_title_ids(
 
     if not title_ids and allowed_languages is not None:
         selected_languages = ", ".join(language.lower() for language in request.languages)
-        raise DiscoveryError(f"No title IDs found for selected language filter(s): {selected_languages}.")
+        raise DiscoveryError(
+            f"No title IDs found for selected language filter(s): {selected_languages}."
+        )
 
     if not title_ids:
         raise DiscoveryError(

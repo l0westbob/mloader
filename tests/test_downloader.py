@@ -226,7 +226,9 @@ def test_resolve_cover_image_url_falls_back_to_landscape_then_none() -> None:
     downloader = DummyDownloader()
     landscape_only = SimpleNamespace(
         title_image_url="",
-        title=SimpleNamespace(portrait_image_url="", landscape_image_url="https://img/landscape.webp"),
+        title=SimpleNamespace(
+            portrait_image_url="", landscape_image_url="https://img/landscape.webp"
+        ),
     )
     no_cover = SimpleNamespace(
         title_image_url="",
@@ -237,7 +239,9 @@ def test_resolve_cover_image_url_falls_back_to_landscape_then_none() -> None:
     assert downloader._resolve_cover_image_url(no_cover) is None
 
 
-def test_dump_title_cover_downloads_and_saves_png(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_dump_title_cover_downloads_and_saves_png(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """Verify cover export downloads bytes and stores PNG output."""
     downloader = DummyDownloader(destination=str(tmp_path))
     image_bytes = BytesIO()
@@ -420,6 +424,7 @@ def test_download_clears_run_cache_before_and_after_execution() -> None:
 
 def test_download_raises_interrupted_error_with_partial_summary() -> None:
     """Verify interrupted runs raise partial-summary wrapper error."""
+
     class Interrupting(DummyDownloader):
         """Downloader double raising keyboard interrupt after partial progress."""
 
@@ -544,11 +549,15 @@ def test_process_title_downloads_sorted_chapters(
         raising=False,
     )
     monkeypatch.setattr(downloader, "_get_existing_files", lambda _path: [])
-    monkeypatch.setattr(downloader, "_filter_chapters_to_download", lambda *args, **kwargs: [5, 2, 3])
+    monkeypatch.setattr(
+        downloader, "_filter_chapters_to_download", lambda *args, **kwargs: [5, 2, 3]
+    )
     monkeypatch.setattr(
         downloader,
         "_process_chapter",
-        lambda title, index, total, chapter_id, **kwargs: processed.append((index, total, chapter_id)),
+        lambda title, index, total, chapter_id, **kwargs: processed.append(
+            (index, total, chapter_id)
+        ),
     )
 
     downloader._process_title(1, 1, 10, {2, 3, 5}, report=_run_report())
@@ -665,7 +674,9 @@ def test_process_title_skips_manifest_completed_chapters(
     monkeypatch.setattr(downloader, "_get_title_details", lambda _tid: title_dump, raising=False)
     monkeypatch.setattr(downloader, "_extract_chapter_data", lambda _dump: {}, raising=False)
     monkeypatch.setattr(downloader, "_get_existing_files", lambda _path: [])
-    monkeypatch.setattr(downloader, "_filter_chapters_to_download", lambda *args, **kwargs: [1, 2, 3])
+    monkeypatch.setattr(
+        downloader, "_filter_chapters_to_download", lambda *args, **kwargs: [1, 2, 3]
+    )
     monkeypatch.setattr(
         "mloader.manga_loader.downloader.TitleDownloadManifest",
         FakeManifest,
@@ -727,7 +738,9 @@ def test_process_title_records_failed_chapter_report(
     monkeypatch.setattr(downloader, "_get_title_details", lambda _tid: title_dump, raising=False)
     monkeypatch.setattr(downloader, "_extract_chapter_data", lambda _dump: {}, raising=False)
     monkeypatch.setattr(downloader, "_get_existing_files", lambda _path: [])
-    monkeypatch.setattr(downloader, "_filter_chapters_to_download", lambda *args, **kwargs: [1, 2, 3])
+    monkeypatch.setattr(
+        downloader, "_filter_chapters_to_download", lambda *args, **kwargs: [1, 2, 3]
+    )
     monkeypatch.setattr(
         "mloader.manga_loader.downloader.TitleDownloadManifest",
         FakeManifest,
@@ -1065,6 +1078,58 @@ def test_process_chapter_marks_manifest_failed_when_page_processing_raises(
         downloader._process_chapter(SimpleNamespace(name="My Manga"), 1, 1, 10, manifest=Manifest())
 
 
+def test_process_chapter_raises_when_no_downloadable_pages(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify _process_chapter fails when viewer payload contains no downloadable image pages."""
+    downloader = FullDownloader()
+    started: list[int] = []
+    completed: list[int] = []
+
+    class Exporter:
+        def close(self) -> None:
+            """No-op close for no-pages path."""
+
+    class Manifest:
+        def mark_started(
+            self,
+            chapter_id: int,
+            *,
+            chapter_name: str,
+            sub_title: str,
+            output_format: str,
+        ) -> None:
+            del chapter_name, sub_title, output_format
+            started.append(chapter_id)
+
+        def mark_completed(self, chapter_id: int, *, output_path: str | None = None) -> None:
+            del output_path
+            completed.append(chapter_id)
+
+    viewer = SimpleNamespace(
+        chapter_name="#1",
+        pages=[
+            SimpleNamespace(manga_page=SimpleNamespace(image_url="")),
+            SimpleNamespace(
+                manga_page=SimpleNamespace(image_url=""),
+                last_page=SimpleNamespace(
+                    current_chapter=SimpleNamespace(name="#1", sub_title="Sub"),
+                    next_chapter=SimpleNamespace(chapter_id=0),
+                ),
+            ),
+        ],
+    )
+
+    monkeypatch.setattr(downloader, "_load_pages", lambda _cid: viewer, raising=False)
+    monkeypatch.setattr(downloader, "exporter", lambda **_kwargs: Exporter())
+
+    with pytest.raises(RuntimeError, match="no downloadable pages"):
+        downloader._process_chapter(SimpleNamespace(name="My Manga"), 1, 1, 10, manifest=Manifest())
+
+    assert started == [10]
+    assert completed == []
+
+
 def test_download_image_calls_raise_for_status() -> None:
     """Verify _download_image calls response.raise_for_status before returning bytes."""
     downloader = FullDownloader()
@@ -1265,9 +1330,7 @@ def test_filter_chapters_accepts_dataclass_metadata_values() -> None:
     chapter = _chapter(102305, "#102305")
     title_dump = SimpleNamespace(chapter_list_group=[_group([chapter])])
     title_detail = SimpleNamespace(name="My Manga")
-    chapter_data = {
-        102305: ChapterMetadata(thumbnail_url="t5", chapter_id=102305, sub_title="Sub")
-    }
+    chapter_data = {102305: ChapterMetadata(thumbnail_url="t5", chapter_id=102305, sub_title="Sub")}
 
     result = downloader._filter_chapters_to_download(
         chapter_data,

@@ -30,7 +30,9 @@ def _parse_manga_viewer_response(content: bytes) -> MangaViewerLike:
         raise APIResponseError("MangaPlus API returned no manga_viewer payload.")
     viewer = success.manga_viewer
     if viewer.title_id == 0 or viewer.chapter_id == 0:
-        raise APIResponseError("MangaPlus API returned manga_viewer payload without title/chapter IDs.")
+        raise APIResponseError(
+            "MangaPlus API returned manga_viewer payload without title/chapter IDs."
+        )
     if len(viewer.pages) == 0:
         raise APIResponseError("MangaPlus API returned manga_viewer payload without pages.")
     return cast(MangaViewerLike, viewer)

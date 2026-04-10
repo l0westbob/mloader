@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from mloader.types import SessionLike
 
+
 def _convert_hex_to_bytes(hex_str: str) -> bytes:
     """
     Convert a hexadecimal string to bytes.

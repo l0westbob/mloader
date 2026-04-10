@@ -102,9 +102,7 @@ def replace_readme_cli_reference(readme_text: str, *, command: click.Command) ->
     """Replace README auto-generated CLI reference section with rendered markdown."""
     rendered_reference = render_cli_parameter_reference(command).rstrip()
     generated_block = (
-        f"{README_CLI_REFERENCE_START}\n"
-        f"{rendered_reference}\n"
-        f"{README_CLI_REFERENCE_END}"
+        f"{README_CLI_REFERENCE_START}\n{rendered_reference}\n{README_CLI_REFERENCE_END}"
     )
 
     start_index = readme_text.find(README_CLI_REFERENCE_START)

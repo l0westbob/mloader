@@ -71,7 +71,9 @@ def _load_auth_from_file(config_file: str | Path | None) -> dict[str, str]:
     return resolved
 
 
-def _resolve_config_file(environ: Mapping[str, str], config_file: str | Path | None) -> str | Path | None:
+def _resolve_config_file(
+    environ: Mapping[str, str], config_file: str | Path | None
+) -> str | Path | None:
     """Resolve config file location from explicit argument, env var, or default path."""
     if config_file is not None:
         return config_file

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Literal, cast
 
 from requests import Session
 from requests.adapters import HTTPAdapter
@@ -53,7 +53,7 @@ class _LoaderRuntime(APILoaderMixin, NormalizationMixin, DownloadMixin, Decrypti
         self.manifest_reset = manifest_reset
         self.services = services
         self.payload_capture = APIPayloadCapture(capture_api_dir) if capture_api_dir else None
-        self.session = session if session is not None else Session()
+        self.session = session if session is not None else cast(SessionLike, Session())
         self._configure_transport(self.session, retries)
         self.session.headers.update(
             {
