@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import types
 import sys
+from pathlib import Path
 from typing import Any, ClassVar
 
 import pytest
@@ -238,6 +239,21 @@ def test_extract_title_ids_from_api_payload_rejects_unknown_payload() -> None:
     assert error.value.kind == "unknown"
 
 
+def test_extract_title_ids_from_api_payload_rejects_success_without_title_index() -> None:
+    """Verify success envelopes without all_titles_view are reported as schema drift."""
+    parsed = Response()
+    parsed.success.title_detail_view.title.title_id = 100001
+    parsed.success.title_detail_view.title.name = "Other payload"
+
+    with pytest.raises(APIResponseError, match="without all_titles_view") as error:
+        title_discovery.extract_title_ids_from_api_payload(
+            parsed.SerializeToString(),
+            id_length=None,
+        )
+
+    assert error.value.kind == "unknown"
+
+
 def test_collect_title_ids_from_api_returns_sorted_unique_ids(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -254,6 +270,29 @@ def test_collect_title_ids_from_api_returns_sorted_unique_ids(
 
     assert result == [100001, 100002, 100003]
     assert dummy_session.calls == [("https://api.example/allV2", (5.0, 30.0))]
+
+
+def test_collect_title_ids_from_api_captures_title_index_payload(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Verify capture mode stores title-index payloads during --all discovery."""
+    payload = _build_all_titles_payload([100001])
+    dummy_session = DummySession({"https://api.example/allV2": payload})
+    monkeypatch.setattr(title_discovery.requests, "Session", lambda: dummy_session)
+
+    result = title_discovery.collect_title_ids_from_api(
+        "https://api.example/allV2",
+        id_length=6,
+        allowed_languages={0},
+        capture_api_dir=str(tmp_path),
+    )
+
+    assert result == [100001]
+    metadata = json.loads(next(tmp_path.glob("*.meta.json")).read_text(encoding="utf-8"))
+    assert metadata["endpoint"] == "title_index"
+    assert metadata["payload_classification"] == "success"
+    assert metadata["params"]["allowed_languages"] == [0]
 
 
 def test_collect_title_ids_from_api_retries_transient_http_errors(
@@ -294,6 +333,63 @@ def test_collect_title_ids_from_api_retries_transient_http_errors(
 
     assert result == [100001, 100002]
     assert len(flaky_session.calls) == 2
+
+
+def test_collect_title_ids_from_api_does_not_retry_non_transient_http_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify non-transient HTTP errors surface immediately."""
+    dummy_session = DummySession({"https://api.example/allV2": b""})
+
+    def _get(_url: str, timeout: tuple[float, float]) -> DummyResponse:
+        del timeout
+        return DummyResponse(status_code=404)
+
+    dummy_session.get = _get  # type: ignore[method-assign]
+    monkeypatch.setattr(title_discovery.requests, "Session", lambda: dummy_session)
+
+    with pytest.raises(requests.HTTPError, match="404 error"):
+        title_discovery.collect_title_ids_from_api(
+            "https://api.example/allV2",
+            id_length=6,
+            allowed_languages=None,
+        )
+
+
+def test_collect_title_ids_from_api_retries_request_errors_until_exhausted(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify repeated network errors are retried and then surfaced."""
+
+    class FailingSession:
+        """Session test double raising request errors on every attempt."""
+
+        def __init__(self) -> None:
+            self.calls = 0
+
+        def __enter__(self) -> FailingSession:
+            return self
+
+        def __exit__(self, *args: object) -> None:
+            _ = args
+
+        def get(self, _url: str, timeout: tuple[float, float]) -> DummyResponse:
+            del timeout
+            self.calls += 1
+            raise requests.RequestException("network down")
+
+    failing_session = FailingSession()
+    monkeypatch.setattr(title_discovery.requests, "Session", lambda: failing_session)
+    monkeypatch.setattr(title_discovery.time, "sleep", lambda _seconds: None)
+
+    with pytest.raises(requests.RequestException, match="network down"):
+        title_discovery.collect_title_ids_from_api(
+            "https://api.example/allV2",
+            id_length=6,
+            allowed_languages=None,
+        )
+
+    assert failing_session.calls == title_discovery.API_MAX_ATTEMPTS
 
 
 def test_collect_title_ids_returns_sorted_unique_ids(monkeypatch: pytest.MonkeyPatch) -> None:

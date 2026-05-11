@@ -12,13 +12,16 @@ from mloader.manga_loader.capture_verify import (
     CaptureVerificationError,
     _as_dict,
     _as_list,
+    _build_api_error_signature,
     _build_schema_signature,
     _load_metadata,
     _verify_manga_viewer_payload,
+    _verify_title_index_payload,
     _verify_title_detail_payload,
     verify_capture_schema_against_baseline,
     verify_capture_schema,
 )
+from mloader.manga_loader.api_response import ApiPayloadClassification
 from mloader.response_pb2 import Response  # type: ignore
 
 FIXTURE_CAPTURE_DIR = Path(__file__).parent / "fixtures" / "api_captures" / "baseline"
@@ -120,6 +123,48 @@ def test_verify_capture_schema_accepts_api_error_envelope(tmp_path: Path) -> Non
 
     assert summary.total_records == 1
     assert summary.endpoint_counts == {"title_index": 1}
+
+
+def test_verify_capture_schema_accepts_title_index_success_payload(tmp_path: Path) -> None:
+    """Verify title-index success captures are validated and counted."""
+    parsed = Response()
+    group = parsed.success.all_titles_view.title_groups.add()
+    group.group_name = "weekly"
+    title = group.titles.add()
+    title.title_id = 100001
+    title.name = "Demo"
+    payload = parsed.SerializeToString()
+
+    payload_path = tmp_path / "0001_title_index_all.pb"
+    payload_path.write_bytes(payload)
+    metadata = {
+        "endpoint": "title_index",
+        "identifier": "all",
+        "url": "https://jumpg-webapi.tokyo-cdn.com/api/title_list/allV2",
+        "params": {"id_length": 6},
+        "raw_payload_file": payload_path.name,
+        "payload_size_bytes": len(payload),
+        "payload_sha256": sha256(payload).hexdigest(),
+    }
+    (tmp_path / "0001_title_index_all.meta.json").write_text(
+        json.dumps(metadata, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+
+    summary = verify_capture_schema(tmp_path)
+
+    assert summary.total_records == 1
+    assert summary.endpoint_counts == {"title_index": 1}
+
+
+def test_build_api_error_signature_requires_error_details() -> None:
+    """Verify malformed internal classifications fail with a clear message."""
+    with pytest.raises(CaptureVerificationError, match="Expected API error details"):
+        _build_api_error_signature(
+            endpoint="title_index",
+            metadata={"params": {}},
+            classification=ApiPayloadClassification(kind="api_error"),
+        )
 
 
 def test_verify_capture_schema_against_baseline_with_real_fixture_set() -> None:
@@ -322,6 +367,30 @@ def test_verify_title_detail_payload_rejects_empty_chapter_groups() -> None:
         _verify_title_detail_payload(parsed, "sample")
 
 
+def test_verify_title_index_payload_rejects_missing_title_index() -> None:
+    """Verify title-index verifier rejects missing all_titles_view branch."""
+    parsed = Response()
+    parsed.success.manga_viewer.title_id = 100312
+    with pytest.raises(CaptureVerificationError, match="Missing success.all_titles_view"):
+        _verify_title_index_payload(parsed, "sample")
+
+
+def test_verify_title_index_payload_rejects_empty_groups() -> None:
+    """Verify title-index verifier requires at least one group."""
+    parsed = Response()
+    parsed.success.all_titles_view.SetInParent()
+    with pytest.raises(CaptureVerificationError, match="No title_groups records"):
+        _verify_title_index_payload(parsed, "sample")
+
+
+def test_verify_title_index_payload_rejects_groups_without_titles() -> None:
+    """Verify title-index verifier requires at least one title entry."""
+    parsed = Response()
+    parsed.success.all_titles_view.title_groups.add().group_name = "empty"
+    with pytest.raises(CaptureVerificationError, match="No title records found"):
+        _verify_title_index_payload(parsed, "sample")
+
+
 def test_verify_manga_viewer_payload_rejects_missing_viewer() -> None:
     """Verify manga-viewer payload verifier rejects missing payload branch."""
     parsed = Response()
@@ -400,6 +469,42 @@ def test_build_schema_signature_rejects_empty_pages_list(
         _build_schema_signature(
             endpoint="manga_viewer",
             metadata={"params": {}, "url": "https://example.invalid"},
+            parsed=Response(),
+        )
+
+
+def test_build_schema_signature_rejects_empty_title_index_groups(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify schema signature rejects title-index payloads with no groups."""
+    monkeypatch.setattr(
+        "mloader.manga_loader.capture_verify.MessageToDict",
+        lambda *_args, **_kwargs: {"success": {"all_titles_view": {"title_groups": []}}},
+    )
+
+    with pytest.raises(CaptureVerificationError, match="Expected at least one group"):
+        _build_schema_signature(
+            endpoint="title_index",
+            metadata={"params": {}, "url": "https://example.invalid/api/title_list/allV2"},
+            parsed=Response(),
+        )
+
+
+def test_build_schema_signature_rejects_title_index_groups_without_titles(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify schema signature rejects title-index groups with no titles."""
+    monkeypatch.setattr(
+        "mloader.manga_loader.capture_verify.MessageToDict",
+        lambda *_args, **_kwargs: {
+            "success": {"all_titles_view": {"title_groups": [{"titles": []}]}}
+        },
+    )
+
+    with pytest.raises(CaptureVerificationError, match="Expected at least one title"):
+        _build_schema_signature(
+            endpoint="title_index",
+            metadata={"params": {}, "url": "https://example.invalid/api/title_list/allV2"},
             parsed=Response(),
         )
 

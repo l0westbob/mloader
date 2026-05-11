@@ -1036,10 +1036,15 @@ def test_process_chapter_marks_manifest_failed_when_page_processing_raises(
 ) -> None:
     """Verify chapter export-processing failures are raised to title-level handling."""
     downloader = FullDownloader()
+    discarded: list[bool] = []
 
     class Exporter:
         def close(self) -> None:
             """No-op close used by this failure-path test."""
+
+        def discard(self) -> None:
+            """Record cleanup when export processing fails."""
+            discarded.append(True)
 
     class Manifest:
         def mark_started(
@@ -1076,6 +1081,8 @@ def test_process_chapter_marks_manifest_failed_when_page_processing_raises(
 
     with pytest.raises(RuntimeError, match="boom"):
         downloader._process_chapter(SimpleNamespace(name="My Manga"), 1, 1, 10, manifest=Manifest())
+
+    assert discarded == [True]
 
 
 def test_process_chapter_raises_when_no_downloadable_pages(

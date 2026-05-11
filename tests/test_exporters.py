@@ -162,6 +162,20 @@ def test_cbz_exporter_cleans_temp_archive_when_close_fails(tmp_path: Path) -> No
     assert temp_path.exists() is False
 
 
+def test_cbz_exporter_close_handles_missing_temp_path(tmp_path: Path) -> None:
+    """Verify defensive CBZ close path exits when temp path state is missing."""
+    exporter = CBZExporter(destination=str(tmp_path), title=_title(), chapter=_chapter())
+    exporter.add_image(b"img", 0)
+    temp_path = exporter._temp_path
+    exporter._temp_path = None
+
+    exporter.close()
+
+    assert exporter.path.exists() is False
+    assert temp_path is not None
+    temp_path.unlink(missing_ok=True)
+
+
 def test_cbz_exporter_discard_removes_temp_archive(tmp_path: Path) -> None:
     """Verify CBZ discard cleans partial archives before close."""
     exporter = CBZExporter(destination=str(tmp_path), title=_title(), chapter=_chapter())
@@ -173,6 +187,18 @@ def test_cbz_exporter_discard_removes_temp_archive(tmp_path: Path) -> None:
     assert exporter.path.exists() is False
     assert temp_path is not None
     assert temp_path.exists() is False
+
+
+def test_cbz_exporter_discard_noops_when_output_exists(tmp_path: Path) -> None:
+    """Verify discard respects existing archive skip mode."""
+    first = CBZExporter(destination=str(tmp_path), title=_title(), chapter=_chapter())
+    first.add_image(b"img", 0)
+    first.close()
+
+    second = CBZExporter(destination=str(tmp_path), title=_title(), chapter=_chapter())
+    second.discard()
+
+    assert second.path.exists() is True
 
 
 def test_pdf_exporter_writes_pdf(tmp_path: Path) -> None:
@@ -237,6 +263,32 @@ def test_pdf_exporter_add_image_noops_when_temp_dir_is_missing(tmp_path: Path) -
     exporter.add_image(_jpeg_bytes(), 0)
 
     assert exporter._page_paths == []
+
+
+def test_pdf_exporter_build_inputs_without_temp_dir_returns_empty(tmp_path: Path) -> None:
+    """Verify defensive PDF input builder handles missing temp state."""
+    exporter = PDFExporter(
+        destination=str(tmp_path), title=_title(name="no-inputs"), chapter=_chapter()
+    )
+    exporter._temp_dir = None
+
+    assert exporter._build_pdf_inputs() == []
+
+
+def test_pdf_exporter_close_without_pdf_inputs_is_noop(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Verify close exits cleanly when no prepared PDF inputs remain."""
+    exporter = PDFExporter(
+        destination=str(tmp_path), title=_title(name="empty-inputs"), chapter=_chapter()
+    )
+    exporter.add_image(_jpeg_bytes(), 0)
+    monkeypatch.setattr(exporter, "_build_pdf_inputs", lambda: [])
+
+    exporter.close()
+
+    assert exporter.path.exists() is False
 
 
 def test_pdf_exporter_handles_rgba_images_and_range_index(tmp_path: Path) -> None:

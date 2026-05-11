@@ -196,6 +196,37 @@ def test_verify_discovery_flags_accepts_all_mode() -> None:
     assert message is None
 
 
+def test_discover_title_ids_requires_usable_api_payload_for_language_filters() -> None:
+    """Verify language-filter discovery stops on API payload/schema errors."""
+
+    class PayloadErrorGateway:
+        def parse_language_filters(self, _languages: tuple[str, ...]) -> set[int]:
+            return {0}
+
+        def collect_title_ids_from_api(self, *_args: Any, **_kwargs: Any) -> list[int]:
+            raise APIResponseError("schema drift", kind="unknown")
+
+        def collect_title_ids(self, *_args: Any, **_kwargs: Any) -> list[int]:
+            raise AssertionError("static fallback must not run with language filters")
+
+        def collect_title_ids_with_browser(self, *_args: Any, **_kwargs: Any) -> list[int]:
+            raise AssertionError("browser fallback must not run with language filters")
+
+    request = workflows.build_discovery_request(
+        pages=("https://example.com",),
+        title_index_endpoint="https://api.example/allV2",
+        id_length=6,
+        languages=("english",),
+        browser_fallback=True,
+    )
+
+    with pytest.raises(workflows.DiscoveryError, match="API response was unusable"):
+        workflows.discover_title_ids(
+            request,
+            gateway=PayloadErrorGateway(),
+        )
+
+
 def test_resolve_exporter_prefers_raw_over_requested_format() -> None:
     """Verify raw mode always forces raw exporter selection."""
     request = _build_request(raw=True, output_format="pdf")

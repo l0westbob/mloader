@@ -141,9 +141,9 @@ def collect_title_ids_from_api(
                     continue
                 raise
 
-    if last_error is not None:
+    if last_error is not None:  # pragma: no cover - final retry raises in-loop
         raise last_error
-    return []
+    return []  # pragma: no cover - API_MAX_ATTEMPTS is always positive
 
 
 def parse_language_filters(languages: Sequence[str]) -> set[int] | None:

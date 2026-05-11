@@ -101,6 +101,14 @@ def test_parse_manga_viewer_response_raises_for_missing_payload(
         api._parse_manga_viewer_response(b"raw")
 
 
+def test_raise_payload_error_classifies_empty_payload() -> None:
+    """Verify empty upstream payloads are reported distinctly."""
+    with pytest.raises(APIResponseError, match="empty payload") as error:
+        api._raise_payload_error(b"", context="manga_viewer", payload_name="manga_viewer")
+
+    assert error.value.kind == "empty"
+
+
 def test_parse_title_detail_response_raises_for_missing_payload(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
