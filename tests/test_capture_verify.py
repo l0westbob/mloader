@@ -40,12 +40,86 @@ def _update_payload_metadata(meta_path: Path, payload: bytes) -> None:
     meta_path.write_text(json.dumps(metadata, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
+def _varint(value: int) -> bytes:
+    """Encode a protobuf varint for local error-envelope fixtures."""
+    parts: list[int] = []
+    while True:
+        byte = value & 0x7F
+        value >>= 7
+        if value:
+            parts.append(byte | 0x80)
+            continue
+        parts.append(byte)
+        return bytes(parts)
+
+
+def _length_delimited_field(field_number: int, value: bytes) -> bytes:
+    """Encode one length-delimited protobuf field."""
+    return _varint((field_number << 3) | 2) + _varint(len(value)) + value
+
+
+def _varint_field(field_number: int, value: int) -> bytes:
+    """Encode one varint protobuf field."""
+    return _varint(field_number << 3) + _varint(value)
+
+
+def _string_field(field_number: int, value: str) -> bytes:
+    """Encode one protobuf string field."""
+    return _length_delimited_field(field_number, value.encode("utf-8"))
+
+
+def _api_error_payload() -> bytes:
+    """Build a minimal MangaPlus application-error envelope."""
+    localized_error = (
+        _string_field(1, "Invalid Parameter")
+        + _string_field(
+            2,
+            "There are issues connecting to Manga+. Please try again later.(10511)",
+        )
+        + _varint_field(6, 0)
+    )
+    error_result = _length_delimited_field(2, localized_error)
+    return _length_delimited_field(2, error_result)
+
+
 def test_verify_capture_schema_with_real_fixture_set() -> None:
     """Verify baseline fixture set passes schema verification."""
     summary = verify_capture_schema(FIXTURE_CAPTURE_DIR)
 
     assert summary.total_records == 3
     assert summary.endpoint_counts == {"manga_viewer": 2, "title_detailV3": 1}
+
+
+def test_verify_capture_schema_accepts_api_error_envelope(tmp_path: Path) -> None:
+    """Verify captured MangaPlus application errors are first-class fixtures."""
+    payload = _api_error_payload()
+    payload_path = tmp_path / "0001_title_index_all.pb"
+    payload_path.write_bytes(payload)
+    metadata = {
+        "endpoint": "title_index",
+        "identifier": "all",
+        "url": "https://jumpg-webapi.tokyo-cdn.com/api/title_list/allV2",
+        "params": {"id_length": 6},
+        "raw_payload_file": payload_path.name,
+        "payload_size_bytes": len(payload),
+        "payload_sha256": sha256(payload).hexdigest(),
+        "payload_classification": "api_error",
+        "api_error": {
+            "title": "Invalid Parameter",
+            "body": "There are issues connecting to Manga+. Please try again later.(10511)",
+            "code": "10511",
+            "language": 0,
+        },
+    }
+    (tmp_path / "0001_title_index_all.meta.json").write_text(
+        json.dumps(metadata, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+
+    summary = verify_capture_schema(tmp_path)
+
+    assert summary.total_records == 1
+    assert summary.endpoint_counts == {"title_index": 1}
 
 
 def test_verify_capture_schema_against_baseline_with_real_fixture_set() -> None:

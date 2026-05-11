@@ -129,6 +129,9 @@ class ExporterBase(metaclass=ABCMeta):
     def close(self) -> None:
         """Finalize exporter resources if needed."""
 
+    def discard(self) -> None:
+        """Clean temporary resources without publishing an output artifact."""
+
     def __init_subclass__(cls, **kwargs: object) -> None:
         """Register subclasses by their declared ``format`` key."""
         format_name = getattr(cls, "format", "")

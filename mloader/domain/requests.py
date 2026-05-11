@@ -19,6 +19,7 @@ class DiscoveryRequest:
     id_length: int | None
     languages: tuple[str, ...]
     browser_fallback: bool
+    capture_api_dir: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -43,6 +44,7 @@ class DownloadRequest:
     chapters: frozenset[int]
     chapter_ids: frozenset[int]
     titles: frozenset[int]
+    run_report_path: str | None = None
 
     @property
     def max_chapter(self) -> int:

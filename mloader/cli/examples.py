@@ -81,6 +81,11 @@ _EXAMPLE_SPECS: tuple[tuple[str, str, str], ...] = (
         "Stores protobuf payloads and metadata for future schema checks.",
     ),
     (
+        "Write a cron-friendly run report",
+        "{prog} --title 100312 --run-report ./reports/latest-run.json",
+        "Stores selected args, timings, summary counters, and exporter safety metadata.",
+    ),
+    (
         "Verify capture schema compatibility",
         "{prog} --verify-capture-schema ./capture/new-run",
         "Checks captured payloads against required decode fields and exits.",

@@ -7,6 +7,10 @@ from typing import Collection, Mapping, Union, cast
 
 from mloader.config import AUTH_PARAMS
 from mloader.errors import APIResponseError
+from mloader.manga_loader.api_response import (
+    classify_api_response_payload,
+    format_api_payload_problem,
+)
 from mloader.response_pb2 import Response  # type: ignore
 from mloader.types import MangaViewerLike, PayloadCaptureLike, SessionLike, TitleDumpLike
 
@@ -22,19 +26,44 @@ def _has_message_field(message: object, field_name: str) -> bool:
         return False
 
 
+def _raise_payload_error(content: bytes, *, context: str, payload_name: str) -> None:
+    """Raise a typed response error for a missing payload branch."""
+    classification = classify_api_response_payload(content)
+    if classification.kind in {"api_error", "empty"}:
+        kind = "api_error" if classification.kind == "api_error" else "empty"
+        raise APIResponseError(
+            format_api_payload_problem(classification, context=context),
+            kind=kind,
+            code=classification.error.code if classification.error else None,
+        )
+
+    raise APIResponseError(
+        f"MangaPlus API returned no {payload_name} payload; possible API schema drift.",
+        kind="unknown",
+    )
+
+
 def _parse_manga_viewer_response(content: bytes) -> MangaViewerLike:
     """Parse and validate the API response to extract ``MangaViewer`` payload."""
     parsed = Response.FromString(content)
     success = parsed.success
     if not _has_message_field(success, "manga_viewer"):
-        raise APIResponseError("MangaPlus API returned no manga_viewer payload.")
+        _raise_payload_error(
+            content,
+            context="manga_viewer",
+            payload_name="manga_viewer",
+        )
     viewer = success.manga_viewer
     if viewer.title_id == 0 or viewer.chapter_id == 0:
         raise APIResponseError(
-            "MangaPlus API returned manga_viewer payload without title/chapter IDs."
+            "MangaPlus API returned manga_viewer payload without title/chapter IDs.",
+            kind="unknown",
         )
     if len(viewer.pages) == 0:
-        raise APIResponseError("MangaPlus API returned manga_viewer payload without pages.")
+        raise APIResponseError(
+            "MangaPlus API returned manga_viewer payload without pages.",
+            kind="unknown",
+        )
     return cast(MangaViewerLike, viewer)
 
 
@@ -48,20 +77,33 @@ def _parse_title_detail_response(content: bytes) -> TitleDumpLike:
     parsed = Response.FromString(content)
     success = parsed.success
     if not _has_message_field(success, "title_detail_view"):
-        raise APIResponseError("MangaPlus API returned no title_detail_view payload.")
+        _raise_payload_error(
+            content,
+            context="title_detailV3",
+            payload_name="title_detail_view",
+        )
     title_detail = success.title_detail_view
     title = title_detail.title
     if title.title_id == 0 or not title.name:
-        raise APIResponseError("MangaPlus API returned title_detail_view without title identity.")
+        raise APIResponseError(
+            "MangaPlus API returned title_detail_view without title identity.",
+            kind="unknown",
+        )
     chapter_groups = title_detail.chapter_list_group
     if len(chapter_groups) == 0:
-        raise APIResponseError("MangaPlus API returned title_detail_view without chapter groups.")
+        raise APIResponseError(
+            "MangaPlus API returned title_detail_view without chapter groups.",
+            kind="unknown",
+        )
     has_chapters = any(
         group.first_chapter_list or group.mid_chapter_list or group.last_chapter_list
         for group in chapter_groups
     )
     if not has_chapters:
-        raise APIResponseError("MangaPlus API returned title_detail_view without chapter entries.")
+        raise APIResponseError(
+            "MangaPlus API returned title_detail_view without chapter entries.",
+            kind="unknown",
+        )
     return cast(TitleDumpLike, title_detail)
 
 

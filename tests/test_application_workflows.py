@@ -450,4 +450,6 @@ def test_to_chapter_id_debug_map_includes_expected_keys() -> None:
         "cover": False,
         "resume": True,
         "manifest_reset": False,
+        "capture_api": True,
+        "run_report": False,
     }

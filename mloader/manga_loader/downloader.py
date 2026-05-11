@@ -222,7 +222,9 @@ class DownloadMixin:
         viewer = self._load_pages(chapter_id)
         if not self._has_last_page(viewer):
             raise SubscriptionRequiredError(
-                "A MAX subscription is required to download this chapter."
+                "A MAX subscription is required to download this chapter. "
+                "The repository default/free-tier API key can only access free chapters; "
+                "provide subscription-capable auth settings for full-catalog downloads."
             )
 
         last_page = viewer.pages[-1].last_page
@@ -252,8 +254,14 @@ class DownloadMixin:
             raise RuntimeError(
                 f"MangaPlus API returned no downloadable pages for chapter {chapter_id}."
             )
-        self._process_chapter_pages(pages, viewer.chapter_name, exporter)
-        exporter.close()
+        try:
+            self._process_chapter_pages(pages, viewer.chapter_name, exporter)
+            exporter.close()
+        except Exception:
+            discard = getattr(exporter, "discard", None)
+            if callable(discard):
+                discard()
+            raise
 
         if manifest is not None:
             exporter_path = getattr(exporter, "path", None)

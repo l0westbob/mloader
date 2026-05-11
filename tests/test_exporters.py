@@ -8,6 +8,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 from PIL import Image
+import pytest
 
 from mloader.constants import Language
 from mloader.exporters.cbz_exporter import CBZExporter
@@ -142,6 +143,38 @@ def test_cbz_exporter_skips_when_archive_exists(tmp_path: Path) -> None:
     assert second.path.stat().st_size == size_before
 
 
+def test_cbz_exporter_cleans_temp_archive_when_close_fails(tmp_path: Path) -> None:
+    """Verify failed CBZ finalization does not leave a corrupt final archive."""
+    exporter = CBZExporter(destination=str(tmp_path), title=_title(), chapter=_chapter())
+    exporter.add_image(b"img", 0)
+    temp_path = exporter._temp_path
+
+    def _raise_comicinfo_error() -> None:
+        raise RuntimeError("comicinfo failed")
+
+    exporter._write_comicinfo_xml_entry = _raise_comicinfo_error  # type: ignore[method-assign]
+
+    with pytest.raises(RuntimeError, match="comicinfo failed"):
+        exporter.close()
+
+    assert exporter.path.exists() is False
+    assert temp_path is not None
+    assert temp_path.exists() is False
+
+
+def test_cbz_exporter_discard_removes_temp_archive(tmp_path: Path) -> None:
+    """Verify CBZ discard cleans partial archives before close."""
+    exporter = CBZExporter(destination=str(tmp_path), title=_title(), chapter=_chapter())
+    exporter.add_image(b"img", 0)
+    temp_path = exporter._temp_path
+
+    exporter.discard()
+
+    assert exporter.path.exists() is False
+    assert temp_path is not None
+    assert temp_path.exists() is False
+
+
 def test_pdf_exporter_writes_pdf(tmp_path: Path) -> None:
     """Verify PDF exporter writes a non-empty PDF output file."""
     exporter = PDFExporter(destination=str(tmp_path), title=_title(), chapter=_chapter())
@@ -215,3 +248,44 @@ def test_pdf_exporter_handles_rgba_images_and_range_index(tmp_path: Path) -> Non
 
     assert exporter.path.exists() is True
     assert exporter.path.stat().st_size > 0
+
+
+def test_pdf_exporter_cleans_temp_files_when_conversion_fails(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Verify failed PDF conversion leaves no final corrupt artifact."""
+    exporter = PDFExporter(destination=str(tmp_path), title=_title(name="fail"), chapter=_chapter())
+    exporter.add_image(_jpeg_bytes(), 0)
+    temp_dir = exporter._temp_dir
+
+    def _raise_convert(*_args: object, **_kwargs: object) -> None:
+        raise RuntimeError("convert failed")
+
+    monkeypatch.setattr("mloader.exporters.pdf_exporter.img2pdf.convert", _raise_convert)
+
+    with pytest.raises(RuntimeError, match="convert failed"):
+        exporter.close()
+
+    assert exporter.path.exists() is False
+    assert exporter._temp_dir is None
+    assert exporter._page_paths == []
+    assert temp_dir is not None
+    assert Path(temp_dir.name).exists() is False
+
+
+def test_pdf_exporter_discard_removes_buffered_pages(tmp_path: Path) -> None:
+    """Verify PDF discard cleans page buffers before close."""
+    exporter = PDFExporter(
+        destination=str(tmp_path), title=_title(name="discard"), chapter=_chapter()
+    )
+    exporter.add_image(_jpeg_bytes(), 0)
+    temp_dir = exporter._temp_dir
+
+    exporter.discard()
+
+    assert exporter.path.exists() is False
+    assert exporter._temp_dir is None
+    assert exporter._page_paths == []
+    assert temp_dir is not None
+    assert Path(temp_dir.name).exists() is False

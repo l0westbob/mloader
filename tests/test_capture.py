@@ -61,6 +61,7 @@ def test_payload_capture_writes_raw_metadata_and_parsed_json(
     assert metadata["endpoint"] == "manga_viewer"
     assert metadata["identifier"] == "123"
     assert metadata["params"]["secret"] == "***REDACTED***"
+    assert metadata["payload_classification"] == "unknown"
     assert metadata["parsed_payload_file"] == parsed_files[0].name
     assert raw_files[0].read_bytes() == b"\x01\x02"
 

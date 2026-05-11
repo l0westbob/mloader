@@ -10,7 +10,13 @@ from typing import Any, cast
 from urllib.parse import urlparse
 
 from google.protobuf.json_format import MessageToDict
+from mloader.manga_loader.api_response import (
+    ApiPayloadClassification,
+    classify_api_response_payload,
+)
 from mloader.response_pb2 import Response  # type: ignore
+
+_SUPPORTED_ENDPOINTS = frozenset({"manga_viewer", "title_detailV3", "title_index"})
 
 
 class CaptureVerificationError(ValueError):
@@ -142,7 +148,59 @@ def _build_schema_signature(
         signature["chapter_keys"] = sorted(first_chapter.keys())
         return json.dumps(signature, sort_keys=True)
 
+    if endpoint == "title_index":
+        all_titles = _as_dict(success.get("all_titles_view"), "response.success.all_titles_view")
+        signature["payload_keys"] = sorted(all_titles.keys())
+        title_groups = _as_list(
+            all_titles.get("title_groups"),
+            "response.success.all_titles_view.title_groups",
+        )
+        if not title_groups:
+            raise CaptureVerificationError(
+                "Expected at least one group in response.success.all_titles_view.title_groups"
+            )
+        first_group = _as_dict(title_groups[0], "response.success.all_titles_view.title_groups[0]")
+        signature["title_group_keys"] = sorted(first_group.keys())
+        titles = _as_list(
+            first_group.get("titles"),
+            "response.success.all_titles_view.title_groups[0].titles",
+        )
+        if not titles:
+            raise CaptureVerificationError(
+                "Expected at least one title in response.success.all_titles_view.title_groups[0].titles"
+            )
+        first_title = _as_dict(
+            titles[0],
+            "response.success.all_titles_view.title_groups[0].titles[0]",
+        )
+        signature["title_keys"] = sorted(first_title.keys())
+        return json.dumps(signature, sort_keys=True)
+
     raise CaptureVerificationError(f"Unsupported endpoint '{endpoint}'")
+
+
+def _build_api_error_signature(
+    *,
+    endpoint: str,
+    metadata: dict[str, Any],
+    classification: ApiPayloadClassification,
+) -> str:
+    """Build normalized signature JSON for captured API error envelopes."""
+    if classification.error is None:
+        raise CaptureVerificationError("Expected API error details in payload classification")
+
+    params = _as_dict(metadata.get("params", {}), "metadata.params")
+    signature: dict[str, object] = {
+        "endpoint": endpoint,
+        "url_path": urlparse(str(metadata.get("url", ""))).path,
+        "meta_keys": sorted(metadata.keys()),
+        "param_keys": sorted(params.keys()),
+        "payload_classification": classification.kind,
+        "api_error_code": classification.error.code,
+        "api_error_language": classification.error.language,
+        "api_error_title": classification.error.title,
+    }
+    return json.dumps(signature, sort_keys=True)
 
 
 def _verify_title_detail_payload(parsed: Response, stem: str) -> None:
@@ -187,6 +245,19 @@ def _verify_manga_viewer_payload(parsed: Response, stem: str) -> None:
         raise CaptureVerificationError(f"Missing last_page.current_chapter in {stem}.pb")
 
 
+def _verify_title_index_payload(parsed: Response, stem: str) -> None:
+    """Validate required title-index fields used by ``--all`` discovery."""
+    if not parsed.success.HasField("all_titles_view"):
+        raise CaptureVerificationError(f"Missing success.all_titles_view in {stem}.pb")
+
+    all_titles = parsed.success.all_titles_view
+    if not all_titles.title_groups:
+        raise CaptureVerificationError(f"No title_groups records in {stem}.pb")
+
+    if not any(group.titles for group in all_titles.title_groups):
+        raise CaptureVerificationError(f"No title records found in title_groups for {stem}.pb")
+
+
 def _verify_capture_schema_records(
     capture_dir_path: Path,
 ) -> tuple[CaptureVerificationSummary, list[_CaptureRecord]]:
@@ -207,6 +278,10 @@ def _verify_capture_schema_records(
         endpoint = str(metadata.get("endpoint", ""))
         if not endpoint:
             raise CaptureVerificationError(f"Missing endpoint in metadata file: {meta_path.name}")
+        if endpoint not in _SUPPORTED_ENDPOINTS:
+            raise CaptureVerificationError(
+                f"Unsupported endpoint '{endpoint}' in metadata {meta_path.name}"
+            )
 
         raw_payload_file = str(metadata.get("raw_payload_file", f"{stem}.pb"))
         raw_payload_path = capture_dir_path / raw_payload_file
@@ -226,6 +301,22 @@ def _verify_capture_schema_records(
         if isinstance(payload_sha, str) and payload_sha != sha256(payload).hexdigest():
             raise CaptureVerificationError(f"Payload sha256 mismatch for {raw_payload_file}")
 
+        classification = classify_api_response_payload(payload)
+        if classification.kind == "api_error":
+            records.append(
+                _CaptureRecord(
+                    stem=stem,
+                    endpoint=endpoint,
+                    signature_json=_build_api_error_signature(
+                        endpoint=endpoint,
+                        metadata=metadata,
+                        classification=classification,
+                    ),
+                )
+            )
+            endpoint_counts[endpoint] = endpoint_counts.get(endpoint, 0) + 1
+            continue
+
         parsed = Response.FromString(payload)
         if not parsed.HasField("success"):
             raise CaptureVerificationError(f"Missing success envelope in {raw_payload_file}")
@@ -234,10 +325,8 @@ def _verify_capture_schema_records(
             _verify_title_detail_payload(parsed, stem)
         elif endpoint == "manga_viewer":
             _verify_manga_viewer_payload(parsed, stem)
-        else:
-            raise CaptureVerificationError(
-                f"Unsupported endpoint '{endpoint}' in metadata {meta_path.name}"
-            )
+        elif endpoint == "title_index":
+            _verify_title_index_payload(parsed, stem)
 
         records.append(
             _CaptureRecord(

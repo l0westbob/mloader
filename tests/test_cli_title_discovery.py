@@ -15,20 +15,31 @@ from mloader.cli.exit_codes import EXTERNAL_FAILURE, VALIDATION_ERROR
 from mloader.cli import title_discovery
 from mloader.cli import main as cli_main
 from mloader.domain.requests import DownloadSummary
-from mloader.errors import SubscriptionRequiredError
+from mloader.errors import APIResponseError, SubscriptionRequiredError
 from mloader.response_pb2 import Response  # type: ignore
 
 
 class DummyResponse:
     """Minimal response test double for scraper requests."""
 
-    def __init__(self, text: str = "", content: bytes | None = None) -> None:
+    def __init__(
+        self,
+        text: str = "",
+        content: bytes | None = None,
+        *,
+        status_code: int = 200,
+    ) -> None:
         """Store response body for extraction tests."""
         self.text = text
         self.content = content if content is not None else text.encode("utf-8")
+        self.status_code = status_code
 
     def raise_for_status(self) -> None:
         """Simulate successful response status."""
+        if self.status_code >= 400:
+            response = requests.Response()
+            response.status_code = self.status_code
+            raise requests.HTTPError(f"{self.status_code} error", response=response)
 
 
 class DummySession:
@@ -219,6 +230,14 @@ def test_extract_title_ids_from_api_payload_filters_languages() -> None:
     assert result == {100001, 100003}
 
 
+def test_extract_title_ids_from_api_payload_rejects_unknown_payload() -> None:
+    """Verify title-index parsing reports schema drift for undecodable payloads."""
+    with pytest.raises(APIResponseError, match="schema drift") as error:
+        title_discovery.extract_title_ids_from_api_payload(b"not-protobuf")
+
+    assert error.value.kind == "unknown"
+
+
 def test_collect_title_ids_from_api_returns_sorted_unique_ids(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -235,6 +254,46 @@ def test_collect_title_ids_from_api_returns_sorted_unique_ids(
 
     assert result == [100001, 100002, 100003]
     assert dummy_session.calls == [("https://api.example/allV2", (5.0, 30.0))]
+
+
+def test_collect_title_ids_from_api_retries_transient_http_errors(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify API scraper retries temporary upstream errors before succeeding."""
+    payload = _build_all_titles_payload([100002, 100001])
+
+    class FlakySession:
+        """Session test double failing once with HTTP 502 then succeeding."""
+
+        def __init__(self) -> None:
+            self.calls: list[tuple[str, tuple[float, float]]] = []
+            self._attempt = 0
+
+        def __enter__(self) -> FlakySession:
+            return self
+
+        def __exit__(self, *args: object) -> None:
+            _ = args
+
+        def get(self, url: str, timeout: tuple[float, float]) -> DummyResponse:
+            self.calls.append((url, timeout))
+            self._attempt += 1
+            if self._attempt == 1:
+                return DummyResponse(status_code=502)
+            return DummyResponse(content=payload)
+
+    flaky_session = FlakySession()
+    monkeypatch.setattr(title_discovery.requests, "Session", lambda: flaky_session)
+    monkeypatch.setattr(title_discovery.time, "sleep", lambda _seconds: None)
+
+    result = title_discovery.collect_title_ids_from_api(
+        "https://api.example/allV2",
+        id_length=6,
+        allowed_languages=None,
+    )
+
+    assert result == [100001, 100002]
+    assert len(flaky_session.calls) == 2
 
 
 def test_collect_title_ids_returns_sorted_unique_ids(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -760,3 +819,29 @@ def test_cli_can_use_static_scrape_when_api_fetch_fails(monkeypatch: pytest.Monk
     assert "API title-index fetch failed: api down" in result.output
     assert DummyLoader.download_args is not None
     assert DummyLoader.download_args["title_ids"] == {100050}
+
+
+def test_cli_can_use_static_scrape_when_api_payload_is_unusable(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify static scrape fallback can recover after API payload/schema errors."""
+
+    def _raise_api_error(*_args: object, **_kwargs: object) -> list[int]:
+        raise APIResponseError("schema drift", kind="unknown")
+
+    DummyLoader.download_args = None
+    monkeypatch.setattr(cli_main.title_discovery, "collect_title_ids_from_api", _raise_api_error)
+    monkeypatch.setattr(
+        cli_main.title_discovery,
+        "collect_title_ids",
+        lambda *_args, **_kwargs: [100051],
+    )
+    monkeypatch.setattr(cli_main, "MangaLoader", DummyLoader)
+
+    runner = CliRunner()
+    result = runner.invoke(cli_main.main, ["--all"])
+
+    assert result.exit_code == 0
+    assert "API title-index payload unusable: schema drift" in result.output
+    assert DummyLoader.download_args is not None
+    assert DummyLoader.download_args["title_ids"] == {100051}

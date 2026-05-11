@@ -39,6 +39,20 @@ uv sync
 This package is published as `mloader-ng` (temporary maintained rewrite fork).
 The CLI command remains `mloader`.
 
+### Stability and API access posture
+
+`mloader` is maintained as a stable production CLI/Docker app. Current development is evolutionary:
+small, tested hardening changes are preferred over large rewrites so existing cron jobs, paths, flags,
+manifest files, and exit codes remain compatible.
+
+The auth settings shipped in this repository are suitable for free-tier/local development only. They
+can download free-access chapters, but they must not be treated as proof that subscription/MAX or
+full-catalog downloads work. Full-catalog cron usage requires your own subscription-capable auth
+settings via environment variables, config, or Docker secrets.
+
+When the free-tier key hits a subscription-only chapter, `mloader` should fail cleanly with an
+external/access error such as “subscription required”, not an internal bug.
+
 ## ✅ Testing
 
 ```bash
@@ -69,6 +83,18 @@ Verify README example targets against live MangaPlus API responses:
 ```bash
 uv run python scripts/verify_readme_examples.py
 ```
+
+Safe local smoke checks that do not require paid access:
+
+```bash
+uv run pytest -q
+uv run mloader --all --list-only --language english
+uv run mloader --chapter-id 1024959 --out /tmp/mloader-smoke
+```
+
+Subscription-limited/full-catalog checks should be run only with your own subscription-capable auth
+settings. With the repository default/free-tier auth, subscription-only chapters are expected to fail
+as controlled external access failures.
 
 ## 📙 Usage
 
@@ -103,7 +129,8 @@ Rerunning the same command skips chapters already marked as completed and retrie
 
 Use `--no-resume` to ignore manifest state for a run, or `--manifest-reset` to clear manifest state before downloading.
 
-Download all discoverable titles from MangaPlus list pages with one command:
+Download all discoverable titles from MangaPlus list pages with one command. This is a
+subscription-auth example when paired with non-free chapters:
 
 ```bash
 mloader --all --format pdf
@@ -114,6 +141,10 @@ As of February 25, 2026, this will download 24,944 chapters over a total of 637 
 The bulk command uses protobuf API discovery first (`/api/title_list/allV2`), then falls back to
 static page scraping and optional browser-rendered scraping (`--browser-fallback`, enabled by
 default) when needed.
+
+For unattended Docker/cron runs, `--run-report <file>` or `MLOADER_RUN_REPORT_PATH` writes a JSON
+report with run timing, selected args, discovered-title count, summary counters, access-failure
+count, and exporter safety mode.
 
 Restrict bulk discovery to specific languages:
 
@@ -153,6 +184,7 @@ Options:
   --version                       Show the version and exit.
   --json                          Emit structured JSON output to stdout
   --quiet                         Suppress non-error human-readable output
+  --show-examples                 Print exhaustive command examples and exit
   --verbose                       Increase logging verbosity (repeatable)
   -o, --out <directory>           Output directory for downloads  [default:
                                   mloader_downloads]
@@ -184,6 +216,8 @@ Options:
   -f, --format [cbz|pdf]          Save as CBZ or PDF  [default: cbz]
   --capture-api <directory>       Dump raw API payload captures (protobuf +
                                   metadata) to this directory
+  --run-report <file>             Write a JSON run report for unattended
+                                  cron/systemd runs
   -q, --quality [super_high|high|low]
                                   Image quality  [default: super_high]
   -s, --split                     Split combined images
@@ -197,6 +231,7 @@ Options:
   --chapter-title                 Include chapter titles in filenames
   --chapter-subdir                Save raw images in subdirectories by chapter
   -m, --meta                      Export additional metadata as JSON
+  --cover                         Download each title cover image as PNG
   --resume / --no-resume          Use per-title manifest state to skip
                                   already completed chapters
   --manifest-reset                Reset per-title manifest state before
@@ -243,6 +278,7 @@ This section is generated from CLI metadata. Update it with `uv run python scrip
 | `--raw`, `-r` | Save raw images | `false` | `MLOADER_RAW` |
 | `--format`, `-f` | Save as CBZ or PDF | `cbz` | `MLOADER_OUTPUT_FORMAT` |
 | `--capture-api` | Dump raw API payload captures (protobuf + metadata) to this directory | `-` | `MLOADER_CAPTURE_API_DIR` |
+| `--run-report` | Write a JSON run report for unattended cron/systemd runs | `-` | `MLOADER_RUN_REPORT_PATH` |
 | `--quality`, `-q` | Image quality | `super_high` | `MLOADER_QUALITY` |
 | `--split`, `-s` | Split combined images | `false` | `MLOADER_SPLIT` |
 | `--chapter`, `-c` | Chapter number (integer, e.g. 1, 12) | `-` | `-` |
@@ -303,21 +339,29 @@ mloader --verify-capture-schema ./capture --verify-capture-baseline ./tests/fixt
 `docker/Dockerfile` installs `mloader` from the local repository files.
 
 The default `compose.yaml` now runs a long-lived cron daemon inside the container and executes `mloader` weekly.
+The container preserves explicit `--out /downloads` behavior, uses a lock directory to avoid
+overlapping cron runs, and logs clear start/end markers with exit codes.
 
 Default schedule and arguments:
 
 ```bash
 MLOADER_CRON_SCHEDULE="0 3 * * 1"
-MLOADER_CRON_ARGS="--all --language english --format pdf"
+MLOADER_CRON_ARGS="--all --language english --format pdf --out /downloads --cover"
 ```
 
 This means: every Monday at 03:00 container time.
+
+For full-catalog Docker runs, replace the free-tier repository auth settings with your own
+subscription-capable settings. Otherwise subscription-only chapters will be reported as controlled
+external access failures.
 
 Useful runtime knobs in `compose.yaml`:
 
 - `MLOADER_CRON_SCHEDULE`: standard 5-field cron expression.
 - `MLOADER_CRON_ARGS`: arguments passed to `mloader` for scheduled runs.
 - `MLOADER_RUN_ON_START`: `"true"` to run one job immediately on container startup.
+- `MLOADER_RUN_REPORT_PATH`: optional JSON report path for weekly unattended runs.
+- `MLOADER_CRON_LOCK_DIR`: lock directory used to skip overlapping schedule ticks.
 
 Run in background:
 

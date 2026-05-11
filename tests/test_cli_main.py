@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 from typing import Any, ClassVar
 
 import pytest
@@ -490,6 +491,30 @@ def test_cli_json_mode_returns_structured_success_payload(
         "failed": 0,
         "failed_chapter_ids": [],
     }
+
+
+def test_cli_writes_run_report_when_requested(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Verify optional run reports capture cron-friendly run metadata."""
+    monkeypatch.setattr(cli_main, "MangaLoader", DummyLoader)
+    report_path = tmp_path / "run-report.json"
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli_main.main,
+        ["--chapter-id", CHAPTER_ID, "--run-report", str(report_path)],
+    )
+
+    assert result.exit_code == 0
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    assert report["status"] == "ok"
+    assert report["exit_code"] == 0
+    assert report["selected_args"]["target_chapter_ids"] == 1
+    assert report["summary"]["downloaded"] == 1
+    assert report["subscription_access_failures"] == 0
+    assert report["exporter_safety"]["version"] == "pdf-streaming-and-atomic-cbz-v1"
 
 
 def test_cli_json_mode_returns_structured_error_payload(
