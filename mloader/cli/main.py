@@ -269,10 +269,16 @@ class MloaderCliError(click.ClickException):
 )
 @click.option(
     "--cover",
-    is_flag=True,
-    default=False,
+    type=click.Choice(
+        ["none", "png", "jpg", "webp"],
+        case_sensitive=False,
+    ),
+    default="none",
     show_default=True,
-    help="Download each title cover image as PNG",
+    help=(
+        "Download each title cover image. "
+        "Supported formats: png, jpg, webp."
+    ),
 )
 @click.option(
     "--resume/--no-resume",
@@ -316,7 +322,7 @@ def main(
     chapter_title: bool,
     chapter_subdir: bool,
     meta: bool,
-    cover: bool,
+    cover: Literal["none", "png", "jpg", "webp"],
     resume: bool,
     manifest_reset: bool,
     chapters: set[int] | None = None,

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from typing import Any, ClassVar
+from typing import Any, ClassVar, Literal
 
 import pytest
 import requests
@@ -35,7 +35,7 @@ class DummyLoader:
         quality: str,
         split: bool,
         meta: bool,
-        cover: bool,
+        cover: Literal["none", "png", "jpg", "webp"],
         destination: str,
         output_format: str,
         capture_api_dir: str | None,
@@ -325,16 +325,28 @@ def test_cli_forwards_capture_directory(monkeypatch: pytest.MonkeyPatch) -> None
     assert DummyLoader.init_args["capture_api_dir"] == "/tmp/captures"
 
 
-def test_cli_forwards_cover_flag(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_cli_forwards_cover_format(monkeypatch: pytest.MonkeyPatch) -> None:
     """Verify --cover enables title-cover download mode in loader initialization."""
     monkeypatch.setattr(cli_main, "MangaLoader", DummyLoader)
 
     runner = CliRunner()
-    result = runner.invoke(cli_main.main, ["--chapter-id", CHAPTER_ID, "--cover"])
+    result = runner.invoke(cli_main.main, [["--chapter-id", CHAPTER_ID, "--cover", "png"])
 
     assert result.exit_code == 0
     assert DummyLoader.init_args is not None
-    assert DummyLoader.init_args["cover"] is True
+    assert DummyLoader.init_args["cover"] == "png"
+
+
+def test_cli_uses_default_cover_mode(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify default cover mode is disabled."""
+    monkeypatch.setattr(cli_main, "MangaLoader", DummyLoader)
+
+    runner = CliRunner()
+    result = runner.invoke(cli_main.main, ["--chapter-id", CHAPTER_ID])
+
+    assert result.exit_code == 0
+    assert DummyLoader.init_args is not None
+    assert DummyLoader.init_args["cover"] == "none"
 
 
 def test_cli_forwards_resume_and_manifest_reset_options(monkeypatch: pytest.MonkeyPatch) -> None:

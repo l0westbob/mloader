@@ -87,7 +87,7 @@ mloader https://mangaplus.shueisha.co.jp/viewer/1024959
 mloader https://mangaplus.shueisha.co.jp/titles/100312 -f pdf
 mloader --title 100312 --chapter 12
 mloader --chapter-id 1024959
-mloader --title 100312 --cover
+mloader --title 100312 --cover png
 ```
 
 For an exhaustive, option-complete command catalog (including discovery, capture, resume, and output modes):
@@ -199,6 +199,8 @@ Options:
   -m, --meta                      Export additional metadata as JSON
   --resume / --no-resume          Use per-title manifest state to skip
                                   already completed chapters
+  --cover [none|png|jpg|webp]     Download each title cover image. Supported
+                                  formats: png, jpg, webp.  [default: none]
   --manifest-reset                Reset per-title manifest state before
                                   downloading
   --help                          Show this message and exit.
@@ -254,7 +256,7 @@ This section is generated from CLI metadata. Update it with `uv run python scrip
 | `--chapter-title` | Include chapter titles in filenames | `false` | `-` |
 | `--chapter-subdir` | Save raw images in subdirectories by chapter | `false` | `-` |
 | `--meta`, `-m` | Export additional metadata as JSON | `false` | `-` |
-| `--cover` | Download each title cover image as PNG | `false` | `-` |
+| `--cover` | Download each title cover image | `none` | `-` |
 | `--resume`, `--no-resume` | Use per-title manifest state to skip already completed chapters | `true` | `-` |
 | `--manifest-reset` | Reset per-title manifest state before downloading | `false` | `-` |
 <!-- cli-reference:end -->

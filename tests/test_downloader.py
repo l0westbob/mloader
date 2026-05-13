@@ -31,7 +31,7 @@ class DummyDownloader(DownloadMixin):
         self.output_format = "pdf"
         self.request_timeout = (0.1, 0.1)
         self.meta = False
-        self.cover = False
+        self.cover = "none"
         self.resume = True
         self.manifest_reset = False
 
@@ -58,7 +58,7 @@ class FullDownloader(DownloadMixin):
         self.output_format = "pdf"
         self.request_timeout = (0.1, 0.1)
         self.meta = False
-        self.cover = False
+        self.cover = "none"
         self.resume = True
         self.manifest_reset = False
         self.session = DummySession(DummyResponse(content=b"default"))
@@ -597,7 +597,7 @@ def test_process_title_dumps_cover_when_enabled(
 ) -> None:
     """Verify cover export is invoked when loader cover flag is enabled."""
     downloader = DummyDownloader()
-    downloader.cover = True
+    downloader.cover = "png"
     title_dump = SimpleNamespace(
         title=SimpleNamespace(name="Title", author="Author"),
         chapter_list_group=[],
@@ -626,7 +626,7 @@ def test_process_title_cover_export_failure_logs_warning_and_continues(
 ) -> None:
     """Verify cover export failures do not abort title processing."""
     downloader = DummyDownloader()
-    downloader.cover = True
+    downloader.cover = "png"
     title_dump = SimpleNamespace(
         title=SimpleNamespace(name="Title", author="Author"),
         chapter_list_group=[],

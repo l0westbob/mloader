@@ -68,7 +68,7 @@ class DummyLoader:
         quality: str,
         split: bool,
         meta: bool,
-        cover: bool,
+        cover: Literal["none", "png", "jpg", "webp"],
         destination: str,
         output_format: str,
         capture_api_dir: str | None,

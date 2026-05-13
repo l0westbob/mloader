@@ -257,7 +257,7 @@ def build_download_request(
     chapter_title: bool,
     chapter_subdir: bool,
     meta: bool,
-    cover: bool,
+    cover: Literal["none", "png", "jpg", "webp"],
     resume: bool,
     manifest_reset: bool,
     chapters: Collection[int] | None,

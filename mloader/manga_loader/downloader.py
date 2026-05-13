@@ -43,7 +43,7 @@ class DownloadMixin:
     """Provide download and export orchestration for manga content."""
 
     meta: bool
-    cover: bool
+    cover: Literal["none", "png", "jpg", "webp"]
     destination: str
     output_format: Literal["raw", "cbz", "pdf"]
     exporter: ExporterFactoryLike
@@ -145,7 +145,7 @@ class DownloadMixin:
             log.info(f"    Author: {title_detail.author}")
 
             export_path = Path(self.destination) / escape_path(title_detail.name).title()
-            if self.cover:
+            if self.cover != "none":
                 try:
                     self._dump_title_cover(title_dump, export_path)
                 except Exception as error:
@@ -350,15 +350,28 @@ class DownloadMixin:
 
         export_dir_path = Path(export_dir)
         export_dir_path.mkdir(parents=True, exist_ok=True)
-        cover_path = export_dir_path / "cover.png"
+        extension = self.cover
+        cover_path = export_dir_path / f"cover.{extension}"
         if cover_path.exists():
             log.info("    Cover for title '%s' already exists.", title_dump.title.name)
             return
 
         image_blob = self._download_image(cover_url)
         with Image.open(BytesIO(image_blob)) as image:
-            converted = image.convert("RGBA")
-            converted.save(cover_path, format="PNG")
+            if extension == "png":
+                converted = image.convert("RGBA")
+                converted.save(cover_path, format="PNG")
+
+            elif extension == "jpg":
+                converted = image.convert("RGB")
+                converted.save(cover_path, format="JPEG", quality=95)
+
+            elif extension == "webp":
+                converted = image.convert("RGB")
+                converted.save(cover_path, format="WEBP", quality=90)
+
+            else:
+                raise ValueError(f"Unsupported cover format: {extension}")
         log.info("    Cover for title '%s' exported.", title_dump.title.name)
 
     def _extract_chapter_data(self, title_dump: TitleDumpLike) -> dict[int, ChapterMetadata]:
