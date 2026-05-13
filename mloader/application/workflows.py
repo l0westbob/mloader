@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from functools import partial
-from typing import Callable, Collection, Mapping, Protocol, Sequence, TypeAlias, cast
+from typing import Callable, Collection, Mapping, Protocol, Sequence, TypeAlias, cast, Literal
 
 import requests
 

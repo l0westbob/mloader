@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import types
 import sys
-from typing import Any, ClassVar
+from typing import Any, ClassVar, Literal
 
 import pytest
 import requests

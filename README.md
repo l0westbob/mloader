@@ -256,7 +256,7 @@ This section is generated from CLI metadata. Update it with `uv run python scrip
 | `--chapter-title` | Include chapter titles in filenames | `false` | `-` |
 | `--chapter-subdir` | Save raw images in subdirectories by chapter | `false` | `-` |
 | `--meta`, `-m` | Export additional metadata as JSON | `false` | `-` |
-| `--cover` | Download each title cover image | `none` | `-` |
+| `--cover` | Download each title cover image. Supported formats: png, jpg, webp. | `none` | `-` |
 | `--resume`, `--no-resume` | Use per-title manifest state to skip already completed chapters | `true` | `-` |
 | `--manifest-reset` | Reset per-title manifest state before downloading | `false` | `-` |
 <!-- cli-reference:end -->

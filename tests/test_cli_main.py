@@ -330,7 +330,7 @@ def test_cli_forwards_cover_format(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(cli_main, "MangaLoader", DummyLoader)
 
     runner = CliRunner()
-    result = runner.invoke(cli_main.main, [["--chapter-id", CHAPTER_ID, "--cover", "png"])
+    result = runner.invoke(cli_main.main, ["--chapter-id", CHAPTER_ID, "--cover", "png"])
 
     assert result.exit_code == 0
     assert DummyLoader.init_args is not None

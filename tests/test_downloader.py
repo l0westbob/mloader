@@ -239,11 +239,23 @@ def test_resolve_cover_image_url_falls_back_to_landscape_then_none() -> None:
     assert downloader._resolve_cover_image_url(no_cover) is None
 
 
-def test_dump_title_cover_downloads_and_saves_png(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+@pytest.mark.parametrize(
+    "cover_format,expected_pil_format",
+    [
+        ("png", "PNG"),
+        ("jpg", "JPEG"),
+        ("webp", "WEBP"),
+    ],
+)
+def test_dump_title_cover_exports_all_formats(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    cover_format: str,
+    expected_pil_format: str,
 ) -> None:
-    """Verify cover export downloads bytes and stores PNG output."""
+    """Verify cover export supports png/jpg/webp correctly."""
     downloader = DummyDownloader(destination=str(tmp_path))
+    downloader.cover = cover_format
     image_bytes = BytesIO()
     Image.new("RGB", (1, 1), (255, 0, 0)).save(image_bytes, format="JPEG")
     image_blob = image_bytes.getvalue()
@@ -258,9 +270,34 @@ def test_dump_title_cover_downloads_and_saves_png(
 
     downloader._dump_title_cover(title_dump, export_dir)
 
-    cover_path = export_dir / "cover.png"
+    cover_path = export_dir / f"cover.{cover_format}"
     assert cover_path.exists()
-    assert cover_path.read_bytes().startswith(b"\x89PNG\r\n\x1a\n")
+    with Image.open(cover_path) as img:
+        assert img.format == expected_pil_format
+
+
+def test_dump_title_cover_raises_on_invalid_format(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Verify unsupported cover format raises ValueError."""
+    downloader = DummyDownloader(destination=str(tmp_path))
+    downloader.cover = "bmp"
+
+    image_bytes = BytesIO()
+    Image.new("RGB", (1, 1), (255, 0, 0)).save(image_bytes, format="JPEG")
+    image_blob = image_bytes.getvalue()
+
+    monkeypatch.setattr(downloader, "_download_image", lambda _url: image_blob)
+
+    title_dump = SimpleNamespace(
+        title_image_url="https://img/main.webp",
+        title=SimpleNamespace(name="my manga", portrait_image_url="", landscape_image_url=""),
+    )
+
+    export_dir = tmp_path / "My Manga"
+
+    with pytest.raises(ValueError, match="Unsupported cover format"):
+        downloader._dump_title_cover(title_dump, export_dir)
 
 
 def test_dump_title_cover_skips_when_cover_url_is_missing(
@@ -285,6 +322,7 @@ def test_dump_title_cover_skips_when_cover_file_already_exists(
 ) -> None:
     """Verify cover export does not re-download when cover.png already exists."""
     downloader = DummyDownloader(destination=str(tmp_path))
+    downloader.cover = "png"
     title_dump = SimpleNamespace(
         title_image_url="https://img/main.webp",
         title=SimpleNamespace(name="my manga", portrait_image_url="", landscape_image_url=""),

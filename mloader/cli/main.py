@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import NoReturn, cast
+from typing import NoReturn, cast, Literal
 
 import click
 
@@ -275,10 +275,7 @@ class MloaderCliError(click.ClickException):
     ),
     default="none",
     show_default=True,
-    help=(
-        "Download each title cover image. "
-        "Supported formats: png, jpg, webp."
-    ),
+    help=("Download each title cover image. Supported formats: png, jpg, webp."),
 )
 @click.option(
     "--resume/--no-resume",
