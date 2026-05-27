@@ -8,6 +8,7 @@ from typing import Sequence
 
 import requests
 
+from mloader.config import AUTH_PARAMS, MOBILE_API_HEADERS
 from mloader.constants import Language
 from mloader.errors import APIResponseError
 from mloader.manga_loader.api_response import (
@@ -22,7 +23,7 @@ DEFAULT_LIST_PAGES: tuple[str, str, str] = (
     "https://mangaplus.shueisha.co.jp/manga_list/completed",
     "https://mangaplus.shueisha.co.jp/manga_list/one_shot",
 )
-DEFAULT_TITLE_INDEX_ENDPOINT = "https://jumpg-webapi.tokyo-cdn.com/api/title_list/allV2"
+DEFAULT_TITLE_INDEX_ENDPOINT = "https://jumpg-api.tokyo-cdn.com/api/title_list/allV2"
 # Match both '/titles/123' and escaped '\/titles\/123' shapes.
 TITLE_ID_PATTERN = re.compile(r"\\?/titles\\?/(?P<title_id>\d+)(?:\\?/|$|[?#\"'])")
 LANGUAGE_FILTER_CODES: dict[str, set[int]] = {
@@ -100,13 +101,18 @@ def collect_title_ids_from_api(
     request_timeout: tuple[float, float] = (5.0, 30.0),
     capture_api_dir: str | None = None,
 ) -> list[int]:
-    """Fetch web title-index payload and return sorted unique title IDs."""
+    """Fetch mobile title-index payload and return sorted unique title IDs."""
     with requests.Session() as session:
+        session.headers.update(MOBILE_API_HEADERS)
         last_error: requests.RequestException | None = None
         payload_capture = APIPayloadCapture(capture_api_dir) if capture_api_dir else None
         for attempt in range(1, API_MAX_ATTEMPTS + 1):
             try:
-                response = session.get(title_index_endpoint, timeout=request_timeout)
+                response = session.get(
+                    title_index_endpoint,
+                    params=AUTH_PARAMS,
+                    timeout=request_timeout,
+                )
                 response.raise_for_status()
                 if payload_capture is not None:
                     payload_capture.capture(
@@ -114,6 +120,7 @@ def collect_title_ids_from_api(
                         identifier="all",
                         url=title_index_endpoint,
                         params={
+                            **AUTH_PARAMS,
                             "allowed_languages": sorted(allowed_languages)
                             if allowed_languages is not None
                             else "all",

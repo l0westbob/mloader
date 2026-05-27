@@ -259,8 +259,10 @@ def test_verify_capture_schema_fails_for_manga_viewer_missing_pages(tmp_path: Pa
         verify_capture_schema(tmp_path)
 
 
-def test_verify_capture_schema_fails_for_title_detail_missing_groups(tmp_path: Path) -> None:
-    """Verify verifier rejects title_detail payloads with no chapter groups."""
+def test_verify_capture_schema_fails_for_title_detail_missing_chapter_lists(
+    tmp_path: Path,
+) -> None:
+    """Verify verifier rejects title_detail payloads with no grouped or flat chapters."""
     _copy_fixture_set(tmp_path)
 
     payload_path = tmp_path / "0001_title_detailV3_100010.pb"
@@ -365,6 +367,16 @@ def test_verify_title_detail_payload_rejects_empty_chapter_groups() -> None:
         CaptureVerificationError, match="No chapter entries found in chapter_list_group"
     ):
         _verify_title_detail_payload(parsed, "sample")
+
+
+def test_verify_title_detail_payload_accepts_flat_mobile_chapter_list() -> None:
+    """Verify title-detail verifier accepts the mobile flat chapter list shape."""
+    parsed = Response()
+    parsed.success.title_detail_view.title.title_id = 100312
+    parsed.success.title_detail_view.title.name = "T"
+    parsed.success.title_detail_view.chapter_list.add().chapter_id = 1024959
+
+    _verify_title_detail_payload(parsed, "sample")
 
 
 def test_verify_title_index_payload_rejects_missing_title_index() -> None:
@@ -509,10 +521,10 @@ def test_build_schema_signature_rejects_title_index_groups_without_titles(
         )
 
 
-def test_build_schema_signature_rejects_empty_title_detail_group_list(
+def test_build_schema_signature_rejects_empty_title_detail_chapter_lists(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Verify schema signature rejects title_detail payloads with no groups."""
+    """Verify schema signature rejects title_detail payloads with no chapters."""
     monkeypatch.setattr(
         "mloader.manga_loader.capture_verify.MessageToDict",
         lambda *_args, **_kwargs: {
@@ -520,7 +532,7 @@ def test_build_schema_signature_rejects_empty_title_detail_group_list(
         },
     )
 
-    with pytest.raises(CaptureVerificationError, match="Expected at least one group"):
+    with pytest.raises(CaptureVerificationError, match="Expected at least one chapter group"):
         _build_schema_signature(
             endpoint="title_detailV3",
             metadata={"params": {}, "url": "https://example.invalid"},
@@ -552,3 +564,31 @@ def test_build_schema_signature_rejects_empty_first_chapter_list(
             metadata={"params": {}, "url": "https://example.invalid"},
             parsed=Response(),
         )
+
+
+def test_build_schema_signature_accepts_flat_title_detail_chapter_list(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify schema signature accepts mobile title_detail flat chapter lists."""
+    monkeypatch.setattr(
+        "mloader.manga_loader.capture_verify.MessageToDict",
+        lambda *_args, **_kwargs: {
+            "success": {
+                "title_detail_view": {
+                    "title": {},
+                    "chapter_list": [{"chapter_id": 1024959, "name": "#001"}],
+                }
+            }
+        },
+    )
+
+    signature = json.loads(
+        _build_schema_signature(
+            endpoint="title_detailV3",
+            metadata={"params": {}, "url": "https://example.invalid"},
+            parsed=Response(),
+        )
+    )
+
+    assert signature["chapter_source"] == "chapter_list"
+    assert signature["chapter_keys"] == ["chapter_id", "name"]

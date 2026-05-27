@@ -8,6 +8,7 @@ from requests import Session
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
+from mloader.config import MOBILE_API_HEADERS
 from mloader.domain.requests import DownloadSummary
 from mloader.types import ExporterFactoryLike, PayloadCaptureLike, SessionLike
 
@@ -55,11 +56,7 @@ class _LoaderRuntime(APILoaderMixin, NormalizationMixin, DownloadMixin, Decrypti
         self.payload_capture = APIPayloadCapture(capture_api_dir) if capture_api_dir else None
         self.session = session if session is not None else cast(SessionLike, Session())
         self._configure_transport(self.session, retries)
-        self.session.headers.update(
-            {
-                "User-Agent": "JumpPlus/1 CFNetwork/1333.0.4 Darwin/21.5.0",
-            }
-        )
+        self.session.headers.update(MOBILE_API_HEADERS)
         self._api_url = api_url
 
     @staticmethod

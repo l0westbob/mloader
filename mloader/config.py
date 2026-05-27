@@ -124,3 +124,7 @@ def load_auth_settings(
 
 AUTH_SETTINGS = load_auth_settings()
 AUTH_PARAMS = AUTH_SETTINGS.as_query_params()
+MOBILE_API_HEADERS: dict[str, str] = {
+    "User-Agent": "okhttp/4.12.0",
+    "Accept-Encoding": "gzip",
+}

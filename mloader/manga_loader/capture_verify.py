@@ -119,32 +119,47 @@ def _build_schema_signature(
             _as_dict(title_detail.get("title"), "response.success.title_detail_view.title").keys()
         )
 
-        chapter_groups = _as_list(
-            title_detail.get("chapter_list_group"),
-            "response.success.title_detail_view.chapter_list_group",
-        )
-        if not chapter_groups:
-            raise CaptureVerificationError(
-                "Expected at least one group in response.success.title_detail_view.chapter_list_group"
+        chapter_groups = title_detail.get("chapter_list_group")
+        if chapter_groups:
+            grouped_chapters = _as_list(
+                chapter_groups,
+                "response.success.title_detail_view.chapter_list_group",
             )
-        first_group = _as_dict(
-            chapter_groups[0],
-            "response.success.title_detail_view.chapter_list_group[0]",
-        )
-        signature["chapter_group_keys"] = sorted(first_group.keys())
+            first_group = _as_dict(
+                grouped_chapters[0],
+                "response.success.title_detail_view.chapter_list_group[0]",
+            )
+            signature["chapter_source"] = "chapter_list_group"
+            signature["chapter_group_keys"] = sorted(first_group.keys())
 
-        first_chapter_list = _as_list(
-            first_group.get("first_chapter_list"),
-            "response.success.title_detail_view.chapter_list_group[0].first_chapter_list",
+            first_chapter_list = _as_list(
+                first_group.get("first_chapter_list"),
+                "response.success.title_detail_view.chapter_list_group[0].first_chapter_list",
+            )
+            if not first_chapter_list:
+                raise CaptureVerificationError(
+                    "Expected at least one chapter in first_chapter_list for response.success.title_detail_view"
+                )
+            first_chapter = _as_dict(
+                first_chapter_list[0],
+                "response.success.title_detail_view.chapter_list_group[0].first_chapter_list[0]",
+            )
+            signature["chapter_keys"] = sorted(first_chapter.keys())
+            return json.dumps(signature, sort_keys=True)
+
+        flat_chapters = _as_list(
+            title_detail.get("chapter_list", []),
+            "response.success.title_detail_view.chapter_list",
         )
-        if not first_chapter_list:
+        if not flat_chapters:
             raise CaptureVerificationError(
-                "Expected at least one chapter in first_chapter_list for response.success.title_detail_view"
+                "Expected at least one chapter group or flat chapter list in response.success.title_detail_view"
             )
         first_chapter = _as_dict(
-            first_chapter_list[0],
-            "response.success.title_detail_view.chapter_list_group[0].first_chapter_list[0]",
+            flat_chapters[0],
+            "response.success.title_detail_view.chapter_list[0]",
         )
+        signature["chapter_source"] = "chapter_list"
         signature["chapter_keys"] = sorted(first_chapter.keys())
         return json.dumps(signature, sort_keys=True)
 
@@ -212,14 +227,19 @@ def _verify_title_detail_payload(parsed: Response, stem: str) -> None:
     if title_detail.title.title_id == 0 or not title_detail.title.name:
         raise CaptureVerificationError(f"Missing required title identity fields in {stem}.pb")
 
-    if not title_detail.chapter_list_group:
-        raise CaptureVerificationError(f"No chapter_list_group records in {stem}.pb")
-
-    has_any_chapter = any(
+    has_grouped_chapter = any(
         group.first_chapter_list or group.mid_chapter_list or group.last_chapter_list
         for group in title_detail.chapter_list_group
     )
-    if not has_any_chapter:
+    if has_grouped_chapter or title_detail.chapter_list:
+        return
+
+    if not title_detail.chapter_list_group:
+        raise CaptureVerificationError(
+            f"No chapter_list_group records or flat chapter_list records in {stem}.pb"
+        )
+
+    if not has_grouped_chapter:
         raise CaptureVerificationError(
             f"No chapter entries found in chapter_list_group for {stem}.pb"
         )

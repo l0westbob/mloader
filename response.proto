@@ -185,6 +185,7 @@ message TitleDetailView {
     bool chapters_descending = 17;
     uint32 number_of_views = 18;
     repeated ChapterGroup chapter_list_group = 28;
+    repeated Chapter chapter_list = 38;
 }
 
 message AllTitlesGroup {

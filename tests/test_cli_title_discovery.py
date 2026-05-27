@@ -15,6 +15,7 @@ from click.testing import CliRunner
 from mloader.cli.exit_codes import EXTERNAL_FAILURE, VALIDATION_ERROR
 from mloader.cli import title_discovery
 from mloader.cli import main as cli_main
+from mloader.config import AUTH_PARAMS
 from mloader.domain.requests import DownloadSummary
 from mloader.errors import APIResponseError, SubscriptionRequiredError
 from mloader.response_pb2 import Response  # type: ignore
@@ -49,7 +50,8 @@ class DummySession:
     def __init__(self, payloads: dict[str, str | bytes]) -> None:
         """Store URL-to-payload mapping for request simulations."""
         self.payloads = payloads
-        self.calls: list[tuple[str, tuple[float, float]]] = []
+        self.calls: list[tuple[str, dict[str, str] | None, tuple[float, float]]] = []
+        self.headers: dict[str, str] = {}
 
     def __enter__(self) -> DummySession:
         """Support context manager protocol."""
@@ -59,9 +61,14 @@ class DummySession:
         """Support context manager protocol."""
         _ = args
 
-    def get(self, url: str, timeout: tuple[float, float]) -> DummyResponse:
+    def get(
+        self,
+        url: str,
+        params: dict[str, str] | None = None,
+        timeout: tuple[float, float] = (5.0, 30.0),
+    ) -> DummyResponse:
         """Record request and return mapped HTML payload."""
-        self.calls.append((url, timeout))
+        self.calls.append((url, params, timeout))
         payload = self.payloads[url]
         if isinstance(payload, bytes):
             return DummyResponse(content=payload)
@@ -269,7 +276,9 @@ def test_collect_title_ids_from_api_returns_sorted_unique_ids(
     )
 
     assert result == [100001, 100002, 100003]
-    assert dummy_session.calls == [("https://api.example/allV2", (5.0, 30.0))]
+    assert dummy_session.calls == [("https://api.example/allV2", AUTH_PARAMS, (5.0, 30.0))]
+    assert dummy_session.headers["User-Agent"] == "okhttp/4.12.0"
+    assert "Host" not in dummy_session.headers
 
 
 def test_collect_title_ids_from_api_captures_title_index_payload(
@@ -305,8 +314,9 @@ def test_collect_title_ids_from_api_retries_transient_http_errors(
         """Session test double failing once with HTTP 502 then succeeding."""
 
         def __init__(self) -> None:
-            self.calls: list[tuple[str, tuple[float, float]]] = []
+            self.calls: list[tuple[str, dict[str, str] | None, tuple[float, float]]] = []
             self._attempt = 0
+            self.headers: dict[str, str] = {}
 
         def __enter__(self) -> FlakySession:
             return self
@@ -314,8 +324,13 @@ def test_collect_title_ids_from_api_retries_transient_http_errors(
         def __exit__(self, *args: object) -> None:
             _ = args
 
-        def get(self, url: str, timeout: tuple[float, float]) -> DummyResponse:
-            self.calls.append((url, timeout))
+        def get(
+            self,
+            url: str,
+            params: dict[str, str] | None = None,
+            timeout: tuple[float, float] = (5.0, 30.0),
+        ) -> DummyResponse:
+            self.calls.append((url, params, timeout))
             self._attempt += 1
             if self._attempt == 1:
                 return DummyResponse(status_code=502)
@@ -341,7 +356,12 @@ def test_collect_title_ids_from_api_does_not_retry_non_transient_http_error(
     """Verify non-transient HTTP errors surface immediately."""
     dummy_session = DummySession({"https://api.example/allV2": b""})
 
-    def _get(_url: str, timeout: tuple[float, float]) -> DummyResponse:
+    def _get(
+        _url: str,
+        params: dict[str, str] | None = None,
+        timeout: tuple[float, float] = (5.0, 30.0),
+    ) -> DummyResponse:
+        del params
         del timeout
         return DummyResponse(status_code=404)
 
@@ -366,6 +386,7 @@ def test_collect_title_ids_from_api_retries_request_errors_until_exhausted(
 
         def __init__(self) -> None:
             self.calls = 0
+            self.headers: dict[str, str] = {}
 
         def __enter__(self) -> FailingSession:
             return self
@@ -373,7 +394,13 @@ def test_collect_title_ids_from_api_retries_request_errors_until_exhausted(
         def __exit__(self, *args: object) -> None:
             _ = args
 
-        def get(self, _url: str, timeout: tuple[float, float]) -> DummyResponse:
+        def get(
+            self,
+            _url: str,
+            params: dict[str, str] | None = None,
+            timeout: tuple[float, float] = (5.0, 30.0),
+        ) -> DummyResponse:
+            del params
             del timeout
             self.calls += 1
             raise requests.RequestException("network down")
@@ -408,8 +435,8 @@ def test_collect_title_ids_returns_sorted_unique_ids(monkeypatch: pytest.MonkeyP
 
     assert result == [100001, 100002, 100003]
     assert dummy_session.calls == [
-        ("https://a.example", (5.0, 30.0)),
-        ("https://b.example", (5.0, 30.0)),
+        ("https://a.example", None, (5.0, 30.0)),
+        ("https://b.example", None, (5.0, 30.0)),
     ]
 
 

@@ -12,7 +12,7 @@ from typing import Iterable
 
 import requests
 
-from mloader.config import AUTH_PARAMS
+from mloader.config import AUTH_PARAMS, MOBILE_API_HEADERS
 from mloader.cli.examples import build_cli_examples
 from mloader.errors import APIResponseError
 from mloader.manga_loader.api import _parse_manga_viewer_response, _parse_title_detail_response
@@ -206,6 +206,7 @@ def _validate_targets(
 ) -> list[ValidationIssue]:
     """Validate README targets against live API and return all discovered issues."""
     session = requests.Session()
+    session.headers.update(MOBILE_API_HEADERS)
     issues: list[ValidationIssue] = []
     title_cache: dict[int, TitleDumpLike] = {}
 

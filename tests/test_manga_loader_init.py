@@ -16,7 +16,8 @@ def test_manga_loader_creates_independent_default_sessions() -> None:
     loader_b = MangaLoader(exporter=None, quality="high", split=False, meta=False)
 
     assert loader_a.session is not loader_b.session
-    assert "User-Agent" in loader_a.session.headers
+    assert loader_a.session.headers["User-Agent"] == "okhttp/4.12.0"
+    assert "Host" not in loader_a.session.headers
 
 
 def test_manga_loader_configures_transport_defaults() -> None:

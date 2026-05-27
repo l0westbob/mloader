@@ -200,7 +200,7 @@ Options:
                                   download them
   --page TEXT                     MangaPlus list page to scrape for title
                                   links (repeatable)
-  --title-index-endpoint TEXT     MangaPlus web API endpoint used for
+  --title-index-endpoint TEXT     MangaPlus mobile API endpoint used for
                                   API-first title discovery
   --id-length INTEGER RANGE       If set, keep only title IDs with this
                                   exact digit length
@@ -270,7 +270,7 @@ This section is generated from CLI metadata. Update it with `uv run python scrip
 | `--verify-capture-baseline` | Compare verified capture schema signatures against a baseline capture directory | `-` | `-` |
 | `--all` | Discover all available titles and download them | `false` | `-` |
 | `--page` | MangaPlus list page to scrape for title links (repeatable) | `https://mangaplus.shueisha.co.jp/manga_list/ongoing, https://mangaplus.shueisha.co.jp/manga_list/completed, https://mangaplus.shueisha.co.jp/manga_list/one_shot` | `-` |
-| `--title-index-endpoint` | MangaPlus web API endpoint used for API-first title discovery | `https://jumpg-webapi.tokyo-cdn.com/api/title_list/allV2` | `MLOADER_TITLE_INDEX_ENDPOINT` |
+| `--title-index-endpoint` | MangaPlus mobile API endpoint used for API-first title discovery | `https://jumpg-api.tokyo-cdn.com/api/title_list/allV2` | `MLOADER_TITLE_INDEX_ENDPOINT` |
 | `--id-length` | If set, keep only title IDs with this exact digit length | `-` | `-` |
 | `--language` | Restrict --all discovery to one or more languages (repeatable) | `-` | `-` |
 | `--list-only` | Only print discovered title IDs for --all and exit | `false` | `-` |

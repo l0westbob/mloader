@@ -128,7 +128,7 @@ class MloaderCliError(click.ClickException):
     type=str,
     default=title_discovery.DEFAULT_TITLE_INDEX_ENDPOINT,
     show_default=True,
-    help="MangaPlus web API endpoint used for API-first title discovery",
+    help="MangaPlus mobile API endpoint used for API-first title discovery",
     envvar="MLOADER_TITLE_INDEX_ENDPOINT",
 )
 @click.option(

@@ -72,6 +72,26 @@ def _build_title_detail_params(title_id: Union[str, int]) -> dict[str, str | int
     return {**AUTH_PARAMS, "title_id": title_id}
 
 
+def _ensure_title_detail_chapter_groups(title_detail: object) -> bool:
+    """Backfill grouped chapters from the mobile API flat chapter list when needed."""
+    chapter_groups = getattr(title_detail, "chapter_list_group")
+    has_grouped_chapters = any(
+        group.first_chapter_list or group.mid_chapter_list or group.last_chapter_list
+        for group in chapter_groups
+    )
+    if has_grouped_chapters:
+        return True
+
+    flat_chapters = getattr(title_detail, "chapter_list", ())
+    if not flat_chapters:
+        return False
+
+    if len(chapter_groups) == 0:
+        chapter_group = chapter_groups.add()
+        chapter_group.first_chapter_list.extend(flat_chapters)
+    return True
+
+
 def _parse_title_detail_response(content: bytes) -> TitleDumpLike:
     """Parse and validate the API response to extract ``TitleDetailView`` payload."""
     parsed = Response.FromString(content)
@@ -90,15 +110,12 @@ def _parse_title_detail_response(content: bytes) -> TitleDumpLike:
             kind="unknown",
         )
     chapter_groups = title_detail.chapter_list_group
-    if len(chapter_groups) == 0:
+    has_chapters = _ensure_title_detail_chapter_groups(title_detail)
+    if not has_chapters and len(chapter_groups) == 0:
         raise APIResponseError(
-            "MangaPlus API returned title_detail_view without chapter groups.",
+            "MangaPlus API returned title_detail_view without chapter groups or flat chapter list.",
             kind="unknown",
         )
-    has_chapters = any(
-        group.first_chapter_list or group.mid_chapter_list or group.last_chapter_list
-        for group in chapter_groups
-    )
     if not has_chapters:
         raise APIResponseError(
             "MangaPlus API returned title_detail_view without chapter entries.",

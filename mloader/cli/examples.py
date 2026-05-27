@@ -122,7 +122,7 @@ _EXAMPLE_SPECS: tuple[tuple[str, str, str], ...] = (
     ),
     (
         "Use custom API title-index endpoint",
-        "{prog} --all --title-index-endpoint https://jumpg-webapi.tokyo-cdn.com/api/title_list/allV2",
+        "{prog} --all --title-index-endpoint https://jumpg-api.tokyo-cdn.com/api/title_list/allV2",
         "Overrides API endpoint used for title discovery.",
     ),
     (

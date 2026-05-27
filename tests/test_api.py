@@ -81,6 +81,24 @@ def test_parse_title_detail_response(monkeypatch: pytest.MonkeyPatch) -> None:
     assert api._parse_title_detail_response(b"raw") is sentinel
 
 
+def test_parse_title_detail_response_backfills_flat_mobile_chapter_list() -> None:
+    """Verify mobile title details with flat chapters are normalized into a group."""
+    parsed = api.Response()
+    title_detail = parsed.success.title_detail_view
+    title_detail.title.title_id = 100494
+    title_detail.title.name = "Aliens, Baseball, and Civilization"
+    chapter = title_detail.chapter_list.add()
+    chapter.title_id = 100494
+    chapter.chapter_id = 1024974
+    chapter.name = "#001"
+    chapter.sub_title = "1st Pitch"
+
+    result = api._parse_title_detail_response(parsed.SerializeToString())
+
+    assert len(result.chapter_list_group) == 1
+    assert result.chapter_list_group[0].first_chapter_list[0].chapter_id == 1024974
+
+
 def test_parse_manga_viewer_response_raises_for_missing_payload(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
