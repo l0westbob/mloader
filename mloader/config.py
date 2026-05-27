@@ -9,6 +9,7 @@ import tomllib
 from typing import Mapping
 
 from dotenv import load_dotenv
+from mloader.infrastructure.mangaplus.settings import MOBILE_API_HEADERS as _MOBILE_API_HEADERS
 
 load_dotenv()
 
@@ -123,8 +124,4 @@ def load_auth_settings(
 
 
 AUTH_SETTINGS = load_auth_settings()
-AUTH_PARAMS = AUTH_SETTINGS.as_query_params()
-MOBILE_API_HEADERS: dict[str, str] = {
-    "User-Agent": "okhttp/4.12.0",
-    "Accept-Encoding": "gzip",
-}
+MOBILE_API_HEADERS = dict(_MOBILE_API_HEADERS)

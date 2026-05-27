@@ -1,0 +1,23 @@
+{
+  "api_error": {
+    "body": "There are issues connecting to Manga+. Please try again later.(10511)",
+    "code": "10511",
+    "language": 0,
+    "title": "Invalid Parameter"
+  },
+  "captured_at_utc": "2026-05-27T00:00:00+00:00",
+  "endpoint": "title_index",
+  "identifier": "all",
+  "params": {
+    "app_ver": "97",
+    "id_length": 6,
+    "os": "ios",
+    "os_ver": "18.1",
+    "secret": "***REDACTED***"
+  },
+  "payload_classification": "api_error",
+  "payload_sha256": "15cf8f1b1aa9b1c735b0f4b04881e91e060e90b05d6359392d771a5e0e717755",
+  "payload_size_bytes": 96,
+  "raw_payload_file": "0006_title_index_api_error.pb",
+  "url": "https://jumpg-api.tokyo-cdn.com/api/title_list/allV2"
+}

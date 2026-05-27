@@ -11,6 +11,7 @@ from PIL import Image
 import pytest
 
 from mloader.constants import Language
+from mloader.domain.manga import Chapter, Title
 from mloader.exporters.cbz_exporter import CBZExporter
 from mloader.exporters.pdf_exporter import PDFExporter
 from mloader.exporters.raw_exporter import RawExporter
@@ -28,6 +29,29 @@ def _title(
 def _chapter(name: str = "#1", sub_title: str = "start") -> SimpleNamespace:
     """Build a minimal chapter object for exporter tests."""
     return SimpleNamespace(name=name, sub_title=sub_title)
+
+
+def _domain_title() -> Title:
+    """Build a stable domain title DTO for exporter contract tests."""
+    return Title(
+        title_id=100494,
+        name="domain title",
+        author="Domain Author",
+        portrait_image_url="https://example.invalid/portrait.webp",
+        landscape_image_url="https://example.invalid/landscape.webp",
+        language=Language.ENGLISH.value,
+    )
+
+
+def _domain_chapter() -> Chapter:
+    """Build a stable domain chapter DTO for exporter contract tests."""
+    return Chapter(
+        title_id=100494,
+        chapter_id=1024974,
+        name="#001",
+        sub_title="Domain Chapter",
+        thumbnail_url="https://example.invalid/chapter.webp",
+    )
 
 
 def _jpeg_bytes(color: tuple[int, int, int] = (255, 0, 0)) -> bytes:
@@ -57,6 +81,28 @@ def test_raw_exporter_writes_and_skips_existing_image(tmp_path: Path) -> None:
     assert path.exists()
     assert path.read_bytes() == b"abc"
     assert exporter.skip_image(0) is True
+
+
+def test_concrete_exporters_accept_domain_dtos(tmp_path: Path) -> None:
+    """Verify exporters write outputs from stable domain DTOs, not protobuf instances."""
+    title = _domain_title()
+    chapter = _domain_chapter()
+
+    raw = RawExporter(destination=str(tmp_path), title=title, chapter=chapter)
+    raw.add_image(b"raw", 1)
+    assert (raw.path / raw.format_page_name(1)).read_bytes() == b"raw"
+
+    cbz = CBZExporter(destination=str(tmp_path), title=title, chapter=chapter)
+    cbz.add_image(b"cbz", 1)
+    cbz.close()
+    assert cbz.path.name == "Domain Title - 001 - Domain Chapter.cbz"
+    assert cbz.path.exists()
+
+    pdf = PDFExporter(destination=str(tmp_path), title=title, chapter=chapter)
+    pdf.add_image(_jpeg_bytes(), 1)
+    pdf.close()
+    assert pdf.path.name == "Domain Title - 001 - Domain Chapter.pdf"
+    assert pdf.path.exists()
 
 
 def test_raw_exporter_with_chapter_subdir(tmp_path: Path) -> None:
@@ -143,7 +189,10 @@ def test_cbz_exporter_skips_when_archive_exists(tmp_path: Path) -> None:
     assert second.path.stat().st_size == size_before
 
 
-def test_cbz_exporter_cleans_temp_archive_when_close_fails(tmp_path: Path) -> None:
+def test_cbz_exporter_cleans_temp_archive_when_close_fails(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Verify failed CBZ finalization does not leave a corrupt final archive."""
     exporter = CBZExporter(destination=str(tmp_path), title=_title(), chapter=_chapter())
     exporter.add_image(b"img", 0)
@@ -152,7 +201,7 @@ def test_cbz_exporter_cleans_temp_archive_when_close_fails(tmp_path: Path) -> No
     def _raise_comicinfo_error() -> None:
         raise RuntimeError("comicinfo failed")
 
-    exporter._write_comicinfo_xml_entry = _raise_comicinfo_error  # type: ignore[method-assign]
+    monkeypatch.setattr(exporter, "_write_comicinfo_xml_entry", _raise_comicinfo_error)
 
     with pytest.raises(RuntimeError, match="comicinfo failed"):
         exporter.close()

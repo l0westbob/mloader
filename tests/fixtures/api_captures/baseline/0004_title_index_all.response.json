@@ -1,0 +1,27 @@
+{
+  "success": {
+    "all_titles_view": {
+      "title_groups": [
+        {
+          "group_name": "simulpub",
+          "titles": [
+            {
+              "author": "Fixture Author",
+              "landscape_image_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100494/landscape.webp",
+              "name": "Aliens, Baseball, and Civilization",
+              "portrait_image_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100494/portrait.webp",
+              "title_id": 100494
+            },
+            {
+              "author": "Fixture Author",
+              "landscape_image_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/landscape.webp",
+              "name": "Dr. STONE",
+              "portrait_image_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100010/portrait.webp",
+              "title_id": 100010
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

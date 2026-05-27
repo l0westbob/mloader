@@ -12,19 +12,29 @@ from typing import Iterable
 
 import requests
 
-from mloader.config import AUTH_PARAMS, MOBILE_API_HEADERS
 from mloader.cli.examples import build_cli_examples
+from mloader.domain.manga import TitleDetail
 from mloader.errors import APIResponseError
-from mloader.manga_loader.api import _parse_manga_viewer_response, _parse_title_detail_response
-from mloader.types import TitleDumpLike
+from mloader.infrastructure.mangaplus import auth
+from mloader.infrastructure.mangaplus.settings import (
+    MANGA_VIEWER_PATH,
+    MOBILE_API_HEADERS,
+    TITLE_DETAIL_PATH,
+    DEFAULT_API_BASE_URL,
+    api_url,
+)
+from mloader.infrastructure.mangaplus.parsing import (
+    parse_manga_viewer_response,
+    parse_title_detail_response,
+)
 from mloader.utils import chapter_name_to_int
 
 MANGA_PLUS_HOST = "mangaplus.shueisha.co.jp"
 VIEWER_URL_PATTERN = re.compile(rf"^https://{re.escape(MANGA_PLUS_HOST)}/viewer/(\d+)$")
 TITLE_URL_PATTERN = re.compile(rf"^https://{re.escape(MANGA_PLUS_HOST)}/titles/(\d+)$")
 BASH_BLOCK_PATTERN = re.compile(r"```bash\s*\n(.*?)```", re.DOTALL)
-MANGA_VIEWER_ENDPOINT = "https://jumpg-api.tokyo-cdn.com/api/manga_viewer"
-TITLE_DETAIL_ENDPOINT = "https://jumpg-api.tokyo-cdn.com/api/title_detailV3"
+MANGA_VIEWER_ENDPOINT = api_url(DEFAULT_API_BASE_URL, MANGA_VIEWER_PATH)
+TITLE_DETAIL_ENDPOINT = api_url(DEFAULT_API_BASE_URL, TITLE_DETAIL_PATH)
 
 
 @dataclass(slots=True)
@@ -139,11 +149,11 @@ def _build_parsed_commands(
     parsed_commands = [_parse_command(command, source="README") for command in readme_commands]
 
     if include_cli_examples:
-        cli_commands = _unique_commands(
+        example_commands = _unique_commands(
             example.command for example in build_cli_examples(prog_name="mloader")
         )
         parsed_commands.extend(
-            _parse_command(command, source="CLI_EXAMPLES") for command in cli_commands
+            _parse_command(command, source="CLI_EXAMPLES") for command in example_commands
         )
 
     return parsed_commands
@@ -183,19 +193,13 @@ def _split_validatable_commands(
     return validatable, skipped
 
 
-def _all_chapter_numbers_for_title(title_dump: TitleDumpLike) -> set[int]:
+def _all_chapter_numbers_for_title(title_detail: TitleDetail) -> set[int]:
     """Extract numeric chapter numbers from all chapter groups in a title payload."""
     chapter_numbers: set[int] = set()
-    for group in title_dump.chapter_list_group:
-        for chapter_list in (
-            group.first_chapter_list,
-            group.mid_chapter_list,
-            group.last_chapter_list,
-        ):
-            for chapter in chapter_list:
-                parsed_number = chapter_name_to_int(chapter.name)
-                if parsed_number is not None:
-                    chapter_numbers.add(parsed_number)
+    for chapter in title_detail.chapters:
+        parsed_number = chapter_name_to_int(chapter.name)
+        if parsed_number is not None:
+            chapter_numbers.add(parsed_number)
     return chapter_numbers
 
 
@@ -208,16 +212,16 @@ def _validate_targets(
     session = requests.Session()
     session.headers.update(MOBILE_API_HEADERS)
     issues: list[ValidationIssue] = []
-    title_cache: dict[int, TitleDumpLike] = {}
+    title_cache: dict[int, TitleDetail] = {}
 
-    def _fetch_title(title_id: int, command: str) -> TitleDumpLike | None:
+    def _fetch_title(title_id: int, command: str) -> TitleDetail | None:
         if title_id in title_cache:
             return title_cache[title_id]
-        params = {**AUTH_PARAMS, "title_id": title_id}
+        params = {**auth.auth_params(), "title_id": title_id}
         try:
             response = session.get(TITLE_DETAIL_ENDPOINT, params=params, timeout=timeout)
             response.raise_for_status()
-            parsed = _parse_title_detail_response(response.content)
+            parsed = parse_title_detail_response(response.content)
         except (requests.RequestException, APIResponseError) as error:
             issues.append(
                 ValidationIssue(
@@ -232,7 +236,7 @@ def _validate_targets(
     for parsed_command in commands:
         for chapter_id in sorted(parsed_command.chapter_ids):
             params = {
-                **AUTH_PARAMS,
+                **auth.auth_params(),
                 "chapter_id": chapter_id,
                 "split": "no",
                 "img_quality": "low",
@@ -240,7 +244,7 @@ def _validate_targets(
             try:
                 response = session.get(MANGA_VIEWER_ENDPOINT, params=params, timeout=timeout)
                 response.raise_for_status()
-                _parse_manga_viewer_response(response.content)
+                parse_manga_viewer_response(response.content)
             except (requests.RequestException, APIResponseError) as error:
                 issues.append(
                     ValidationIssue(

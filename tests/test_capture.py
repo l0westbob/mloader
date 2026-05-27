@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from mloader.manga_loader import capture as capture_module
+from mloader.infrastructure.mangaplus import capture as capture_module
 
 
 def _varint(value: int) -> bytes:

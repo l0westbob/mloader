@@ -2,47 +2,28 @@
 
 from __future__ import annotations
 
-import json
-import logging
-from datetime import datetime, timezone
-from pathlib import Path
-from typing import NoReturn, cast
-from uuid import uuid4
-
 import click
-from click.core import ParameterSource
 
 from mloader import __version__ as about
-from mloader.application import workflows
+from mloader.cli import command_requests
 from mloader.cli import examples as cli_examples
-from mloader.cli import title_discovery
+from mloader.cli.command_defaults import (
+    resolve_all_mode_targets,
+    run_capture_verification_mode,
+    write_run_report_if_requested,
+)
+from mloader.cli.command_errors import fail
 from mloader.cli.config import setup_logging
-from mloader.cli.exit_codes import EXTERNAL_FAILURE, INTERNAL_BUG, SUCCESS, VALIDATION_ERROR
+from mloader.cli.download_command import run_download_request
+from mloader.cli.exit_codes import SUCCESS, VALIDATION_ERROR
 from mloader.cli.presenter import CliPresenter
+from mloader.cli.runtime_options import SUPPORTED_AUTH_OS_VALUES, resolve_log_level
 from mloader.cli.validators import validate_ids, validate_urls
 from mloader.config import AUTH_SETTINGS
-from mloader.domain.requests import COVER_FORMATS, DownloadRequest, DownloadSummary
-from mloader.errors import SubscriptionRequiredError
-from mloader.exporters.init import CBZExporter, PDFExporter, RawExporter
-from mloader.manga_loader.capture_verify import (
-    CaptureVerificationError,
-    CaptureVerificationSummary,
-    verify_capture_schema,
-    verify_capture_schema_against_baseline,
-)
+from mloader.domain.requests import COVER_FORMATS
+from mloader.exporters import CBZExporter, PDFExporter, RawExporter
 from mloader.manga_loader.init import MangaLoader
-
-log = logging.getLogger(__name__)
-SUPPORTED_AUTH_OS_VALUES: frozenset[str] = frozenset({"ios", "android"})
-
-
-class MloaderCliError(click.ClickException):
-    """Click exception that carries deterministic exit code mapping."""
-
-    def __init__(self, message: str, *, exit_code: int) -> None:
-        """Store message and deterministic process exit code."""
-        super().__init__(message)
-        self.exit_code = exit_code
+from mloader.infrastructure.mangaplus import title_discovery
 
 
 @click.command(
@@ -346,11 +327,11 @@ def main(
     titles: set[int] | None = None,
 ) -> None:
     """Run the CLI command and start the configured download flow."""
-    setup_logging(level=_resolve_log_level(quiet=quiet, verbose=verbose, json_output=json_output))
+    setup_logging(level=resolve_log_level(quiet=quiet, verbose=verbose, json_output=json_output))
     presenter = CliPresenter(json_output=json_output, quiet=quiet)
     presenter.emit_intro(about.__intro__)
     if AUTH_SETTINGS.os.lower() not in SUPPORTED_AUTH_OS_VALUES:
-        _fail(
+        fail(
             "Warning: Unsupported API auth OS value configured via environment/config: "
             f"'{AUTH_SETTINGS.os}'. Supported values are: ios, android.",
             presenter=presenter,
@@ -363,14 +344,14 @@ def main(
         return
 
     if verify_capture_baseline_dir and not verify_capture_schema_dir:
-        _fail(
+        fail(
             "--verify-capture-baseline requires --verify-capture-schema.",
             presenter=presenter,
             exit_code=VALIDATION_ERROR,
         )
 
     if verify_capture_schema_dir:
-        capture_summary = _run_capture_verification_mode(
+        capture_summary = run_capture_verification_mode(
             verify_capture_schema_dir=verify_capture_schema_dir,
             verify_capture_baseline_dir=verify_capture_baseline_dir,
             presenter=presenter,
@@ -382,22 +363,20 @@ def main(
         )
         return
 
-    discovery_flag_error = workflows.verify_discovery_flags(
+    discovery_flag_error = command_requests.validate_discovery_flags(
         download_all_titles=download_all_titles,
         list_only=list_only,
         languages=languages,
     )
     if discovery_flag_error is not None:
-        _fail(
+        fail(
             discovery_flag_error,
             presenter=presenter,
             exit_code=VALIDATION_ERROR,
         )
 
-    cover_format_was_provided = (
-        ctx.get_parameter_source("cover_format") is ParameterSource.COMMANDLINE
-    )
-    request = workflows.build_download_request(
+    request = command_requests.build_download_request(
+        ctx,
         out_dir=out_dir,
         raw=raw,
         output_format=output_format,
@@ -410,7 +389,7 @@ def main(
         chapter_title=chapter_title,
         chapter_subdir=chapter_subdir,
         meta=meta,
-        cover=cover or cover_format_was_provided,
+        cover=cover,
         cover_format=cover_format,
         resume=resume,
         manifest_reset=manifest_reset,
@@ -420,11 +399,9 @@ def main(
         run_report_path=run_report_path,
     )
 
-    run_id = uuid4().hex
-    run_started_at = datetime.now(timezone.utc)
     discovery_metadata: dict[str, int] | None = None
     if download_all_titles:
-        all_mode_request, discovery_metadata = _resolve_all_mode_targets(
+        all_mode_request, discovery_metadata = resolve_all_mode_targets(
             request=request,
             pages=pages,
             title_index_endpoint=title_index_endpoint,
@@ -442,307 +419,16 @@ def main(
         click.echo(ctx.get_help())
         raise click.exceptions.Exit(SUCCESS)
 
-    log.info("Started export")
-    log.debug("Download request: %s", workflows.to_chapter_id_debug_map(request))
-
-    try:
-        download_summary = workflows.execute_download(
-            request,
-            loader_factory=MangaLoader,
-            raw_exporter=RawExporter,
-            pdf_exporter=PDFExporter,
-            cbz_exporter=CBZExporter,
-        )
-    except workflows.DownloadInterrupted as exc:
-        presenter.emit_download_summary(exc.summary)
-        _write_run_report_if_requested(
-            request,
-            run_id=run_id,
-            started_at=run_started_at,
-            status="error",
-            exit_code=EXTERNAL_FAILURE,
-            discovery=discovery_metadata,
-            summary=exc.summary,
-            error_message="Download interrupted by user.",
-        )
-        _fail(
-            "Download interrupted by user.",
-            presenter=presenter,
-            exit_code=EXTERNAL_FAILURE,
-            details={"summary": _summary_payload(exc.summary)},
-        )
-    except SubscriptionRequiredError as exc:
-        _write_run_report_if_requested(
-            request,
-            run_id=run_id,
-            started_at=run_started_at,
-            status="error",
-            exit_code=EXTERNAL_FAILURE,
-            discovery=discovery_metadata,
-            summary=None,
-            error_message=str(exc),
-            subscription_access_failures=1,
-        )
-        _fail(str(exc), presenter=presenter, exit_code=EXTERNAL_FAILURE)
-    except workflows.ExternalDependencyError as exc:
-        _write_run_report_if_requested(
-            request,
-            run_id=run_id,
-            started_at=run_started_at,
-            status="error",
-            exit_code=EXTERNAL_FAILURE,
-            discovery=discovery_metadata,
-            summary=None,
-            error_message=str(exc),
-        )
-        _fail(str(exc), presenter=presenter, exit_code=EXTERNAL_FAILURE)
-    except Exception as exc:
-        if not presenter.json_output:
-            log.exception("Failed to download manga")
-        _write_run_report_if_requested(
-            request,
-            run_id=run_id,
-            started_at=run_started_at,
-            status="error",
-            exit_code=INTERNAL_BUG,
-            discovery=discovery_metadata,
-            summary=None,
-            error_message=f"Download failed: {exc}",
-        )
-        _fail("Download failed", presenter=presenter, exit_code=INTERNAL_BUG)
-
-    presenter.emit_download_summary(download_summary)
-    summary_payload = _summary_payload(download_summary)
-    if download_summary.has_failures:
-        _write_run_report_if_requested(
-            request,
-            run_id=run_id,
-            started_at=run_started_at,
-            status="error",
-            exit_code=EXTERNAL_FAILURE,
-            discovery=discovery_metadata,
-            summary=download_summary,
-            error_message=f"Download completed with {download_summary.failed} failed chapter(s).",
-        )
-        _fail(
-            f"Download completed with {download_summary.failed} failed chapter(s).",
-            presenter=presenter,
-            exit_code=EXTERNAL_FAILURE,
-            details={"summary": summary_payload},
-        )
-
-    log.info("SUCCESS")
-    _write_run_report_if_requested(
+    run_download_request(
         request,
-        run_id=run_id,
-        started_at=run_started_at,
-        status="ok",
-        exit_code=SUCCESS,
-        discovery=discovery_metadata,
-        summary=download_summary,
-        error_message=None,
+        presenter=presenter,
+        discovery_metadata=discovery_metadata,
+        loader_factory=MangaLoader,
+        raw_exporter=RawExporter,
+        pdf_exporter=PDFExporter,
+        cbz_exporter=CBZExporter,
+        write_run_report=write_run_report_if_requested,
     )
-    if presenter.json_output:
-        presenter.emit_json(
-            {
-                "status": "ok",
-                "mode": "download",
-                "exit_code": SUCCESS,
-                "targets": {
-                    "titles": len(request.titles),
-                    "chapters": len(request.chapters),
-                    "chapter_ids": len(request.chapter_ids),
-                },
-                "discovery": discovery_metadata,
-                "summary": summary_payload,
-            }
-        )
-
-
-def _resolve_log_level(*, quiet: bool, verbose: int, json_output: bool) -> int:
-    """Resolve runtime logging level from output and verbosity flags."""
-    if quiet:
-        return logging.WARNING
-    if verbose >= 1:
-        return logging.DEBUG
-    if json_output:
-        return logging.WARNING
-    return logging.INFO
-
-
-def _summary_payload(summary: DownloadSummary) -> dict[str, object]:
-    """Build JSON-serializable summary payload from immutable summary model."""
-    return {
-        "downloaded": summary.downloaded,
-        "skipped_manifest": summary.skipped_manifest,
-        "failed": summary.failed,
-        "failed_chapter_ids": list(summary.failed_chapter_ids),
-    }
-
-
-def _write_run_report_if_requested(
-    request: DownloadRequest,
-    *,
-    run_id: str,
-    started_at: datetime,
-    status: str,
-    exit_code: int,
-    discovery: dict[str, int] | None,
-    summary: DownloadSummary | None,
-    error_message: str | None,
-    subscription_access_failures: int = 0,
-) -> None:
-    """Write an optional JSON run report without changing CLI success semantics."""
-    if not request.run_report_path:
-        return
-
-    completed_at = datetime.now(timezone.utc)
-    summary_payload = (
-        _summary_payload(summary)
-        if summary is not None
-        else {
-            "downloaded": 0,
-            "skipped_manifest": 0,
-            "failed": 0,
-            "failed_chapter_ids": [],
-        }
-    )
-    report: dict[str, object] = {
-        "run_id": run_id,
-        "status": status,
-        "exit_code": exit_code,
-        "started_at_utc": started_at.isoformat(),
-        "completed_at_utc": completed_at.isoformat(),
-        "duration_seconds": round((completed_at - started_at).total_seconds(), 3),
-        "selected_args": {
-            **workflows.to_chapter_id_debug_map(request),
-            "out_dir": request.out_dir,
-            "quality": request.quality,
-            "split": request.split,
-        },
-        "discovery": {
-            "discovered_title_count": (discovery or {}).get("discovered_titles", 0),
-        },
-        "summary": summary_payload,
-        "subscription_access_failures": subscription_access_failures,
-        "exporter_safety": {
-            "mode": "disk-backed-tempfiles",
-            "version": "pdf-streaming-and-atomic-cbz-v1",
-        },
-    }
-    if error_message:
-        report["error"] = error_message
-
-    report_path = Path(request.run_report_path)
-    try:
-        report_path.parent.mkdir(parents=True, exist_ok=True)
-        report_path.write_text(
-            json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True),
-            encoding="utf-8",
-        )
-    except OSError:
-        log.warning("Failed to write run report: %s", report_path, exc_info=True)
-
-
-def _run_capture_verification_mode(
-    *,
-    verify_capture_schema_dir: str,
-    verify_capture_baseline_dir: str | None,
-    presenter: CliPresenter,
-) -> CaptureVerificationSummary:
-    """Run capture schema verification command mode and return summary."""
-    try:
-        if verify_capture_baseline_dir:
-            summary = verify_capture_schema_against_baseline(
-                verify_capture_schema_dir,
-                verify_capture_baseline_dir,
-            )
-        else:
-            summary = verify_capture_schema(verify_capture_schema_dir)
-    except CaptureVerificationError as exc:
-        _fail(str(exc), presenter=presenter, exit_code=VALIDATION_ERROR)
-
-    return summary
-
-
-def _resolve_all_mode_targets(
-    *,
-    request: DownloadRequest,
-    pages: tuple[str, ...],
-    title_index_endpoint: str,
-    id_length: int | None,
-    languages: tuple[str, ...],
-    browser_fallback: bool,
-    list_only: bool,
-    presenter: CliPresenter,
-) -> tuple[DownloadRequest | None, dict[str, int] | None]:
-    """Resolve title targets for ``--all`` mode and optionally print-only IDs."""
-    discovery_request = workflows.build_discovery_request(
-        pages=pages,
-        title_index_endpoint=title_index_endpoint,
-        id_length=id_length,
-        languages=languages,
-        browser_fallback=browser_fallback,
-        capture_api_dir=request.capture_api_dir,
-    )
-    try:
-        discovered_title_ids, notices = workflows.discover_title_ids(
-            discovery_request,
-            gateway=cast(workflows.TitleDiscoveryGateway, title_discovery),
-        )
-    except workflows.DiscoveryError as exc:
-        _fail(str(exc), presenter=presenter, exit_code=EXTERNAL_FAILURE)
-
-    presenter.emit_notices(notices)
-
-    if presenter.json_output and list_only:
-        presenter.emit_json(
-            {
-                "status": "ok",
-                "mode": "all_list_only",
-                "exit_code": SUCCESS,
-                "count": len(discovered_title_ids),
-                "title_ids": discovered_title_ids,
-            }
-        )
-        return None, None
-
-    if presenter.emits_human_output:
-        presenter.emit_discovery_summary(discovered_title_ids)
-        if list_only:
-            presenter.emit_discovery_ids(discovered_title_ids)
-            return None, None
-
-    if presenter.quiet and list_only:
-        return None, None
-
-    updated_request = request.with_additional_titles(set(discovered_title_ids))
-    metadata = {
-        "discovered_titles": len(discovered_title_ids),
-    }
-    return updated_request, metadata
-
-
-def _fail(
-    message: str,
-    *,
-    presenter: CliPresenter,
-    exit_code: int,
-    details: dict[str, object] | None = None,
-) -> NoReturn:
-    """Abort command execution with deterministic exit code and optional JSON error."""
-    if presenter.json_output:
-        payload: dict[str, object] = {
-            "status": "error",
-            "exit_code": exit_code,
-            "message": message,
-        }
-        if details:
-            payload.update(details)
-        presenter.emit_json(payload)
-        raise click.exceptions.Exit(exit_code)
-
-    raise MloaderCliError(message, exit_code=exit_code)
 
 
 if __name__ == "__main__":  # pragma: no cover

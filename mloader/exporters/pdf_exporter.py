@@ -6,13 +6,12 @@ import img2pdf
 from contextlib import suppress
 from pathlib import Path
 from tempfile import NamedTemporaryFile, TemporaryDirectory
-from typing import Optional, Union
 
 from PIL import Image
 
 from mloader.__version__ import __title__, __version__
 from mloader.exporters.exporter_base import ExporterBase
-from mloader.response_pb2 import Chapter, Title  # type: ignore
+from mloader.types import ChapterLike, PageIndex, TitleLike
 
 
 class PDFExporter(ExporterBase):
@@ -23,9 +22,9 @@ class PDFExporter(ExporterBase):
     def __init__(
         self,
         destination: str,
-        title: Title,
-        chapter: Chapter,
-        next_chapter: Optional[Chapter] = None,
+        title: TitleLike,
+        chapter: ChapterLike,
+        next_chapter: ChapterLike | None = None,
         add_chapter_title: bool = False,
         add_chapter_subdir: bool = False,
     ) -> None:
@@ -47,7 +46,7 @@ class PDFExporter(ExporterBase):
         if not self.skip_all_images:
             self._temp_dir = TemporaryDirectory(prefix="mloader-pdf-", dir=base_path)
 
-    def add_image(self, image_data: bytes, index: Union[int, range]) -> None:
+    def add_image(self, image_data: bytes, index: PageIndex) -> None:
         """Persist one image payload into a temporary page buffer file."""
         if self.skip_all_images:
             return
@@ -62,7 +61,7 @@ class PDFExporter(ExporterBase):
         page_path.write_bytes(image_data)
         self._page_paths.append(page_path)
 
-    def skip_image(self, index: Union[int, range]) -> bool:
+    def skip_image(self, index: PageIndex) -> bool:
         """Return whether the chapter PDF already exists."""
         _ = index
         return self.skip_all_images

@@ -27,7 +27,7 @@ jobs:
         run: uv sync --locked
 
       - name: Run ty
-        run: uv run ty check mloader scripts
+        run: uv run ty check mloader scripts tests
 
   ruff:
     name: Ruff lint and format

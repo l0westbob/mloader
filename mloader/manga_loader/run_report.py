@@ -30,7 +30,7 @@ class RunReport:
         self.failed_chapter_ids.append(chapter_id)
 
     def as_summary(self) -> DownloadSummary:
-        """Build immutable summary payload for CLI and workflow boundaries."""
+        """Build immutable summary payload for CLI boundaries."""
         return DownloadSummary(
             downloaded=self.downloaded,
             skipped_manifest=self.skipped_manifest,

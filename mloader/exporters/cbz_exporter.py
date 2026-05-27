@@ -7,10 +7,9 @@ from html import escape
 import zipfile
 from pathlib import Path
 from tempfile import NamedTemporaryFile
-from typing import Optional, Union
 
 from mloader.exporters.exporter_base import ExporterBase
-from mloader.response_pb2 import Chapter, Title  # type: ignore
+from mloader.types import ChapterLike, PageIndex, TitleLike
 
 
 class CBZExporter(ExporterBase):
@@ -33,9 +32,9 @@ class CBZExporter(ExporterBase):
     def __init__(
         self,
         destination: str,
-        title: Title,
-        chapter: Chapter,
-        next_chapter: Optional[Chapter] = None,
+        title: TitleLike,
+        chapter: ChapterLike,
+        next_chapter: ChapterLike | None = None,
         add_chapter_title: bool = False,
         add_chapter_subdir: bool = False,
         compression: int = zipfile.ZIP_DEFLATED,
@@ -70,14 +69,14 @@ class CBZExporter(ExporterBase):
                 compression=compression,
             )
 
-    def add_image(self, image_data: bytes, index: Union[int, range]) -> None:
+    def add_image(self, image_data: bytes, index: PageIndex) -> None:
         """Write one image into the CBZ archive."""
         if self.skip_all_images:
             return
         image_path = Path(self.chapter_name, self.format_page_name(index))
         self.archive.writestr(image_path.as_posix(), image_data)
 
-    def skip_image(self, index: Union[int, range]) -> bool:
+    def skip_image(self, index: PageIndex) -> bool:
         """Return whether image writes should be skipped."""
         _ = index
         return self.skip_all_images

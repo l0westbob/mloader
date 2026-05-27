@@ -1,0 +1,26 @@
+{
+  "success": {
+    "title_detail_view": {
+      "chapter_list": [
+        {
+          "chapter_id": 1024974,
+          "end_timestamp": 2145884400,
+          "name": "#001",
+          "start_timestamp": 1747407600,
+          "sub_title": "1st Pitch: Please Watch Out For Wormholes.",
+          "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100494/chapter/1024974/chapter_thumbnail/423776.webp",
+          "title_id": 100494
+        }
+      ],
+      "overview": "Mobile flat chapter-list fixture.",
+      "title": {
+        "author": "Teito Heji / Sai Yamagishi",
+        "landscape_image_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100494/title_thumbnail_main/423230.webp",
+        "name": "Aliens, Baseball, and Civilization",
+        "portrait_image_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100494/title_thumbnail_portrait_list/423233.webp",
+        "title_id": 100494
+      },
+      "title_image_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100494/title_thumbnail_main/423230.webp"
+    }
+  }
+}

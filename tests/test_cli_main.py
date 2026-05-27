@@ -1,139 +1,20 @@
-"""Tests for CLI command orchestration."""
+"""Tests for core CLI command orchestration."""
 
 from __future__ import annotations
 
 import json
-import logging
-from pathlib import Path
-from typing import Any, ClassVar
+from typing import Any
 
 import pytest
-import requests
 from click.testing import CliRunner
 
+from mloader.cli import download_command as cli_download_command
 from mloader.cli import main as cli_main
-from mloader.cli.exit_codes import EXTERNAL_FAILURE, INTERNAL_BUG, VALIDATION_ERROR
-from mloader.domain.requests import DownloadSummary
-from mloader.errors import SubscriptionRequiredError
-from mloader.manga_loader.downloader import DownloadInterruptedError
-from mloader.manga_loader.capture_verify import CaptureVerificationError, CaptureVerificationSummary
+from mloader.cli.exit_codes import VALIDATION_ERROR
 from mloader.config import AuthSettings
+from tests.cli_fakes import RecordingDownloadRuntime
 
 CHAPTER_ID = "1024959"
-CHAPTER_ID_ALT = "102278"
-FAILED_CHAPTER_ID_A = 102300
-FAILED_CHAPTER_ID_B = 102301
-
-
-class DummyLoader:
-    """Loader test double capturing constructor and download arguments."""
-
-    init_args: ClassVar[dict[str, Any] | None] = None
-    download_args: ClassVar[dict[str, Any] | None] = None
-
-    def __init__(
-        self,
-        exporter_factory: Any,
-        quality: str,
-        split: bool,
-        meta: bool,
-        cover: bool,
-        destination: str,
-        output_format: str,
-        capture_api_dir: str | None,
-        resume: bool,
-        manifest_reset: bool,
-        cover_format: str = "png",
-    ) -> None:
-        """Record initialization arguments for assertions."""
-        type(self).init_args = {
-            "exporter_factory": exporter_factory,
-            "quality": quality,
-            "split": split,
-            "meta": meta,
-            "cover": cover,
-            "cover_format": cover_format,
-            "destination": destination,
-            "output_format": output_format,
-            "capture_api_dir": capture_api_dir,
-            "resume": resume,
-            "manifest_reset": manifest_reset,
-        }
-
-    def download(self, **kwargs: Any) -> DownloadSummary:
-        """Record download call keyword arguments for assertions."""
-        type(self).download_args = kwargs
-        return DownloadSummary(
-            downloaded=1,
-            skipped_manifest=0,
-            failed=0,
-            failed_chapter_ids=(),
-        )
-
-
-class DummyRawExporter:
-    """Raw exporter marker class for monkeypatched CLI tests."""
-
-
-class DummyPdfExporter:
-    """PDF exporter marker class for monkeypatched CLI tests."""
-
-
-class FailingLoader(DummyLoader):
-    """Loader test double that always raises from download."""
-
-    def download(self, **kwargs: Any) -> None:
-        """Raise a runtime error to exercise CLI exception handling."""
-        del kwargs
-        raise RuntimeError("boom")
-
-
-class SubscriptionLoader(DummyLoader):
-    """Loader test double that raises subscription-required error."""
-
-    def download(self, **kwargs: Any) -> None:
-        """Raise a subscription-required error to test CLI messaging."""
-        del kwargs
-        raise SubscriptionRequiredError("A MAX subscription is required to download this chapter.")
-
-
-class RequestErrorLoader(DummyLoader):
-    """Loader test double that raises request-layer failures."""
-
-    def download(self, **kwargs: Any) -> None:
-        """Raise request exception to verify external-failure mapping."""
-        del kwargs
-        raise requests.RequestException("network down")
-
-
-class PartialFailureLoader(DummyLoader):
-    """Loader test double returning a failed chapter summary."""
-
-    def download(self, **kwargs: Any) -> DownloadSummary:
-        """Return a deterministic summary with chapter failures."""
-        del kwargs
-        return DownloadSummary(
-            downloaded=2,
-            skipped_manifest=1,
-            failed=2,
-            failed_chapter_ids=(FAILED_CHAPTER_ID_A, FAILED_CHAPTER_ID_B),
-        )
-
-
-class InterruptedLoader(DummyLoader):
-    """Loader test double raising interrupt wrapper with partial summary."""
-
-    def download(self, **kwargs: Any) -> DownloadSummary:
-        """Raise downloader interrupt error containing partial run summary."""
-        del kwargs
-        raise DownloadInterruptedError(
-            DownloadSummary(
-                downloaded=1,
-                skipped_manifest=1,
-                failed=1,
-                failed_chapter_ids=(int(CHAPTER_ID_ALT),),
-            )
-        )
 
 
 def test_cli_uses_default_info_logging_level(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -146,7 +27,7 @@ def test_cli_uses_default_info_logging_level(monkeypatch: pytest.MonkeyPatch) ->
         observed_level = level
 
     monkeypatch.setattr(cli_main, "setup_logging", _setup_logging)
-    monkeypatch.setattr(cli_main, "MangaLoader", DummyLoader)
+    monkeypatch.setattr(cli_main, "MangaLoader", RecordingDownloadRuntime)
 
     runner = CliRunner()
     result = runner.invoke(cli_main.main, ["--chapter-id", CHAPTER_ID])
@@ -167,7 +48,7 @@ def test_cli_exits_when_auth_os_value_is_unsupported(monkeypatch: pytest.MonkeyP
             secret="secret",
         ),
     )
-    monkeypatch.setattr(cli_main, "MangaLoader", DummyLoader)
+    monkeypatch.setattr(cli_main, "MangaLoader", RecordingDownloadRuntime)
 
     runner = CliRunner()
     result = runner.invoke(cli_main.main, ["--chapter-id", CHAPTER_ID])
@@ -187,7 +68,7 @@ def test_cli_uses_warning_logging_level_in_quiet_mode(monkeypatch: pytest.Monkey
         observed_level = level
 
     monkeypatch.setattr(cli_main, "setup_logging", _setup_logging)
-    monkeypatch.setattr(cli_main, "MangaLoader", DummyLoader)
+    monkeypatch.setattr(cli_main, "MangaLoader", RecordingDownloadRuntime)
 
     runner = CliRunner()
     result = runner.invoke(cli_main.main, ["--chapter-id", CHAPTER_ID, "--quiet"])
@@ -207,58 +88,13 @@ def test_cli_uses_debug_logging_level_in_verbose_mode(monkeypatch: pytest.Monkey
         observed_level = level
 
     monkeypatch.setattr(cli_main, "setup_logging", _setup_logging)
-    monkeypatch.setattr(cli_main, "MangaLoader", DummyLoader)
+    monkeypatch.setattr(cli_main, "MangaLoader", RecordingDownloadRuntime)
 
     runner = CliRunner()
     result = runner.invoke(cli_main.main, ["--chapter-id", CHAPTER_ID, "--verbose"])
 
     assert result.exit_code == 0
     assert observed_level == 10
-
-
-def test_cli_uses_raw_exporter_when_raw_flag_is_set(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """Verify --raw selects RawExporter and forwards chapter IDs."""
-    monkeypatch.setattr(cli_main, "MangaLoader", DummyLoader)
-    monkeypatch.setattr(cli_main, "RawExporter", DummyRawExporter)
-
-    runner = CliRunner()
-    result = runner.invoke(cli_main.main, ["--chapter-id", CHAPTER_ID, "--raw"])
-
-    assert result.exit_code == 0
-    assert DummyLoader.init_args is not None
-    assert DummyLoader.download_args is not None
-    assert DummyLoader.init_args["exporter_factory"].func is DummyRawExporter
-    assert DummyLoader.init_args["output_format"] == "raw"
-    assert DummyLoader.download_args["chapter_ids"] == {int(CHAPTER_ID)}
-
-
-def test_cli_uses_pdf_exporter_when_requested(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Verify --format pdf selects PDFExporter and forwards chapter IDs."""
-    monkeypatch.setattr(cli_main, "MangaLoader", DummyLoader)
-    monkeypatch.setattr(cli_main, "PDFExporter", DummyPdfExporter)
-
-    runner = CliRunner()
-    result = runner.invoke(cli_main.main, ["--chapter-id", CHAPTER_ID, "--format", "pdf"])
-
-    assert result.exit_code == 0
-    assert DummyLoader.init_args is not None
-    assert DummyLoader.download_args is not None
-    assert DummyLoader.init_args["exporter_factory"].func is DummyPdfExporter
-    assert DummyLoader.init_args["output_format"] == "pdf"
-    assert DummyLoader.download_args["chapter_ids"] == {int(CHAPTER_ID)}
-
-
-def test_cli_returns_error_when_download_fails(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Verify CLI returns a click error when loader download raises."""
-    monkeypatch.setattr(cli_main, "MangaLoader", FailingLoader)
-
-    runner = CliRunner()
-    result = runner.invoke(cli_main.main, ["--chapter-id", CHAPTER_ID])
-
-    assert result.exit_code == INTERNAL_BUG
-    assert "Download failed" in result.output
 
 
 def test_cli_without_ids_prints_help_and_exits_cleanly() -> None:
@@ -280,7 +116,11 @@ def test_cli_show_examples_exits_without_download(monkeypatch: pytest.MonkeyPatc
         invoked["download_called"] = True
         raise AssertionError("execute_download should not be called in --show-examples mode")
 
-    monkeypatch.setattr(cli_main.workflows, "execute_download", _raise_if_called)
+    monkeypatch.setattr(
+        cli_download_command.download_use_cases,
+        "execute_download",
+        _raise_if_called,
+    )
 
     runner = CliRunner()
     result = runner.invoke(cli_main.main, ["--show-examples"])
@@ -302,459 +142,3 @@ def test_cli_show_examples_json_mode_returns_catalog() -> None:
     assert payload["mode"] == "show_examples"
     assert payload["count"] > 0
     assert isinstance(payload["examples"], list)
-
-
-def test_cli_returns_subscription_message(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Verify CLI exposes subscription requirement failures from downloader."""
-    monkeypatch.setattr(cli_main, "MangaLoader", SubscriptionLoader)
-
-    runner = CliRunner()
-    result = runner.invoke(cli_main.main, ["--chapter-id", CHAPTER_ID])
-
-    assert result.exit_code == EXTERNAL_FAILURE
-    assert "A MAX subscription is required to download this chapter." in result.output
-
-
-def test_cli_forwards_capture_directory(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Verify --capture-api forwards directory to loader initialization."""
-    monkeypatch.setattr(cli_main, "MangaLoader", DummyLoader)
-
-    runner = CliRunner()
-    result = runner.invoke(
-        cli_main.main, ["--chapter-id", CHAPTER_ID, "--capture-api", "/tmp/captures"]
-    )
-
-    assert result.exit_code == 0
-    assert DummyLoader.init_args is not None
-    assert DummyLoader.init_args["capture_api_dir"] == "/tmp/captures"
-
-
-def test_cli_forwards_cover_flag(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Verify --cover enables title-cover download mode in loader initialization."""
-    monkeypatch.setattr(cli_main, "MangaLoader", DummyLoader)
-
-    runner = CliRunner()
-    result = runner.invoke(cli_main.main, ["--chapter-id", CHAPTER_ID, "--cover"])
-
-    assert result.exit_code == 0
-    assert DummyLoader.init_args is not None
-    assert DummyLoader.init_args["cover"] is True
-    assert DummyLoader.init_args["cover_format"] == "png"
-
-
-def test_cli_forwards_cover_format_when_cover_is_enabled(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """Verify --cover-format selects title-cover image format."""
-    monkeypatch.setattr(cli_main, "MangaLoader", DummyLoader)
-
-    runner = CliRunner()
-    result = runner.invoke(
-        cli_main.main,
-        ["--chapter-id", CHAPTER_ID, "--cover", "--cover-format", "webp"],
-    )
-
-    assert result.exit_code == 0
-    assert DummyLoader.init_args is not None
-    assert DummyLoader.init_args["cover"] is True
-    assert DummyLoader.init_args["cover_format"] == "webp"
-
-
-def test_cli_cover_format_implies_cover(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Verify explicit --cover-format enables title-cover download mode."""
-    monkeypatch.setattr(cli_main, "MangaLoader", DummyLoader)
-
-    runner = CliRunner()
-    result = runner.invoke(cli_main.main, ["--chapter-id", CHAPTER_ID, "--cover-format", "jpg"])
-
-    assert result.exit_code == 0
-    assert DummyLoader.init_args is not None
-    assert DummyLoader.init_args["cover"] is True
-    assert DummyLoader.init_args["cover_format"] == "jpg"
-
-
-def test_cli_rejects_invalid_cover_format() -> None:
-    """Verify unsupported cover formats fail during CLI validation."""
-    runner = CliRunner()
-    result = runner.invoke(cli_main.main, ["--chapter-id", CHAPTER_ID, "--cover-format", "bmp"])
-
-    assert result.exit_code == 2
-    assert "Invalid value for '--cover-format'" in result.output
-
-
-def test_cli_cover_defaults_to_disabled_with_png_format(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """Verify cover download remains disabled by default."""
-    monkeypatch.setattr(cli_main, "MangaLoader", DummyLoader)
-
-    runner = CliRunner()
-    result = runner.invoke(cli_main.main, ["--chapter-id", CHAPTER_ID])
-
-    assert result.exit_code == 0
-    assert DummyLoader.init_args is not None
-    assert DummyLoader.init_args["cover"] is False
-    assert DummyLoader.init_args["cover_format"] == "png"
-
-
-def test_cli_forwards_resume_and_manifest_reset_options(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Verify manifest behavior flags are forwarded to loader initialization."""
-    monkeypatch.setattr(cli_main, "MangaLoader", DummyLoader)
-
-    runner = CliRunner()
-    result = runner.invoke(
-        cli_main.main,
-        ["--chapter-id", CHAPTER_ID, "--no-resume", "--manifest-reset"],
-    )
-
-    assert result.exit_code == 0
-    assert DummyLoader.init_args is not None
-    assert DummyLoader.init_args["resume"] is False
-    assert DummyLoader.init_args["manifest_reset"] is True
-
-
-def test_cli_verifies_capture_schema_and_exits_without_download(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """Verify schema-verification mode runs and exits without invoking downloads."""
-    monkeypatch.setattr(
-        cli_main,
-        "verify_capture_schema",
-        lambda _path: CaptureVerificationSummary(
-            total_records=3,
-            endpoint_counts={"manga_viewer": 2, "title_detailV3": 1},
-        ),
-    )
-
-    runner = CliRunner()
-    result = runner.invoke(
-        cli_main.main,
-        ["--verify-capture-schema", "tests/fixtures/api_captures/baseline"],
-    )
-
-    assert result.exit_code == 0
-    assert "Verified 3 capture payload(s) in tests/fixtures/api_captures/baseline" in result.output
-
-
-def test_cli_verifies_capture_schema_against_baseline(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """Verify baseline comparison mode calls baseline verification path."""
-    monkeypatch.setattr(
-        cli_main,
-        "verify_capture_schema_against_baseline",
-        lambda _capture, _baseline: CaptureVerificationSummary(
-            total_records=3,
-            endpoint_counts={"manga_viewer": 2, "title_detailV3": 1},
-        ),
-    )
-
-    runner = CliRunner()
-    result = runner.invoke(
-        cli_main.main,
-        [
-            "--verify-capture-schema",
-            "tests/fixtures/api_captures/baseline",
-            "--verify-capture-baseline",
-            "tests/fixtures/api_captures/baseline",
-        ],
-    )
-
-    assert result.exit_code == 0
-    assert "against baseline tests/fixtures/api_captures/baseline" in result.output
-
-
-def test_cli_rejects_baseline_option_without_capture_schema() -> None:
-    """Verify baseline option requires a capture directory option."""
-    runner = CliRunner()
-    result = runner.invoke(
-        cli_main.main,
-        ["--verify-capture-baseline", "tests/fixtures/api_captures/baseline"],
-    )
-
-    assert result.exit_code == VALIDATION_ERROR
-    assert "--verify-capture-baseline requires --verify-capture-schema." in result.output
-
-
-def test_cli_verify_capture_schema_returns_click_error(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """Verify verification failures are exposed as click exceptions."""
-
-    def _raise_error(_path: str) -> None:
-        raise CaptureVerificationError("schema drift")
-
-    monkeypatch.setattr(cli_main, "verify_capture_schema", _raise_error)
-
-    runner = CliRunner()
-    result = runner.invoke(
-        cli_main.main,
-        ["--verify-capture-schema", "tests/fixtures/api_captures/baseline"],
-    )
-
-    assert result.exit_code == VALIDATION_ERROR
-    assert "schema drift" in result.output
-
-
-def test_cli_verify_capture_schema_json_mode_returns_structured_payload(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """Verify --json emits machine-readable payload for capture verification mode."""
-    monkeypatch.setattr(
-        cli_main,
-        "verify_capture_schema",
-        lambda _path: CaptureVerificationSummary(
-            total_records=3,
-            endpoint_counts={"manga_viewer": 2, "title_detailV3": 1},
-        ),
-    )
-
-    runner = CliRunner()
-    result = runner.invoke(
-        cli_main.main,
-        ["--json", "--verify-capture-schema", "tests/fixtures/api_captures/baseline"],
-    )
-
-    assert result.exit_code == 0
-    payload = json.loads(result.output)
-    assert payload == {
-        "status": "ok",
-        "mode": "verify_capture",
-        "exit_code": 0,
-        "capture_dir": "tests/fixtures/api_captures/baseline",
-        "baseline_dir": None,
-        "total_records": 3,
-        "endpoint_counts": {"manga_viewer": 2, "title_detailV3": 1},
-    }
-
-
-def test_cli_json_mode_returns_structured_success_payload(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """Verify --json returns machine-readable success payload for downloads."""
-    monkeypatch.setattr(cli_main, "MangaLoader", DummyLoader)
-
-    runner = CliRunner()
-    result = runner.invoke(cli_main.main, ["--json", "--chapter-id", CHAPTER_ID])
-
-    assert result.exit_code == 0
-    payload = json.loads(result.output)
-    assert payload["status"] == "ok"
-    assert payload["mode"] == "download"
-    assert payload["exit_code"] == 0
-    assert payload["targets"]["chapters"] == 0
-    assert payload["targets"]["chapter_ids"] == 1
-    assert payload["summary"] == {
-        "downloaded": 1,
-        "skipped_manifest": 0,
-        "failed": 0,
-        "failed_chapter_ids": [],
-    }
-
-
-def test_cli_writes_run_report_when_requested(
-    monkeypatch: pytest.MonkeyPatch,
-    tmp_path: Path,
-) -> None:
-    """Verify optional run reports capture cron-friendly run metadata."""
-    monkeypatch.setattr(cli_main, "MangaLoader", DummyLoader)
-    report_path = tmp_path / "run-report.json"
-
-    runner = CliRunner()
-    result = runner.invoke(
-        cli_main.main,
-        ["--chapter-id", CHAPTER_ID, "--run-report", str(report_path)],
-    )
-
-    assert result.exit_code == 0
-    report = json.loads(report_path.read_text(encoding="utf-8"))
-    assert report["status"] == "ok"
-    assert report["exit_code"] == 0
-    assert report["selected_args"]["target_chapter_ids"] == 1
-    assert report["selected_args"]["cover"] is False
-    assert report["selected_args"]["cover_format"] == "png"
-    assert report["summary"]["downloaded"] == 1
-    assert report["subscription_access_failures"] == 0
-    assert report["exporter_safety"]["version"] == "pdf-streaming-and-atomic-cbz-v1"
-
-
-def test_cli_writes_error_run_report_when_download_fails(
-    monkeypatch: pytest.MonkeyPatch,
-    tmp_path: Path,
-) -> None:
-    """Verify failed runs include error text in optional run reports."""
-    monkeypatch.setattr(cli_main, "MangaLoader", FailingLoader)
-    report_path = tmp_path / "run-report.json"
-
-    runner = CliRunner()
-    result = runner.invoke(
-        cli_main.main,
-        ["--chapter-id", CHAPTER_ID, "--run-report", str(report_path)],
-    )
-
-    assert result.exit_code == INTERNAL_BUG
-    report = json.loads(report_path.read_text(encoding="utf-8"))
-    assert report["status"] == "error"
-    assert report["exit_code"] == INTERNAL_BUG
-    assert "Download failed: boom" == report["error"]
-
-
-def test_run_report_write_errors_are_logged(
-    monkeypatch: pytest.MonkeyPatch,
-    caplog: pytest.LogCaptureFixture,
-) -> None:
-    """Verify report write failures do not mask the original CLI outcome."""
-    request = cli_main.workflows.build_download_request(
-        out_dir="/tmp/downloads",
-        raw=False,
-        output_format="cbz",
-        capture_api_dir=None,
-        quality="high",
-        split=False,
-        begin=0,
-        end=None,
-        last=False,
-        chapter_title=False,
-        chapter_subdir=False,
-        meta=False,
-        cover=False,
-        cover_format="png",
-        resume=True,
-        manifest_reset=False,
-        chapters=None,
-        chapter_ids={int(CHAPTER_ID)},
-        titles=None,
-        run_report_path="/tmp/report.json",
-    )
-
-    def _raise_write_error(self: Path, *_args: object, **_kwargs: object) -> int:
-        del self
-        raise OSError("disk full")
-
-    monkeypatch.setattr(cli_main.Path, "write_text", _raise_write_error)
-    caplog.set_level(logging.WARNING)
-
-    cli_main._write_run_report_if_requested(
-        request,
-        run_id="run-1",
-        started_at=cli_main.datetime.now(cli_main.timezone.utc),
-        status="ok",
-        exit_code=0,
-        discovery=None,
-        summary=DownloadSummary(
-            downloaded=1,
-            skipped_manifest=0,
-            failed=0,
-            failed_chapter_ids=(),
-        ),
-        error_message=None,
-    )
-
-    assert "Failed to write run report" in caplog.text
-
-
-def test_cli_json_mode_returns_structured_error_payload(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """Verify --json returns machine-readable error payload and deterministic exit code."""
-    monkeypatch.setattr(cli_main, "MangaLoader", FailingLoader)
-
-    runner = CliRunner()
-    result = runner.invoke(cli_main.main, ["--json", "--chapter-id", CHAPTER_ID])
-
-    assert result.exit_code == INTERNAL_BUG
-    payload = json.loads(result.output)
-    assert payload == {
-        "status": "error",
-        "exit_code": INTERNAL_BUG,
-        "message": "Download failed",
-    }
-
-
-def test_cli_maps_request_failures_to_external_exit_code(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """Verify request-layer failures are mapped to external-failure exit code."""
-    monkeypatch.setattr(cli_main, "MangaLoader", RequestErrorLoader)
-
-    runner = CliRunner()
-    result = runner.invoke(cli_main.main, ["--chapter-id", CHAPTER_ID])
-
-    assert result.exit_code == EXTERNAL_FAILURE
-    assert "Download request failed: network down" in result.output
-
-
-def test_cli_maps_interrupted_download_to_external_exit_code(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """Verify interrupted runs include partial summary and map to external failure."""
-    monkeypatch.setattr(cli_main, "MangaLoader", InterruptedLoader)
-
-    runner = CliRunner()
-    result = runner.invoke(cli_main.main, ["--chapter-id", CHAPTER_ID])
-
-    assert result.exit_code == EXTERNAL_FAILURE
-    assert "Download summary: downloaded=1, skipped_manifest=1, failed=1" in result.output
-    assert f"Failed chapter IDs: {CHAPTER_ID_ALT}" in result.output
-    assert "Download interrupted by user." in result.output
-
-
-def test_cli_returns_external_failure_when_summary_has_failed_chapters(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """Verify failed chapter summary maps to external failure exit code."""
-    monkeypatch.setattr(cli_main, "MangaLoader", PartialFailureLoader)
-
-    runner = CliRunner()
-    result = runner.invoke(cli_main.main, ["--chapter-id", CHAPTER_ID])
-
-    assert result.exit_code == EXTERNAL_FAILURE
-    assert "Download completed with 2 failed chapter(s)." in result.output
-
-
-def test_cli_json_mode_includes_failed_summary_payload(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """Verify JSON error payload includes summary details for partial failures."""
-    monkeypatch.setattr(cli_main, "MangaLoader", PartialFailureLoader)
-
-    runner = CliRunner()
-    result = runner.invoke(cli_main.main, ["--json", "--chapter-id", CHAPTER_ID])
-
-    assert result.exit_code == EXTERNAL_FAILURE
-    payload = json.loads(result.output)
-    assert payload == {
-        "status": "error",
-        "exit_code": EXTERNAL_FAILURE,
-        "message": "Download completed with 2 failed chapter(s).",
-        "summary": {
-            "downloaded": 2,
-            "skipped_manifest": 1,
-            "failed": 2,
-            "failed_chapter_ids": [FAILED_CHAPTER_ID_A, FAILED_CHAPTER_ID_B],
-        },
-    }
-
-
-def test_cli_json_mode_includes_interrupted_summary_payload(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """Verify interrupted runs emit JSON error payload including partial summary."""
-    monkeypatch.setattr(cli_main, "MangaLoader", InterruptedLoader)
-
-    runner = CliRunner()
-    result = runner.invoke(cli_main.main, ["--json", "--chapter-id", CHAPTER_ID])
-
-    assert result.exit_code == EXTERNAL_FAILURE
-    payload = json.loads(result.output)
-    assert payload == {
-        "status": "error",
-        "exit_code": EXTERNAL_FAILURE,
-        "message": "Download interrupted by user.",
-        "summary": {
-            "downloaded": 1,
-            "skipped_manifest": 1,
-            "failed": 1,
-            "failed_chapter_ids": [int(CHAPTER_ID_ALT)],
-        },
-    }

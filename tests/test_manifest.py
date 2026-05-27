@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Any, cast
 
 import pytest
 
@@ -15,9 +16,9 @@ from mloader.manga_loader.manifest import (
 )
 
 
-def _load_manifest(path: Path) -> dict[str, object]:
+def _load_manifest(path: Path) -> dict[str, Any]:
     """Read manifest JSON payload from ``path``."""
-    return json.loads(path.read_text(encoding="utf-8"))
+    return cast(dict[str, Any], json.loads(path.read_text(encoding="utf-8")))
 
 
 def test_manifest_tracks_started_completed_and_failed_states(tmp_path: Path) -> None:
@@ -47,7 +48,7 @@ def test_manifest_tracks_started_completed_and_failed_states(tmp_path: Path) -> 
 
 
 def test_manifest_load_migrates_v1_payload_and_persists_current_schema(tmp_path: Path) -> None:
-    """Verify versioned legacy payloads are migrated to latest schema on load."""
+    """Verify versioned payloads are migrated to latest schema on load."""
     manifest_path = tmp_path / MANIFEST_FILENAME
     manifest_path.write_text(
         json.dumps(

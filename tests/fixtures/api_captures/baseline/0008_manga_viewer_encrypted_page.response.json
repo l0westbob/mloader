@@ -1,0 +1,48 @@
+{
+  "success": {
+    "manga_viewer": {
+      "chapter_id": 1024974,
+      "chapter_name": "#001",
+      "chapters": [
+        {
+          "chapter_id": 1024974,
+          "end_timestamp": 2145884400,
+          "name": "#001",
+          "start_timestamp": 1747407600,
+          "sub_title": "1st Pitch: Please Watch Out For Wormholes.",
+          "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100494/chapter/1024974/chapter_thumbnail/423776.webp",
+          "title_id": 100494
+        }
+      ],
+      "number_of_comments": 42,
+      "pages": [
+        {
+          "manga_page": {
+            "encryption_key": "00112233445566778899aabbccddeeff",
+            "height": 2100,
+            "image_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100494/chapter/1024974/manga_page/super_high/1.webp",
+            "type": 1,
+            "width": 1400
+          }
+        },
+        {
+          "last_page": {
+            "chapter_type": 1,
+            "current_chapter": {
+              "chapter_id": 1024974,
+              "end_timestamp": 2145884400,
+              "name": "#001",
+              "start_timestamp": 1747407600,
+              "sub_title": "1st Pitch: Please Watch Out For Wormholes.",
+              "thumbnail_url": "https://jumpg-assets.tokyo-cdn.com/secure/title/100494/chapter/1024974/chapter_thumbnail/423776.webp",
+              "title_id": 100494
+            }
+          }
+        }
+      ],
+      "start_from_right": true,
+      "title_id": 100494,
+      "title_name": "Aliens, Baseball, and Civilization"
+    }
+  }
+}

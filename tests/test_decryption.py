@@ -1,23 +1,8 @@
-"""Tests for decryption helper functions and mixin behavior."""
+"""Tests for decryption helper functions."""
 
 from __future__ import annotations
 
-from types import SimpleNamespace
-
 from mloader.manga_loader import decryption
-
-
-class DummyDecryptor(decryption.DecryptionMixin):
-    """Simple decryptor test double with an in-memory HTTP response."""
-
-    def __init__(self, payload: bytes) -> None:
-        """Store a fake session returning ``payload`` for any URL."""
-        self.request_timeout = (1.0, 2.0)
-        self.session = SimpleNamespace(
-            get=lambda _url, timeout: SimpleNamespace(
-                content=payload, raise_for_status=lambda: None
-            ),
-        )
 
 
 def test_convert_hex_to_bytes_and_xor_decrypt_roundtrip() -> None:
@@ -30,15 +15,12 @@ def test_convert_hex_to_bytes_and_xor_decrypt_roundtrip() -> None:
     assert decrypted == bytearray(b"AB")
 
 
-def test_fetch_encrypted_data_and_decrypt_image() -> None:
-    """Verify mixin fetch and decrypt methods return the expected plaintext."""
+def test_xor_decrypt_accepts_repeating_key() -> None:
+    """Verify XOR decryption supports keys shorter than the payload."""
     key_hex = "0f0f"
     original = bytearray(b"abc")
     encrypted = decryption._xor_decrypt(bytearray(original), bytes.fromhex(key_hex))
 
-    decryptor = DummyDecryptor(bytes(encrypted))
-    fetched = decryptor._fetch_encrypted_data("http://example")
-    decrypted = decryptor._decrypt_image("http://example", key_hex)
+    decrypted = decryption._xor_decrypt(encrypted, decryption._convert_hex_to_bytes(key_hex))
 
-    assert fetched == encrypted
     assert decrypted == original

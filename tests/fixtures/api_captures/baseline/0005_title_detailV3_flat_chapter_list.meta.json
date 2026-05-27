@@ -1,0 +1,18 @@
+{
+  "captured_at_utc": "2026-05-27T00:00:00+00:00",
+  "endpoint": "title_detailV3",
+  "identifier": "100494",
+  "params": {
+    "app_ver": "97",
+    "os": "ios",
+    "os_ver": "18.1",
+    "secret": "***REDACTED***",
+    "title_id": 100494
+  },
+  "parsed_payload_file": "0005_title_detailV3_flat_chapter_list.response.json",
+  "payload_classification": "success",
+  "payload_sha256": "584e8cdcfbf36227f7a71c14363c333668e3c7da61f8dcf88f27a35391f2317b",
+  "payload_size_bytes": 564,
+  "raw_payload_file": "0005_title_detailV3_flat_chapter_list.pb",
+  "url": "https://jumpg-api.tokyo-cdn.com/api/title_detailV3"
+}
