@@ -93,6 +93,7 @@ class DummyLoader:
         capture_api_dir: str | None,
         resume: bool,
         manifest_reset: bool,
+        cover_format: str = "png",
     ) -> None:
         """Store initializer payload for assertions."""
         type(self).init_args = {
@@ -101,6 +102,7 @@ class DummyLoader:
             "split": split,
             "meta": meta,
             "cover": cover,
+            "cover_format": cover_format,
             "destination": destination,
             "output_format": output_format,
             "capture_api_dir": capture_api_dir,

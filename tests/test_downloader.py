@@ -32,6 +32,7 @@ class DummyDownloader(DownloadMixin):
         self.request_timeout = (0.1, 0.1)
         self.meta = False
         self.cover = False
+        self.cover_format = "png"
         self.resume = True
         self.manifest_reset = False
 
@@ -59,6 +60,7 @@ class FullDownloader(DownloadMixin):
         self.request_timeout = (0.1, 0.1)
         self.meta = False
         self.cover = False
+        self.cover_format = "png"
         self.resume = True
         self.manifest_reset = False
         self.session = DummySession(DummyResponse(content=b"default"))
@@ -239,13 +241,26 @@ def test_resolve_cover_image_url_falls_back_to_landscape_then_none() -> None:
     assert downloader._resolve_cover_image_url(no_cover) is None
 
 
-def test_dump_title_cover_downloads_and_saves_png(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+@pytest.mark.parametrize(
+    ("cover_format", "expected_pil_format", "expected_mode"),
+    [
+        ("png", "PNG", "RGBA"),
+        ("jpg", "JPEG", "RGB"),
+        ("webp", "WEBP", "RGBA"),
+    ],
+)
+def test_dump_title_cover_exports_selected_format(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    cover_format: str,
+    expected_pil_format: str,
+    expected_mode: str,
 ) -> None:
-    """Verify cover export downloads bytes and stores PNG output."""
+    """Verify cover export downloads bytes and stores the selected image format."""
     downloader = DummyDownloader(destination=str(tmp_path))
+    downloader.cover_format = cover_format
     image_bytes = BytesIO()
-    Image.new("RGB", (1, 1), (255, 0, 0)).save(image_bytes, format="JPEG")
+    Image.new("RGBA", (1, 1), (255, 0, 0, 128)).save(image_bytes, format="PNG")
     image_blob = image_bytes.getvalue()
 
     monkeypatch.setattr(downloader, "_download_image", lambda _url: image_blob)
@@ -258,9 +273,33 @@ def test_dump_title_cover_downloads_and_saves_png(
 
     downloader._dump_title_cover(title_dump, export_dir)
 
-    cover_path = export_dir / "cover.png"
+    cover_path = export_dir / f"cover.{cover_format}"
     assert cover_path.exists()
-    assert cover_path.read_bytes().startswith(b"\x89PNG\r\n\x1a\n")
+    with Image.open(cover_path) as image:
+        assert image.format == expected_pil_format
+        assert image.mode == expected_mode
+
+
+def test_dump_title_cover_raises_on_invalid_cover_format(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify defensive validation catches unsupported cover formats."""
+    downloader = DummyDownloader(destination=str(tmp_path))
+    downloader.cover_format = "bmp"
+    image_bytes = BytesIO()
+    Image.new("RGB", (1, 1), (255, 0, 0)).save(image_bytes, format="JPEG")
+    image_blob = image_bytes.getvalue()
+
+    monkeypatch.setattr(downloader, "_download_image", lambda _url: image_blob)
+
+    title_dump = SimpleNamespace(
+        title_image_url="https://img/main.webp",
+        title=SimpleNamespace(name="my manga", portrait_image_url="", landscape_image_url=""),
+    )
+
+    with pytest.raises(ValueError, match="Unsupported cover format: bmp"):
+        downloader._dump_title_cover(title_dump, tmp_path / "My Manga")
 
 
 def test_dump_title_cover_skips_when_cover_url_is_missing(
@@ -279,19 +318,20 @@ def test_dump_title_cover_skips_when_cover_url_is_missing(
     assert "Cover export skipped" in caplog.text
 
 
-def test_dump_title_cover_skips_when_cover_file_already_exists(
+def test_dump_title_cover_skips_when_selected_cover_file_already_exists(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Verify cover export does not re-download when cover.png already exists."""
+    """Verify cover export does not re-download when selected cover file exists."""
     downloader = DummyDownloader(destination=str(tmp_path))
+    downloader.cover_format = "webp"
     title_dump = SimpleNamespace(
         title_image_url="https://img/main.webp",
         title=SimpleNamespace(name="my manga", portrait_image_url="", landscape_image_url=""),
     )
     export_dir = tmp_path / "My Manga"
     export_dir.mkdir(parents=True, exist_ok=True)
-    (export_dir / "cover.png").write_bytes(b"already")
+    (export_dir / "cover.webp").write_bytes(b"already")
 
     monkeypatch.setattr(
         downloader,

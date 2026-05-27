@@ -43,6 +43,7 @@ class DummyLoader:
         capture_api_dir: str | None,
         resume: bool,
         manifest_reset: bool,
+        cover_format: str = "png",
     ) -> None:
         """Record initialization arguments for assertions."""
         type(self).init_args = {
@@ -51,6 +52,7 @@ class DummyLoader:
             "split": split,
             "meta": meta,
             "cover": cover,
+            "cover_format": cover_format,
             "destination": destination,
             "output_format": output_format,
             "capture_api_dir": capture_api_dir,
@@ -337,6 +339,62 @@ def test_cli_forwards_cover_flag(monkeypatch: pytest.MonkeyPatch) -> None:
     assert result.exit_code == 0
     assert DummyLoader.init_args is not None
     assert DummyLoader.init_args["cover"] is True
+    assert DummyLoader.init_args["cover_format"] == "png"
+
+
+def test_cli_forwards_cover_format_when_cover_is_enabled(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify --cover-format selects title-cover image format."""
+    monkeypatch.setattr(cli_main, "MangaLoader", DummyLoader)
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli_main.main,
+        ["--chapter-id", CHAPTER_ID, "--cover", "--cover-format", "webp"],
+    )
+
+    assert result.exit_code == 0
+    assert DummyLoader.init_args is not None
+    assert DummyLoader.init_args["cover"] is True
+    assert DummyLoader.init_args["cover_format"] == "webp"
+
+
+def test_cli_cover_format_implies_cover(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify explicit --cover-format enables title-cover download mode."""
+    monkeypatch.setattr(cli_main, "MangaLoader", DummyLoader)
+
+    runner = CliRunner()
+    result = runner.invoke(cli_main.main, ["--chapter-id", CHAPTER_ID, "--cover-format", "jpg"])
+
+    assert result.exit_code == 0
+    assert DummyLoader.init_args is not None
+    assert DummyLoader.init_args["cover"] is True
+    assert DummyLoader.init_args["cover_format"] == "jpg"
+
+
+def test_cli_rejects_invalid_cover_format() -> None:
+    """Verify unsupported cover formats fail during CLI validation."""
+    runner = CliRunner()
+    result = runner.invoke(cli_main.main, ["--chapter-id", CHAPTER_ID, "--cover-format", "bmp"])
+
+    assert result.exit_code == 2
+    assert "Invalid value for '--cover-format'" in result.output
+
+
+def test_cli_cover_defaults_to_disabled_with_png_format(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify cover download remains disabled by default."""
+    monkeypatch.setattr(cli_main, "MangaLoader", DummyLoader)
+
+    runner = CliRunner()
+    result = runner.invoke(cli_main.main, ["--chapter-id", CHAPTER_ID])
+
+    assert result.exit_code == 0
+    assert DummyLoader.init_args is not None
+    assert DummyLoader.init_args["cover"] is False
+    assert DummyLoader.init_args["cover_format"] == "png"
 
 
 def test_cli_forwards_resume_and_manifest_reset_options(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -513,6 +571,8 @@ def test_cli_writes_run_report_when_requested(
     assert report["status"] == "ok"
     assert report["exit_code"] == 0
     assert report["selected_args"]["target_chapter_ids"] == 1
+    assert report["selected_args"]["cover"] is False
+    assert report["selected_args"]["cover_format"] == "png"
     assert report["summary"]["downloaded"] == 1
     assert report["subscription_access_failures"] == 0
     assert report["exporter_safety"]["version"] == "pdf-streaming-and-atomic-cbz-v1"
@@ -558,6 +618,7 @@ def test_run_report_write_errors_are_logged(
         chapter_subdir=False,
         meta=False,
         cover=False,
+        cover_format="png",
         resume=True,
         manifest_reset=False,
         chapters=None,

@@ -37,6 +37,7 @@ def test_manga_loader_configures_transport_defaults() -> None:
     assert session.get_adapter("https://").max_retries.total == 3
     assert loader._runtime.resume is True
     assert loader._runtime.manifest_reset is False
+    assert loader._runtime.cover_format == "png"
 
 
 def test_manga_loader_enables_payload_capture_when_directory_is_set(tmp_path: Path) -> None:

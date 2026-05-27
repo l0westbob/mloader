@@ -9,8 +9,10 @@ import requests
 
 from mloader.domain.requests import (
     ApiOutputFormat,
-    DownloadSummary,
+    COVER_FORMATS,
+    CoverFormat,
     DownloadRequest,
+    DownloadSummary,
     DiscoveryRequest,
     EffectiveOutputFormat,
 )
@@ -203,6 +205,7 @@ def execute_download(
         capture_api_dir=request.capture_api_dir,
         resume=request.resume,
         manifest_reset=request.manifest_reset,
+        cover_format=request.cover_format,
     )
     try:
         summary = loader.download(
@@ -267,6 +270,7 @@ def build_download_request(
     chapter_subdir: bool,
     meta: bool,
     cover: bool,
+    cover_format: str,
     resume: bool,
     manifest_reset: bool,
     chapters: Collection[int] | None,
@@ -276,6 +280,10 @@ def build_download_request(
 ) -> DownloadRequest:
     """Create a typed download request from CLI-normalized values."""
     api_output_format: ApiOutputFormat = "pdf" if output_format == "pdf" else "cbz"
+    normalized_cover_format = cover_format.lower()
+    if normalized_cover_format not in COVER_FORMATS:
+        raise ValueError(f"Unsupported cover format: {cover_format}")
+    typed_cover_format = cast(CoverFormat, normalized_cover_format)
     return DownloadRequest(
         out_dir=out_dir,
         raw=raw,
@@ -290,6 +298,7 @@ def build_download_request(
         chapter_subdir=chapter_subdir,
         meta=meta,
         cover=cover,
+        cover_format=typed_cover_format,
         resume=resume,
         manifest_reset=manifest_reset,
         chapters=frozenset(chapters or set()),
@@ -332,6 +341,7 @@ def to_chapter_id_debug_map(
         "raw": request.raw,
         "format": request.output_format,
         "cover": request.cover,
+        "cover_format": request.cover_format,
         "resume": request.resume,
         "manifest_reset": request.manifest_reset,
         "capture_api": request.capture_api_dir is not None,

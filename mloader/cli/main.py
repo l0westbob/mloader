@@ -10,6 +10,7 @@ from typing import NoReturn, cast
 from uuid import uuid4
 
 import click
+from click.core import ParameterSource
 
 from mloader import __version__ as about
 from mloader.application import workflows
@@ -20,7 +21,7 @@ from mloader.cli.exit_codes import EXTERNAL_FAILURE, INTERNAL_BUG, SUCCESS, VALI
 from mloader.cli.presenter import CliPresenter
 from mloader.cli.validators import validate_ids, validate_urls
 from mloader.config import AUTH_SETTINGS
-from mloader.domain.requests import DownloadRequest, DownloadSummary
+from mloader.domain.requests import COVER_FORMATS, DownloadRequest, DownloadSummary
 from mloader.errors import SubscriptionRequiredError
 from mloader.exporters.init import CBZExporter, PDFExporter, RawExporter
 from mloader.manga_loader.capture_verify import (
@@ -284,7 +285,14 @@ class MloaderCliError(click.ClickException):
     is_flag=True,
     default=False,
     show_default=True,
-    help="Download each title cover image as PNG",
+    help="Download each title cover image (PNG by default)",
+)
+@click.option(
+    "--cover-format",
+    type=click.Choice(COVER_FORMATS, case_sensitive=False),
+    default="png",
+    show_default=True,
+    help="Cover image format; implies --cover when provided",
 )
 @click.option(
     "--resume/--no-resume",
@@ -330,6 +338,7 @@ def main(
     chapter_subdir: bool,
     meta: bool,
     cover: bool,
+    cover_format: str,
     resume: bool,
     manifest_reset: bool,
     chapters: set[int] | None = None,
@@ -385,6 +394,9 @@ def main(
             exit_code=VALIDATION_ERROR,
         )
 
+    cover_format_was_provided = (
+        ctx.get_parameter_source("cover_format") is ParameterSource.COMMANDLINE
+    )
     request = workflows.build_download_request(
         out_dir=out_dir,
         raw=raw,
@@ -398,7 +410,8 @@ def main(
         chapter_title=chapter_title,
         chapter_subdir=chapter_subdir,
         meta=meta,
-        cover=cover,
+        cover=cover or cover_format_was_provided,
+        cover_format=cover_format,
         resume=resume,
         manifest_reset=manifest_reset,
         chapters=chapters,

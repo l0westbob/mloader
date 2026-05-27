@@ -76,6 +76,11 @@ _EXAMPLE_SPECS: tuple[tuple[str, str, str], ...] = (
         "Stores one cover image per title as cover.png.",
     ),
     (
+        "Download title cover image as WEBP",
+        "{prog} --title 100312 --cover-format webp",
+        "Stores one cover image per title as cover.webp.",
+    ),
+    (
         "Capture API payloads for regression analysis",
         "{prog} --title 100312 --capture-api ./capture/new-run",
         "Stores protobuf payloads and metadata for future schema checks.",

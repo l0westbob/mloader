@@ -9,7 +9,7 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 from mloader.config import MOBILE_API_HEADERS
-from mloader.domain.requests import DownloadSummary
+from mloader.domain.requests import CoverFormat, DownloadSummary
 from mloader.types import ExporterFactoryLike, PayloadCaptureLike, SessionLike
 
 from .api import APILoaderMixin
@@ -30,6 +30,7 @@ class _LoaderRuntime(APILoaderMixin, NormalizationMixin, DownloadMixin, Decrypti
         split: bool,
         meta: bool,
         cover: bool,
+        cover_format: CoverFormat,
         destination: str,
         output_format: Literal["raw", "cbz", "pdf"],
         session: SessionLike | None,
@@ -44,6 +45,7 @@ class _LoaderRuntime(APILoaderMixin, NormalizationMixin, DownloadMixin, Decrypti
         """Initialize runtime dependencies and transport settings."""
         self.meta = meta
         self.cover = cover
+        self.cover_format = cover_format
         self.exporter = exporter
         self.destination = destination
         self.output_format = output_format
@@ -101,6 +103,7 @@ class MangaLoader:
         resume: bool = True,
         manifest_reset: bool = False,
         services: DownloadServices | None = None,
+        cover_format: CoverFormat = "png",
     ) -> None:
         """Initialize the composed runtime and preserve public constructor contract."""
         self._runtime = _LoaderRuntime(
@@ -109,6 +112,7 @@ class MangaLoader:
             split=split,
             meta=meta,
             cover=cover,
+            cover_format=cover_format,
             destination=destination,
             output_format=output_format,
             session=session,
