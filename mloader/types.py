@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from typing import Mapping, MutableMapping, Protocol, Sequence
+from typing import Mapping, MutableMapping, Protocol
+
+PageIndex = int | range
 
 
 class ChapterLike(Protocol):
@@ -24,56 +26,6 @@ class TitleLike(Protocol):
     language: int
 
 
-class ChapterGroupLike(Protocol):
-    """Shape for grouped chapter lists in title details payloads."""
-
-    first_chapter_list: Sequence[ChapterLike]
-    mid_chapter_list: Sequence[ChapterLike]
-    last_chapter_list: Sequence[ChapterLike]
-
-
-class TitleDumpLike(Protocol):
-    """Shape for title details payload used by downloader."""
-
-    title: TitleLike
-    title_image_url: str
-    chapter_list_group: Sequence[ChapterGroupLike]
-    non_appearance_info: str
-    number_of_views: int
-    overview: str
-
-
-class MangaPageLike(Protocol):
-    """Shape for chapter page image payload."""
-
-    image_url: str
-    type: int
-
-
-class LastPageLike(Protocol):
-    """Shape for final page metadata payload."""
-
-    current_chapter: ChapterLike
-    next_chapter: ChapterLike
-
-
-class ViewerPageLike(Protocol):
-    """Shape for a viewer page entry."""
-
-    manga_page: MangaPageLike
-    last_page: LastPageLike
-
-
-class MangaViewerLike(Protocol):
-    """Shape for manga viewer payload used in downloads."""
-
-    title_id: int
-    chapter_id: int
-    chapter_name: str
-    chapters: Sequence[ChapterLike]
-    pages: Sequence[ViewerPageLike]
-
-
 class ResponseLike(Protocol):
     """Minimal HTTP response contract used by loader transport code."""
 
@@ -84,7 +36,7 @@ class ResponseLike(Protocol):
 
 
 class SessionLike(Protocol):
-    """Minimal HTTP session contract used by loader mixins."""
+    """Minimal HTTP session contract used by runtime transport code."""
 
     headers: MutableMapping[str, str]
 
@@ -103,10 +55,10 @@ class SessionLike(Protocol):
 class ExporterLike(Protocol):
     """Minimal exporter contract used by downloader orchestration."""
 
-    def add_image(self, image_data: bytes, index: int | range) -> None:
+    def add_image(self, image_data: bytes, index: PageIndex) -> None:
         """Persist one image payload."""
 
-    def skip_image(self, index: int | range) -> bool:
+    def skip_image(self, index: PageIndex) -> bool:
         """Return whether a page index should be skipped."""
 
     def close(self) -> None:
@@ -121,7 +73,7 @@ class ExporterFactoryLike(Protocol):
         *,
         title: TitleLike,
         chapter: ChapterLike,
-        next_chapter: ChapterLike | None,
+        next_chapter: ChapterLike | None = None,
     ) -> ExporterLike:
         """Create and return an exporter instance."""
 

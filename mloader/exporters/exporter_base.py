@@ -4,10 +4,10 @@ from __future__ import annotations
 
 from abc import ABCMeta, abstractmethod
 from pathlib import Path
-from typing import ClassVar, Optional, Union
+from typing import ClassVar
 
 from mloader.constants import Language
-from mloader.response_pb2 import Chapter, Title  # type: ignore
+from mloader.types import ChapterLike, PageIndex, TitleLike
 from mloader.utils import escape_path, is_oneshot, is_windows
 
 
@@ -58,9 +58,9 @@ class ExporterBase(metaclass=ABCMeta):
     def __init__(
         self,
         destination: str,
-        title: Title,
-        chapter: Chapter,
-        next_chapter: Optional[Chapter] = None,
+        title: TitleLike,
+        chapter: ChapterLike,
+        next_chapter: ChapterLike | None = None,
         add_chapter_title: bool = False,
         add_chapter_subdir: bool = False,
     ) -> None:
@@ -97,7 +97,7 @@ class ExporterBase(metaclass=ABCMeta):
         title_name: str,
         chapter_name: str,
         language: int,
-        next_chapter_name: Optional[str] = None,
+        next_chapter_name: str | None = None,
     ) -> str:
         """Build the filename prefix used by chapter and page outputs."""
         _ = next_chapter_name
@@ -118,7 +118,7 @@ class ExporterBase(metaclass=ABCMeta):
         """Return the chapter language as an ISO 639-1 code."""
         return _iso_language_code(self.language)
 
-    def format_page_name(self, page: Union[int, range], ext: str = ".jpg") -> str:
+    def format_page_name(self, page: PageIndex, ext: str = ".jpg") -> str:
         """Return the canonical page filename for ``page``."""
         if isinstance(page, range):
             page_str = f"p{page.start:0>3}-{page.stop:0>3}"
@@ -141,9 +141,9 @@ class ExporterBase(metaclass=ABCMeta):
         super().__init_subclass__(**kwargs)
 
     @abstractmethod
-    def add_image(self, image_data: bytes, index: Union[int, range]) -> None:
+    def add_image(self, image_data: bytes, index: PageIndex) -> None:
         """Persist a single page image."""
 
     @abstractmethod
-    def skip_image(self, index: Union[int, range]) -> bool:
+    def skip_image(self, index: PageIndex) -> bool:
         """Return whether writing ``index`` can be skipped."""

@@ -91,7 +91,7 @@ _EXAMPLE_SPECS: tuple[tuple[str, str, str], ...] = (
         "Stores selected args, timings, summary counters, and exporter safety metadata.",
     ),
     (
-        "Verify capture schema compatibility",
+        "Verify capture schema fields",
         "{prog} --verify-capture-schema ./capture/new-run",
         "Checks captured payloads against required decode fields and exits.",
     ),

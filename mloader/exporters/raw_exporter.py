@@ -3,10 +3,9 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional, Union
 
 from mloader.exporters.exporter_base import ExporterBase
-from mloader.response_pb2 import Chapter, Title  # type: ignore
+from mloader.types import ChapterLike, PageIndex, TitleLike
 
 
 class RawExporter(ExporterBase):
@@ -17,9 +16,9 @@ class RawExporter(ExporterBase):
     def __init__(
         self,
         destination: str,
-        title: Title,
-        chapter: Chapter,
-        next_chapter: Optional[Chapter] = None,
+        title: TitleLike,
+        chapter: ChapterLike,
+        next_chapter: ChapterLike | None = None,
         add_chapter_title: bool = False,
         add_chapter_subdir: bool = False,
     ) -> None:
@@ -39,12 +38,12 @@ class RawExporter(ExporterBase):
             self.path = self.path.joinpath(self.chapter_name)
             self.path.mkdir(parents=True, exist_ok=True)
 
-    def add_image(self, image_data: bytes, index: Union[int, range]) -> None:
+    def add_image(self, image_data: bytes, index: PageIndex) -> None:
         """Write one page image file to disk."""
         filename = self.format_page_name(index)
         self.path.joinpath(filename).write_bytes(image_data)
 
-    def skip_image(self, index: Union[int, range]) -> bool:
+    def skip_image(self, index: PageIndex) -> bool:
         """Return whether the target image file already exists."""
         filename = self.format_page_name(index)
         return self.path.joinpath(filename).exists()

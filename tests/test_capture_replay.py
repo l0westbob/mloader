@@ -3,16 +3,18 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Mapping
 from pathlib import Path
-from typing import Any
-from types import SimpleNamespace
+from typing import Any, cast
 from urllib.parse import urlparse
 
 import pytest
 
-from mloader.manga_loader import api
+from mloader.domain.planning import build_download_plan
+from mloader.infrastructure.mangaplus import parsing
+from mloader.manga_loader.chapter_planning import ChapterPlanner
 from mloader.manga_loader.init import MangaLoader
-from mloader.manga_loader.services import ChapterPlanner
+from mloader.types import ChapterLike, ExporterLike, PageIndex, ResponseLike, SessionLike, TitleLike
 from mloader.utils import escape_path
 
 FIXTURE_CAPTURE_DIR = Path(__file__).parent / "fixtures" / "api_captures" / "baseline"
@@ -23,7 +25,7 @@ def _as_dict(value: object, context: str) -> dict[str, Any]:
     """Return ``value`` as a dictionary or raise a descriptive assertion error."""
     if not isinstance(value, dict):
         raise AssertionError(f"Expected dict for {context}, got {type(value).__name__}")
-    return value
+    return cast(dict[str, Any], value)
 
 
 def _as_list(value: object, context: str) -> list[Any]:
@@ -38,35 +40,62 @@ def _load_json(path: Path) -> dict[str, Any]:
     return _as_dict(json.loads(path.read_text(encoding="utf-8")), str(path))
 
 
-def _collect_capture_records(capture_dir: Path) -> list[tuple[str, dict[str, Any], dict[str, Any]]]:
+def _collect_capture_records(
+    capture_dir: Path,
+) -> list[tuple[str, dict[str, Any], dict[str, Any] | None]]:
     """Collect capture metadata/response records from ``capture_dir``."""
-    records: list[tuple[str, dict[str, Any], dict[str, Any]]] = []
+    records: list[tuple[str, dict[str, Any], dict[str, Any] | None]] = []
     for meta_path in sorted(capture_dir.glob("*.meta.json")):
         stem = meta_path.name.removesuffix(".meta.json")
+        meta = _load_json(meta_path)
         response_path = capture_dir / f"{stem}.response.json"
-        if not response_path.exists():
+        if response_path.exists():
+            response: dict[str, Any] | None = _load_json(response_path)
+        elif meta.get("payload_classification") == "api_error":
+            response = None
+        else:
             raise AssertionError(f"Missing response JSON for capture stem: {stem}")
-        records.append((stem, _load_json(meta_path), _load_json(response_path)))
+        records.append((stem, meta, response))
     return records
 
 
-def _schema_signature(meta: dict[str, Any], response: dict[str, Any]) -> dict[str, object]:
+def _schema_signature(
+    meta: dict[str, Any],
+    response: dict[str, Any] | None,
+) -> dict[str, object]:
     """Build a schema signature from capture metadata and parsed response JSON."""
     endpoint = str(meta["endpoint"])
-    success = _as_dict(response["success"], "response.success")
     signature: dict[str, object] = {
         "endpoint": endpoint,
         "url_path": urlparse(str(meta["url"])).path,
         "meta_keys": sorted(meta.keys()),
         "param_keys": sorted(_as_dict(meta["params"], "meta.params").keys()),
-        "success_keys": sorted(success.keys()),
     }
+
+    if meta.get("payload_classification") == "api_error":
+        api_error = _as_dict(meta.get("api_error"), "meta.api_error")
+        signature["payload_classification"] = "api_error"
+        signature["api_error_code"] = api_error.get("code")
+        signature["api_error_language"] = api_error.get("language")
+        signature["api_error_title"] = api_error.get("title")
+        return signature
+
+    if response is None:
+        raise AssertionError(f"Missing response JSON for successful endpoint: {endpoint}")
+
+    success = _as_dict(response["success"], "response.success")
+    signature["success_keys"] = sorted(success.keys())
 
     if endpoint == "manga_viewer":
         viewer = _as_dict(success["manga_viewer"], "response.success.manga_viewer")
         signature["payload_keys"] = sorted(viewer.keys())
 
-        pages = _as_list(viewer["pages"], "response.success.manga_viewer.pages")
+        pages = _as_list(viewer.get("pages", []), "response.success.manga_viewer.pages")
+        if meta.get("expected_runtime_error") == "subscription_required":
+            signature["payload_state"] = "subscription_required"
+            return signature
+
+        signature["payload_state"] = "pages"
         first_page = _as_dict(pages[0], "response.success.manga_viewer.pages[0]")
         last_page = _as_dict(pages[-1], "response.success.manga_viewer.pages[-1]")
         signature["first_page_keys"] = sorted(first_page.keys())
@@ -90,21 +119,47 @@ def _schema_signature(meta: dict[str, Any], response: dict[str, Any]) -> dict[st
             _as_dict(title_detail["title"], "response.success.title_detail_view.title").keys()
         )
 
-        chapter_groups = _as_list(
-            title_detail["chapter_list_group"],
-            "response.success.title_detail_view.chapter_list_group",
-        )
-        first_group = _as_dict(
-            chapter_groups[0],
-            "response.success.title_detail_view.chapter_list_group[0]",
-        )
-        signature["chapter_group_keys"] = sorted(first_group.keys())
+        chapter_groups = title_detail.get("chapter_list_group")
+        if chapter_groups:
+            grouped_chapters = _as_list(
+                chapter_groups,
+                "response.success.title_detail_view.chapter_list_group",
+            )
+            first_group = _as_dict(
+                grouped_chapters[0],
+                "response.success.title_detail_view.chapter_list_group[0]",
+            )
+            signature["chapter_source"] = "chapter_list_group"
+            signature["chapter_group_keys"] = sorted(first_group.keys())
 
-        first_chapter_list = _as_list(
-            first_group["first_chapter_list"], "chapter_group.first_chapter_list"
+            first_chapter_list = _as_list(
+                first_group["first_chapter_list"], "chapter_group.first_chapter_list"
+            )
+            first_chapter = _as_dict(first_chapter_list[0], "chapter_group.first_chapter_list[0]")
+            signature["chapter_keys"] = sorted(first_chapter.keys())
+            return signature
+
+        flat_chapters = _as_list(
+            title_detail.get("chapter_list", []),
+            "response.success.title_detail_view.chapter_list",
         )
-        first_chapter = _as_dict(first_chapter_list[0], "chapter_group.first_chapter_list[0]")
+        signature["chapter_source"] = "chapter_list"
+        first_chapter = _as_dict(flat_chapters[0], "title_detail.chapter_list[0]")
         signature["chapter_keys"] = sorted(first_chapter.keys())
+        return signature
+
+    if endpoint == "title_index":
+        all_titles = _as_dict(success["all_titles_view"], "response.success.all_titles_view")
+        signature["payload_keys"] = sorted(all_titles.keys())
+        title_groups = _as_list(
+            all_titles["title_groups"],
+            "response.success.all_titles_view.title_groups",
+        )
+        first_group = _as_dict(title_groups[0], "all_titles_view.title_groups[0]")
+        signature["title_group_keys"] = sorted(first_group.keys())
+        titles = _as_list(first_group["titles"], "all_titles_view.title_groups[0].titles")
+        first_title = _as_dict(titles[0], "all_titles_view.title_groups[0].titles[0]")
+        signature["title_keys"] = sorted(first_title.keys())
         return signature
 
     raise AssertionError(f"Unexpected endpoint in capture metadata: {endpoint}")
@@ -113,30 +168,82 @@ def _schema_signature(meta: dict[str, Any], response: dict[str, Any]) -> dict[st
 def test_title_detail_fixture_replays_into_chapter_planner() -> None:
     """Validate chapter planning logic against a real captured title-detail payload."""
     raw_payload = (FIXTURE_CAPTURE_DIR / "0001_title_detailV3_100010.pb").read_bytes()
-    title_dump = api._parse_title_detail_response(raw_payload)
+    title_detail = parsing.parse_title_detail_response(raw_payload)
 
-    assert title_dump.title.title_id == 100010
-    assert title_dump.title.name == "Dr. STONE"
+    assert title_detail.title.title_id == 100010
+    assert title_detail.title.name == "Dr. STONE"
 
-    chapter_data = ChapterPlanner.extract_chapter_data(title_dump, lambda value: value)
+    chapter_data = ChapterPlanner.extract_chapter_data(title_detail, lambda value: value)
     assert len(chapter_data) == 236
 
-    chapter_2 = ChapterPlanner.find_chapter_by_id(title_dump, 1000311)
+    chapter_2 = ChapterPlanner.find_chapter_by_id(title_detail, 1000311)
     assert chapter_2 is not None
     expected_existing = ChapterPlanner.build_expected_filename(
-        escape_path(title_dump.title.name).title(),
+        escape_path(title_detail.title.name).title(),
         chapter_2,
         chapter_2.sub_title,
     )
 
     result = ChapterPlanner.filter_chapters_to_download(
         chapter_data=chapter_data,
-        title_dump=title_dump,
-        title_detail=title_dump.title,
+        title_detail=title_detail,
         existing_files=[expected_existing],
         requested_chapter_ids={1000311, 1000312},
     )
     assert result == [1000312]
+
+
+def test_capture_replay_dto_plan_and_filename_contract() -> None:
+    """Replay fixtures through DTO mapping, domain planning, and filename filtering."""
+    title_detail = parsing.parse_title_detail_response(
+        (FIXTURE_CAPTURE_DIR / "0001_title_detailV3_100010.pb").read_bytes()
+    )
+    viewer_by_id = {
+        1000311: parsing.parse_manga_viewer_response(
+            (FIXTURE_CAPTURE_DIR / "0002_manga_viewer_1000311.pb").read_bytes()
+        ),
+    }
+
+    plan = build_download_plan(
+        title_ids={100010},
+        chapter_numbers={3},
+        chapter_ids={1000311},
+        min_chapter=0,
+        max_chapter=999,
+        last_chapter=False,
+        load_title_detail=lambda title_id: (
+            title_detail
+            if title_id == 100010
+            else pytest.fail(f"Unexpected title load: {title_id}")
+        ),
+        load_viewer=lambda chapter_id: viewer_by_id[chapter_id],
+    )
+
+    assert plan.title_count == 1
+    title_plan = plan.title_plans[0]
+    assert title_plan.title_detail.__class__.__module__ == "mloader.domain.manga"
+    assert title_plan.chapter_ids == frozenset({1000311, 1000312})
+
+    chapter_data = ChapterPlanner.extract_chapter_data(title_plan.title_detail, escape_path)
+    filename_by_id = {
+        chapter.chapter_id: ChapterPlanner.build_expected_filename(
+            escape_path(title_plan.title_detail.title.name).title(),
+            chapter,
+            chapter_data[chapter.chapter_id].sub_title,
+        )
+        for chapter in title_plan.selected_chapters
+    }
+
+    assert filename_by_id == {
+        1000311: "Dr Stone - 002 - Z 2 Fantasy vs Science",
+        1000312: "Dr Stone - 003 - Z 3 King of the Stone World",
+    }
+    assert ChapterPlanner.filter_chapters_to_download(
+        chapter_data=chapter_data,
+        title_detail=title_plan.title_detail,
+        existing_files=[filename_by_id[1000311]],
+        requested_chapter_ids=title_plan.chapter_ids,
+    ) == [1000312]
 
 
 @pytest.mark.parametrize(
@@ -153,15 +260,17 @@ def test_manga_viewer_fixtures_replay_consistently(
 ) -> None:
     """Validate real manga-viewer fixture parsing for chapter linkage."""
     raw_payload = (FIXTURE_CAPTURE_DIR / fixture_name).read_bytes()
-    viewer = api._parse_manga_viewer_response(raw_payload)
+    viewer = parsing.parse_manga_viewer_response(raw_payload)
 
     assert viewer.title_id == 100010
     assert viewer.chapter_id == chapter_id
     assert len(viewer.pages) > 20
     assert len(viewer.chapters) == 3
 
-    last_page = viewer.pages[-1].last_page
+    last_page = viewer.last_page
+    assert last_page is not None
     assert last_page.current_chapter.chapter_id == chapter_id
+    assert last_page.next_chapter is not None
     assert last_page.next_chapter.chapter_id == next_chapter_id
 
 
@@ -205,7 +314,16 @@ def test_full_downloader_replay_with_fixture_payloads(
         1000312: (FIXTURE_CAPTURE_DIR / "0003_manga_viewer_1000312.pb").read_bytes(),
     }
 
-    class ReplaySession:
+    class ReplayResponse(ResponseLike):
+        """Response double wrapping one captured protobuf payload."""
+
+        def __init__(self, content: bytes) -> None:
+            self.content = content
+
+        def raise_for_status(self) -> None:
+            """Fixture payloads are treated as successful HTTP responses."""
+
+    class ReplaySession(SessionLike):
         """Session double that replays captured protobuf responses by endpoint and ID."""
 
         def __init__(self) -> None:
@@ -219,46 +337,56 @@ def test_full_downloader_replay_with_fixture_payloads(
         def get(
             self,
             url: str,
-            params: dict[str, object] | None = None,
+            params: Mapping[str, object] | None = None,
             timeout: tuple[float, float] | None = None,
-        ) -> SimpleNamespace:
+        ) -> ResponseLike:
             """Return fixture payload bytes matching requested endpoint and identifier."""
             del timeout
             params = params or {}
             if url.endswith("/api/title_detailV3"):
-                return SimpleNamespace(content=title_payload, raise_for_status=lambda: None)
+                return ReplayResponse(title_payload)
             if url.endswith("/api/manga_viewer"):
                 chapter_id = int(str(params["chapter_id"]))
-                return SimpleNamespace(
-                    content=viewer_payloads[chapter_id],
-                    raise_for_status=lambda: None,
-                )
+                return ReplayResponse(viewer_payloads[chapter_id])
             raise AssertionError(f"Unexpected replay URL: {url}")
 
-    created_exporters: list[SimpleNamespace] = []
+    class ReplayExporter(ExporterLike):
+        """Exporter double recording page writes and emitting output markers."""
 
-    def exporter_factory(**kwargs: object) -> SimpleNamespace:
-        """Create exporter double that records page writes and emits output markers."""
-        chapter = kwargs["chapter"]
-        path = tmp_path / f"{chapter.chapter_id}.cbz"
-        exporter = SimpleNamespace(path=path, images=0)
+        def __init__(self, path: Path) -> None:
+            self.path = path
+            self.images = 0
 
-        def _skip_image(index: int | range) -> bool:
+        def skip_image(self, index: PageIndex) -> bool:
             del index
             return False
 
-        def _add_image(image_data: bytes, index: int | range) -> None:
+        def add_image(self, image_data: bytes, index: PageIndex) -> None:
             del image_data, index
-            exporter.images += 1
+            self.images += 1
 
-        def _close() -> None:
-            path.write_bytes(b"ok")
+        def close(self) -> None:
+            self.path.write_bytes(b"ok")
 
-        exporter.skip_image = _skip_image
-        exporter.add_image = _add_image
-        exporter.close = _close
-        created_exporters.append(exporter)
-        return exporter
+    class ReplayExporterFactory:
+        """Factory double satisfying the runtime exporter-factory protocol."""
+
+        def __init__(self) -> None:
+            self.created: list[ReplayExporter] = []
+
+        def __call__(
+            self,
+            *,
+            title: TitleLike,
+            chapter: ChapterLike,
+            next_chapter: ChapterLike | None = None,
+        ) -> ExporterLike:
+            del title, next_chapter
+            exporter = ReplayExporter(tmp_path / f"{chapter.chapter_id}.cbz")
+            self.created.append(exporter)
+            return exporter
+
+    exporter_factory = ReplayExporterFactory()
 
     loader = MangaLoader(
         exporter=exporter_factory,
@@ -269,7 +397,11 @@ def test_full_downloader_replay_with_fixture_payloads(
         output_format="cbz",
         session=ReplaySession(),
     )
-    monkeypatch.setattr(loader._runtime, "_fetch_page_image", lambda _page: b"img")
+    monkeypatch.setattr(
+        loader._runtime.services.page_image_service,
+        "fetch_page_image",
+        lambda _page, *, download_image, decrypt_image: b"img",
+    )
 
     summary = loader.download(
         title_ids=None,
@@ -281,5 +413,5 @@ def test_full_downloader_replay_with_fixture_payloads(
 
     assert summary.downloaded == 2
     assert summary.failed == 0
-    assert len(created_exporters) == 2
-    assert all(exporter.images > 10 for exporter in created_exporters)
+    assert len(exporter_factory.created) == 2
+    assert all(exporter.images > 10 for exporter in exporter_factory.created)

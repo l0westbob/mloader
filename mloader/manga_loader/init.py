@@ -2,89 +2,22 @@
 
 from __future__ import annotations
 
-from typing import Literal, cast
+from typing import Literal
 
-from requests import Session
-from requests.adapters import HTTPAdapter
-from urllib3.util.retry import Retry
-
-from mloader.config import MOBILE_API_HEADERS
 from mloader.domain.requests import CoverFormat, DownloadSummary
+from mloader.infrastructure.mangaplus.settings import (
+    DEFAULT_API_BASE_URL,
+    DEFAULT_REQUEST_TIMEOUT,
+    DEFAULT_RETRIES,
+)
 from mloader.types import ExporterFactoryLike, PayloadCaptureLike, SessionLike
 
-from .api import APILoaderMixin
-from .capture import APIPayloadCapture
-from .decryption import DecryptionMixin
 from .download_services import DownloadServices
-from .downloader import DownloadMixin
-from .normalization import NormalizationMixin
-
-
-class _LoaderRuntime(APILoaderMixin, NormalizationMixin, DownloadMixin, DecryptionMixin):
-    """Internal runtime implementation composed from existing focused mixins."""
-
-    def __init__(
-        self,
-        exporter: ExporterFactoryLike,
-        quality: str,
-        split: bool,
-        meta: bool,
-        cover: bool,
-        cover_format: CoverFormat,
-        destination: str,
-        output_format: Literal["raw", "cbz", "pdf"],
-        session: SessionLike | None,
-        api_url: str,
-        request_timeout: tuple[float, float],
-        retries: int,
-        capture_api_dir: str | None,
-        resume: bool,
-        manifest_reset: bool,
-        services: DownloadServices,
-    ) -> None:
-        """Initialize runtime dependencies and transport settings."""
-        self.meta = meta
-        self.cover = cover
-        self.cover_format = cover_format
-        self.exporter = exporter
-        self.destination = destination
-        self.output_format = output_format
-        self.quality = quality
-        self.split = split
-        self.request_timeout = request_timeout
-        self.resume = resume
-        self.manifest_reset = manifest_reset
-        self.services = services
-        self.payload_capture = APIPayloadCapture(capture_api_dir) if capture_api_dir else None
-        self.session = session if session is not None else cast(SessionLike, Session())
-        self._configure_transport(self.session, retries)
-        self.session.headers.update(MOBILE_API_HEADERS)
-        self._api_url = api_url
-
-    @staticmethod
-    def _configure_transport(session: SessionLike, retries: int) -> None:
-        """Configure HTTP retry policy for transient API failures."""
-        configure_transport(session, retries)
-
-
-def configure_transport(session: SessionLike, retries: int) -> None:
-    """Configure HTTPS retry policy for transient API failures."""
-    retry_policy = Retry(
-        total=retries,
-        connect=retries,
-        read=retries,
-        status=retries,
-        backoff_factor=0.5,
-        status_forcelist=(429, 500, 502, 503, 504),
-        allowed_methods=frozenset({"GET"}),
-        raise_on_status=False,
-    )
-    adapter = HTTPAdapter(max_retries=retry_policy)
-    session.mount("https://", adapter)
+from .runner import DownloadRunner
 
 
 class MangaLoader:
-    """Facade object exposing the download API while composing internal runtime behavior."""
+    """Facade object exposing the current programmatic download API."""
 
     def __init__(
         self,
@@ -96,17 +29,17 @@ class MangaLoader:
         destination: str = "mloader_downloads",
         output_format: Literal["raw", "cbz", "pdf"] = "cbz",
         session: SessionLike | None = None,
-        api_url: str = "https://jumpg-api.tokyo-cdn.com",
-        request_timeout: tuple[float, float] = (5.0, 30.0),
-        retries: int = 3,
+        api_url: str = DEFAULT_API_BASE_URL,
+        request_timeout: tuple[float, float] = DEFAULT_REQUEST_TIMEOUT,
+        retries: int = DEFAULT_RETRIES,
         capture_api_dir: str | None = None,
         resume: bool = True,
         manifest_reset: bool = False,
         services: DownloadServices | None = None,
         cover_format: CoverFormat = "png",
     ) -> None:
-        """Initialize the composed runtime and preserve public constructor contract."""
-        self._runtime = _LoaderRuntime(
+        """Initialize the composed runtime for the current public constructor surface."""
+        self._runtime = DownloadRunner(
             exporter=exporter,
             quality=quality,
             split=split,
@@ -149,11 +82,6 @@ class MangaLoader:
     def payload_capture(self) -> PayloadCaptureLike | None:
         """Expose payload capture backend when capture mode is enabled."""
         return self._runtime.payload_capture
-
-    @staticmethod
-    def _configure_transport(session: SessionLike, retries: int) -> None:
-        """Proxy transport configuration for compatibility with existing tests/usages."""
-        configure_transport(session, retries)
 
     def download(
         self,

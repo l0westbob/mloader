@@ -1,0 +1,19 @@
+{
+  "captured_at_utc": "2026-05-27T00:00:00+00:00",
+  "endpoint": "manga_viewer",
+  "identifier": "1024974",
+  "params": {
+    "app_ver": "97",
+    "chapter_id": 1024974,
+    "os": "ios",
+    "os_ver": "18.1",
+    "secret": "***REDACTED***",
+    "split": "yes"
+  },
+  "parsed_payload_file": "0008_manga_viewer_encrypted_page.response.json",
+  "payload_classification": "success",
+  "payload_sha256": "7a02eae2c8126534152c73fd38a21077de90bdbb677894b29463ee5af7c3ad0c",
+  "payload_size_bytes": 567,
+  "raw_payload_file": "0008_manga_viewer_encrypted_page.pb",
+  "url": "https://jumpg-api.tokyo-cdn.com/api/manga_viewer"
+}

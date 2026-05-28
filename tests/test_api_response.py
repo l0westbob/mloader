@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import pytest
 
-from mloader.manga_loader import api_response
-from mloader.manga_loader.api_response import (
+from mloader.infrastructure.mangaplus import api_response
+from mloader.infrastructure.mangaplus.api_response import (
     classify_api_response_payload,
     format_api_payload_problem,
 )
@@ -158,7 +158,10 @@ def test_private_error_helpers_handle_edge_values() -> None:
     """Cover defensive helper paths used by malformed upstream payloads."""
 
     class BadHasField:
-        def HasField(self, _name: str) -> bool:
+        success: object = object()
+
+        def HasField(self, field_name: str) -> bool:
+            del field_name
             raise ValueError("bad field")
 
     assert api_response._has_populated_success(BadHasField()) is False

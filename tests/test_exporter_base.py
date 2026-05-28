@@ -8,6 +8,7 @@ from types import SimpleNamespace
 import pytest
 
 from mloader.constants import Language
+from mloader.domain.manga import Chapter, Title
 from mloader.exporters.exporter_base import ExporterBase, _is_extra
 
 
@@ -32,12 +33,18 @@ def _title(
     author: str = "author",
 ) -> SimpleNamespace:
     """Build a minimal title object for exporter-base tests."""
-    return SimpleNamespace(name=name, language=language, author=author)
+    return SimpleNamespace(
+        name=name,
+        language=language,
+        author=author,
+        portrait_image_url="",
+        landscape_image_url="",
+    )
 
 
 def _chapter(name: str = "#1", sub_title: str = "subtitle") -> SimpleNamespace:
     """Build a minimal chapter object for exporter-base tests."""
-    return SimpleNamespace(name=name, sub_title=sub_title)
+    return SimpleNamespace(chapter_id=1, name=name, sub_title=sub_title, thumbnail_url="")
 
 
 def test_is_extra_detection() -> None:
@@ -60,8 +67,83 @@ def test_exporter_base_formats_prefix_suffix_and_page_names(tmp_path: Path) -> N
     assert exporter.format_page_name(range(1, 4), ext="png").endswith(".png")
 
 
-def test_exporter_base_handles_legacy_vietnamese_language_code(tmp_path: Path) -> None:
-    """Verify legacy Vietnamese code still produces a stable language prefix."""
+@pytest.mark.parametrize(
+    ("title", "chapter", "page", "expected_name"),
+    [
+        (
+            _title(name="demo title", language=Language.ENGLISH.value),
+            _chapter(name="#12", sub_title="A/B: C?"),
+            2,
+            "Demo Title - 12 - p002 - A B C.jpg",
+        ),
+        (
+            _title(name="demo title", language=Language.FRENCH.value),
+            _chapter(name="#12", sub_title=""),
+            2,
+            "Demo Title [FRENCH] - 12 - p002 - Unknown.jpg",
+        ),
+        (
+            _title(name="demo title", language=Language.ENGLISH.value),
+            _chapter(name="#7", sub_title="Double Page"),
+            range(10, 12),
+            "Demo Title - 7 - p010-012 - Double Page.jpg",
+        ),
+        (
+            _title(name="demo title", language=Language.ENGLISH.value),
+            _chapter(name="#Ex", sub_title="Bonus"),
+            1,
+            "Demo Title - Ex - p001 - Bonus.jpg",
+        ),
+        (
+            _title(name="demo title", language=Language.ENGLISH.value),
+            _chapter(name="One Shot Special", sub_title=""),
+            1,
+            "Demo Title - One Shot Special - p001 - Unknown.jpg",
+        ),
+    ],
+)
+def test_exporter_base_golden_page_names(
+    tmp_path: Path,
+    title: SimpleNamespace,
+    chapter: SimpleNamespace,
+    page: int | range,
+    expected_name: str,
+) -> None:
+    """Verify golden filename behavior for languages, extras, one-shots, and ranges."""
+    exporter = DummyExporter(destination=str(tmp_path), title=title, chapter=chapter)
+
+    assert exporter.format_page_name(page) == expected_name
+    assert exporter.is_extra is _is_extra(chapter.name)
+    if chapter.name == "One Shot Special":
+        assert exporter.is_oneshot is True
+
+
+def test_exporter_base_accepts_domain_title_and_chapter_dtos(tmp_path: Path) -> None:
+    """Verify shared exporter naming only depends on the stable domain DTO shape."""
+    exporter = DummyExporter(
+        destination=str(tmp_path),
+        title=Title(
+            title_id=100494,
+            name="domain title",
+            author="Domain Author",
+            portrait_image_url="https://example.invalid/portrait.webp",
+            landscape_image_url="https://example.invalid/landscape.webp",
+            language=Language.ENGLISH.value,
+        ),
+        chapter=Chapter(
+            title_id=100494,
+            chapter_id=1024974,
+            name="#001",
+            sub_title="Domain Chapter",
+            thumbnail_url="https://example.invalid/chapter.webp",
+        ),
+    )
+
+    assert exporter.format_page_name(1) == "Domain Title - 001 - p001 - Domain Chapter.jpg"
+
+
+def test_exporter_base_handles_alternate_vietnamese_language_code(tmp_path: Path) -> None:
+    """Verify alternate Vietnamese code still produces a stable language prefix."""
     exporter = DummyExporter(
         destination=str(tmp_path),
         title=_title(language=8),
@@ -126,8 +208,9 @@ def test_exporter_base_registers_subclasses_and_close_pass(tmp_path: Path) -> No
 
 def test_abstract_base_methods_have_noop_defaults() -> None:
     """Verify abstract base placeholders are callable for coverage purposes."""
-    ExporterBase.add_image(None, b"", 0)
-    ExporterBase.skip_image(None, 0)
+    exporter = DummyExporter(destination="/tmp", title=_title(), chapter=_chapter())
+    ExporterBase.add_image(exporter, b"", 0)
+    ExporterBase.skip_image(exporter, 0)
 
 
 def test_exporter_base_requires_non_empty_format() -> None:

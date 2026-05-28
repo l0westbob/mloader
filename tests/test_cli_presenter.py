@@ -9,7 +9,7 @@ import pytest
 from mloader.cli.examples import CliExample
 from mloader.cli.presenter import CliPresenter
 from mloader.domain.requests import DownloadSummary
-from mloader.manga_loader.capture_verify import CaptureVerificationSummary
+from mloader.infrastructure.mangaplus.capture_verify import CaptureVerificationSummary
 
 
 def test_presenter_emits_human_intro_when_enabled(capsys: pytest.CaptureFixture[str]) -> None:

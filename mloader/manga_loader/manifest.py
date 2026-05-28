@@ -7,7 +7,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 from collections.abc import Callable
-from typing import Any
+from typing import Any, Protocol
 
 from filelock import FileLock
 
@@ -18,6 +18,35 @@ MANIFEST_VERSION = 2
 type ManifestEntry = dict[str, Any]
 type ManifestChapters = dict[str, ManifestEntry]
 type ManifestPayload = dict[str, Any]
+
+
+class TitleDownloadManifestLike(Protocol):
+    """Minimal manifest contract used by runtime services."""
+
+    def reset(self) -> None:
+        """Reset manifest state."""
+
+    def flush(self) -> None:
+        """Persist pending manifest state."""
+
+    def is_completed(self, chapter_id: int) -> bool:
+        """Return whether ``chapter_id`` is completed."""
+
+    def mark_started(
+        self,
+        chapter_id: int,
+        *,
+        chapter_name: str,
+        sub_title: str,
+        output_format: str,
+    ) -> None:
+        """Mark a chapter as started."""
+
+    def mark_completed(self, chapter_id: int, *, output_path: str | None = None) -> None:
+        """Mark a chapter as completed."""
+
+    def mark_failed(self, chapter_id: int, *, error: str) -> None:
+        """Mark a chapter as failed."""
 
 
 def _utc_timestamp() -> str:
@@ -37,7 +66,7 @@ def _coerce_chapter_entries(raw_chapters: object) -> ManifestChapters:
 
 
 def _migrate_v0_to_v1(payload: ManifestPayload) -> ManifestPayload:
-    """Migrate legacy/unversioned payloads into version-1 structure."""
+    """Migrate unversioned payloads into version-1 structure."""
     chapters = _coerce_chapter_entries(payload.get("chapters"))
     if not chapters:
         chapters = _coerce_chapter_entries(payload)

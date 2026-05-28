@@ -1,0 +1,18 @@
+{
+  "captured_at_utc": "2026-05-27T00:00:00+00:00",
+  "endpoint": "title_index",
+  "identifier": "all",
+  "params": {
+    "app_ver": "97",
+    "id_length": 6,
+    "os": "ios",
+    "os_ver": "18.1",
+    "secret": "***REDACTED***"
+  },
+  "parsed_payload_file": "0004_title_index_all.response.json",
+  "payload_classification": "success",
+  "payload_sha256": "fb729f771372dc91ef8813ff2c3097aa2d66c83866b69b9582267517c85e8a48",
+  "payload_size_bytes": 395,
+  "raw_payload_file": "0004_title_index_all.pb",
+  "url": "https://jumpg-api.tokyo-cdn.com/api/title_list/allV2"
+}

@@ -7,10 +7,10 @@ from typing import Any, Iterable, Mapping, Sequence
 
 import click
 
-from mloader.application import workflows
+from mloader.application import discovery as discovery_use_cases
 from mloader.cli.examples import CliExample
 from mloader.domain.requests import DownloadSummary
-from mloader.manga_loader.capture_verify import CaptureVerificationSummary
+from mloader.infrastructure.mangaplus.capture_verify import CaptureVerificationSummary
 
 
 class CliPresenter:
@@ -82,11 +82,11 @@ class CliPresenter:
 
     def emit_discovery_summary(self, title_ids: list[int]) -> None:
         """Emit discovered title count in human mode."""
-        self.emit_notice(workflows.summarize_discovery(title_ids))
+        self.emit_notice(discovery_use_cases.summarize_discovery(title_ids))
 
     def emit_discovery_ids(self, title_ids: list[int]) -> None:
         """Emit discovered title IDs in human mode."""
-        self.emit_notice(workflows.format_discovered_ids(title_ids))
+        self.emit_notice(discovery_use_cases.format_discovered_ids(title_ids))
 
     def emit_download_summary(self, summary: DownloadSummary) -> None:
         """Emit human-readable download result counters."""

@@ -1,6 +1,6 @@
 # Mangaplus Downloader
 
-![Version](https://img.shields.io/badge/version-v2.0.3-brightgreen.svg)
+![Version](https://img.shields.io/badge/version-v2.1.0-brightgreen.svg)
 ![Python](https://img.shields.io/badge/python-v3.14+-blue.svg)
 ![Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen.svg)
 ![License](https://img.shields.io/badge/license-GPLv3-blue.svg)
@@ -42,8 +42,8 @@ The CLI command remains `mloader`.
 ### Stability and API access posture
 
 `mloader` is maintained as a stable production CLI/Docker app. Current development is evolutionary:
-small, tested hardening changes are preferred over large rewrites so existing cron jobs, paths, flags,
-manifest files, and exit codes remain compatible.
+small, tested hardening changes are preferred over large rewrites so current cron jobs, paths, flags,
+manifest files, and exit codes stay stable.
 
 The auth settings shipped in this repository are suitable for free-tier/local development only. They
 can download free-access chapters, but they must not be treated as proof that subscription/MAX or
@@ -72,10 +72,21 @@ uv run ruff check .
 uv run ruff format --check .
 ```
 
-Type checking runs through ty:
+Type checking runs through `ty`. The project does not maintain a Pyright configuration; `ty` is the
+single supported local and CI type checker.
 
 ```bash
-uv run ty check mloader scripts
+uv run ty check mloader scripts tests
+```
+
+Run the same local quality gate used for implementation phases with:
+
+```bash
+uv run ruff format --check .
+uv run ruff check .
+uv run ty check mloader scripts tests
+uv run python scripts/sync_readme_cli_reference.py --check
+uv run pytest --cov=mloader --cov-report=term-missing --cov-fail-under=100
 ```
 
 Verify README example targets against live MangaPlus API responses:
@@ -382,7 +393,7 @@ docker compose logs -f mloader
 
 ## 🧩 Extending mloader
 
-`mloader` is designed around composable mixins and exporter classes.
+`mloader` is designed around domain DTOs, composed runtime services, and exporter classes.
 
 -   Add a new exporter by subclassing `ExporterBase`.
 -   Set `format = "<name>"` in your exporter.
