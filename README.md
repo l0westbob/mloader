@@ -25,7 +25,7 @@ The recommended installation method is using `uv`:
 uv tool install mloader-ng
 ```
 
-After installation, the `mloader` command will be available. Check the [command line](%EF%B8%8F-command-line-interface) section for supported commands.
+After installation, the `mloader` command will be available. Check the [command line](#%EF%B8%8F-command-line-interface) section for supported commands.
 
 If you prefer `pip`, `pip install mloader-ng` still works.
 
