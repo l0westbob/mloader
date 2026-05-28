@@ -12,13 +12,14 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up uv
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@v8
         with:
           python-version: "3.14"
           enable-cache: true
+          cache-suffix: readme-examples-3.14
 
       - name: Sync dependencies
         run: uv sync --locked
