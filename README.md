@@ -1,6 +1,6 @@
 # Mangaplus Downloader
 
-![Version](https://img.shields.io/badge/version-v2.0.3-brightgreen.svg)
+![Version](https://img.shields.io/badge/version-v2.1.0-brightgreen.svg)
 ![Python](https://img.shields.io/badge/python-v3.14+-blue.svg)
 ![Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen.svg)
 ![License](https://img.shields.io/badge/license-GPLv3-blue.svg)
