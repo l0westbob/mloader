@@ -1,6 +1,6 @@
 # Mangaplus Downloader
 
-![Version](https://img.shields.io/badge/version-v2.1.0-brightgreen.svg)
+![Version](https://img.shields.io/badge/version-v2.1.1-brightgreen.svg)
 ![Python](https://img.shields.io/badge/python-v3.14+-blue.svg)
 ![Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen.svg)
 ![License](https://img.shields.io/badge/license-GPLv3-blue.svg)
@@ -354,11 +354,13 @@ mloader --verify-capture-schema ./capture --verify-capture-baseline ./tests/fixt
 
 `docker/Dockerfile` installs `mloader` from the local repository files.
 
-Release images are published to GitHub Container Registry:
+Release images are published to GitHub Container Registry at
+[`ghcr.io/l0westbob/mloader`](https://github.com/l0westbob/mloader/pkgs/container/mloader).
+The `latest` tag points at the newest image published from `main`.
 
 ```bash
 docker pull ghcr.io/l0westbob/mloader:latest
-docker pull ghcr.io/l0westbob/mloader:2.1.0
+docker pull ghcr.io/l0westbob/mloader:2.1.1
 ```
 
 The image workflow publishes on `main`, `v*` tags, and manual dispatch. If GHCR creates
@@ -367,7 +369,7 @@ the package as private after the first push, make it public once in the package 
 To use the published image in Compose, replace the local `build:` block with:
 
 ```yaml
-image: ghcr.io/l0westbob/mloader:2.1.0
+image: ghcr.io/l0westbob/mloader:2.1.1
 ```
 
 The default `compose.yaml` now runs a long-lived cron daemon inside the container and executes `mloader` weekly.
