@@ -2,10 +2,15 @@
 
 from __future__ import annotations
 
+import json
 import logging
+from datetime import datetime, timezone
+from pathlib import Path
 from typing import NoReturn, cast
+from uuid import uuid4
 
 import click
+from click.core import ParameterSource
 
 from mloader import __version__ as about
 from mloader.application import workflows
@@ -16,7 +21,7 @@ from mloader.cli.exit_codes import EXTERNAL_FAILURE, INTERNAL_BUG, SUCCESS, VALI
 from mloader.cli.presenter import CliPresenter
 from mloader.cli.validators import validate_ids, validate_urls
 from mloader.config import AUTH_SETTINGS
-from mloader.domain.requests import DownloadRequest, DownloadSummary
+from mloader.domain.requests import COVER_FORMATS, DownloadRequest, DownloadSummary
 from mloader.errors import SubscriptionRequiredError
 from mloader.exporters.init import CBZExporter, PDFExporter, RawExporter
 from mloader.manga_loader.capture_verify import (
@@ -124,7 +129,7 @@ class MloaderCliError(click.ClickException):
     type=str,
     default=title_discovery.DEFAULT_TITLE_INDEX_ENDPOINT,
     show_default=True,
-    help="MangaPlus web API endpoint used for API-first title discovery",
+    help="MangaPlus mobile API endpoint used for API-first title discovery",
     envvar="MLOADER_TITLE_INDEX_ENDPOINT",
 )
 @click.option(
@@ -179,6 +184,14 @@ class MloaderCliError(click.ClickException):
     metavar="<directory>",
     help="Dump raw API payload captures (protobuf + metadata) to this directory",
     envvar="MLOADER_CAPTURE_API_DIR",
+)
+@click.option(
+    "--run-report",
+    "run_report_path",
+    type=click.Path(dir_okay=False, writable=True),
+    metavar="<file>",
+    help="Write a JSON run report for unattended cron/systemd runs",
+    envvar="MLOADER_RUN_REPORT_PATH",
 )
 @click.option(
     "--quality",
@@ -272,7 +285,14 @@ class MloaderCliError(click.ClickException):
     is_flag=True,
     default=False,
     show_default=True,
-    help="Download each title cover image as PNG",
+    help="Download each title cover image (PNG by default)",
+)
+@click.option(
+    "--cover-format",
+    type=click.Choice(COVER_FORMATS, case_sensitive=False),
+    default="png",
+    show_default=True,
+    help="Cover image format; implies --cover when provided",
 )
 @click.option(
     "--resume/--no-resume",
@@ -308,6 +328,7 @@ def main(
     raw: bool,
     output_format: str,
     capture_api_dir: str | None,
+    run_report_path: str | None,
     quality: str,
     split: bool,
     begin: int,
@@ -317,6 +338,7 @@ def main(
     chapter_subdir: bool,
     meta: bool,
     cover: bool,
+    cover_format: str,
     resume: bool,
     manifest_reset: bool,
     chapters: set[int] | None = None,
@@ -372,6 +394,9 @@ def main(
             exit_code=VALIDATION_ERROR,
         )
 
+    cover_format_was_provided = (
+        ctx.get_parameter_source("cover_format") is ParameterSource.COMMANDLINE
+    )
     request = workflows.build_download_request(
         out_dir=out_dir,
         raw=raw,
@@ -385,14 +410,18 @@ def main(
         chapter_title=chapter_title,
         chapter_subdir=chapter_subdir,
         meta=meta,
-        cover=cover,
+        cover=cover or cover_format_was_provided,
+        cover_format=cover_format,
         resume=resume,
         manifest_reset=manifest_reset,
         chapters=chapters,
         chapter_ids=chapter_ids,
         titles=titles,
+        run_report_path=run_report_path,
     )
 
+    run_id = uuid4().hex
+    run_started_at = datetime.now(timezone.utc)
     discovery_metadata: dict[str, int] | None = None
     if download_all_titles:
         all_mode_request, discovery_metadata = _resolve_all_mode_targets(
@@ -426,6 +455,16 @@ def main(
         )
     except workflows.DownloadInterrupted as exc:
         presenter.emit_download_summary(exc.summary)
+        _write_run_report_if_requested(
+            request,
+            run_id=run_id,
+            started_at=run_started_at,
+            status="error",
+            exit_code=EXTERNAL_FAILURE,
+            discovery=discovery_metadata,
+            summary=exc.summary,
+            error_message="Download interrupted by user.",
+        )
         _fail(
             "Download interrupted by user.",
             presenter=presenter,
@@ -433,17 +472,58 @@ def main(
             details={"summary": _summary_payload(exc.summary)},
         )
     except SubscriptionRequiredError as exc:
+        _write_run_report_if_requested(
+            request,
+            run_id=run_id,
+            started_at=run_started_at,
+            status="error",
+            exit_code=EXTERNAL_FAILURE,
+            discovery=discovery_metadata,
+            summary=None,
+            error_message=str(exc),
+            subscription_access_failures=1,
+        )
         _fail(str(exc), presenter=presenter, exit_code=EXTERNAL_FAILURE)
     except workflows.ExternalDependencyError as exc:
+        _write_run_report_if_requested(
+            request,
+            run_id=run_id,
+            started_at=run_started_at,
+            status="error",
+            exit_code=EXTERNAL_FAILURE,
+            discovery=discovery_metadata,
+            summary=None,
+            error_message=str(exc),
+        )
         _fail(str(exc), presenter=presenter, exit_code=EXTERNAL_FAILURE)
-    except Exception:
+    except Exception as exc:
         if not presenter.json_output:
             log.exception("Failed to download manga")
+        _write_run_report_if_requested(
+            request,
+            run_id=run_id,
+            started_at=run_started_at,
+            status="error",
+            exit_code=INTERNAL_BUG,
+            discovery=discovery_metadata,
+            summary=None,
+            error_message=f"Download failed: {exc}",
+        )
         _fail("Download failed", presenter=presenter, exit_code=INTERNAL_BUG)
 
     presenter.emit_download_summary(download_summary)
     summary_payload = _summary_payload(download_summary)
     if download_summary.has_failures:
+        _write_run_report_if_requested(
+            request,
+            run_id=run_id,
+            started_at=run_started_at,
+            status="error",
+            exit_code=EXTERNAL_FAILURE,
+            discovery=discovery_metadata,
+            summary=download_summary,
+            error_message=f"Download completed with {download_summary.failed} failed chapter(s).",
+        )
         _fail(
             f"Download completed with {download_summary.failed} failed chapter(s).",
             presenter=presenter,
@@ -452,6 +532,16 @@ def main(
         )
 
     log.info("SUCCESS")
+    _write_run_report_if_requested(
+        request,
+        run_id=run_id,
+        started_at=run_started_at,
+        status="ok",
+        exit_code=SUCCESS,
+        discovery=discovery_metadata,
+        summary=download_summary,
+        error_message=None,
+    )
     if presenter.json_output:
         presenter.emit_json(
             {
@@ -488,6 +578,70 @@ def _summary_payload(summary: DownloadSummary) -> dict[str, object]:
         "failed": summary.failed,
         "failed_chapter_ids": list(summary.failed_chapter_ids),
     }
+
+
+def _write_run_report_if_requested(
+    request: DownloadRequest,
+    *,
+    run_id: str,
+    started_at: datetime,
+    status: str,
+    exit_code: int,
+    discovery: dict[str, int] | None,
+    summary: DownloadSummary | None,
+    error_message: str | None,
+    subscription_access_failures: int = 0,
+) -> None:
+    """Write an optional JSON run report without changing CLI success semantics."""
+    if not request.run_report_path:
+        return
+
+    completed_at = datetime.now(timezone.utc)
+    summary_payload = (
+        _summary_payload(summary)
+        if summary is not None
+        else {
+            "downloaded": 0,
+            "skipped_manifest": 0,
+            "failed": 0,
+            "failed_chapter_ids": [],
+        }
+    )
+    report: dict[str, object] = {
+        "run_id": run_id,
+        "status": status,
+        "exit_code": exit_code,
+        "started_at_utc": started_at.isoformat(),
+        "completed_at_utc": completed_at.isoformat(),
+        "duration_seconds": round((completed_at - started_at).total_seconds(), 3),
+        "selected_args": {
+            **workflows.to_chapter_id_debug_map(request),
+            "out_dir": request.out_dir,
+            "quality": request.quality,
+            "split": request.split,
+        },
+        "discovery": {
+            "discovered_title_count": (discovery or {}).get("discovered_titles", 0),
+        },
+        "summary": summary_payload,
+        "subscription_access_failures": subscription_access_failures,
+        "exporter_safety": {
+            "mode": "disk-backed-tempfiles",
+            "version": "pdf-streaming-and-atomic-cbz-v1",
+        },
+    }
+    if error_message:
+        report["error"] = error_message
+
+    report_path = Path(request.run_report_path)
+    try:
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        report_path.write_text(
+            json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True),
+            encoding="utf-8",
+        )
+    except OSError:
+        log.warning("Failed to write run report: %s", report_path, exc_info=True)
 
 
 def _run_capture_verification_mode(
@@ -529,6 +683,7 @@ def _resolve_all_mode_targets(
         id_length=id_length,
         languages=languages,
         browser_fallback=browser_fallback,
+        capture_api_dir=request.capture_api_dir,
     )
     try:
         discovered_title_ids, notices = workflows.discover_title_ids(

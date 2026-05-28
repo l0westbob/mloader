@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import img2pdf
+from contextlib import suppress
 from pathlib import Path
-from tempfile import TemporaryDirectory
+from tempfile import NamedTemporaryFile, TemporaryDirectory
 from typing import Optional, Union
 
 from PIL import Image
@@ -65,36 +67,70 @@ class PDFExporter(ExporterBase):
         _ = index
         return self.skip_all_images
 
+    def _prepare_page_for_pdf(self, page_path: Path, prepared_dir: Path) -> Path:
+        """Return a PDF-safe image path, converting unsupported modes to RGB JPEG."""
+        with Image.open(page_path) as image:
+            if image.mode in {"1", "L", "RGB", "CMYK"}:
+                return page_path
+
+            converted = image.convert("RGB")
+            converted_path = prepared_dir / f"{page_path.stem}.jpg"
+            converted.save(converted_path, format="JPEG", quality=95)
+            converted.close()
+            return converted_path
+
+    def _build_pdf_inputs(self) -> list[str]:
+        """Build ordered image input paths for img2pdf conversion."""
+        if self._temp_dir is None:
+            return []
+
+        prepared_dir = Path(self._temp_dir.name)
+        prepared_paths: list[str] = []
+        for page_path in sorted(self._page_paths):
+            prepared_paths.append(str(self._prepare_page_for_pdf(page_path, prepared_dir)))
+        return prepared_paths
+
     def close(self) -> None:
         """Write all collected images to the destination PDF file."""
-        if self.skip_all_images or not self._page_paths:
+        if self.skip_all_images:
             return
 
         app_info = f"{__title__} - {__version__}"
-        opened_images: list[Image.Image] = []
+        temp_pdf_path: Path | None = None
         try:
-            for page_path in sorted(self._page_paths):
-                opened_image: Image.Image = Image.open(page_path)
-                if opened_image.mode != "RGB":
-                    converted = opened_image.convert("RGB")
-                    opened_image.close()
-                    opened_image = converted
-                opened_images.append(opened_image)
-
-            opened_images[0].save(
-                self.path,
-                "PDF",
-                resolution=100.0,
-                save_all=True,
-                append_images=opened_images[1:],
-                title=self.chapter_name,
-                producer=app_info,
-                creator=app_info,
-            )
+            if not self._page_paths:
+                return
+            pdf_inputs = self._build_pdf_inputs()
+            if not pdf_inputs:
+                return
+            with NamedTemporaryFile(
+                "wb",
+                delete=False,
+                dir=self.path.parent,
+                prefix=f".{self.path.stem}.",
+                suffix=".tmp",
+            ) as output_file:
+                temp_pdf_path = Path(output_file.name)
+                img2pdf.convert(
+                    pdf_inputs,
+                    outputstream=output_file,
+                    title=self.chapter_name,
+                    producer=app_info,
+                    creator=app_info,
+                )
+            temp_pdf_path.replace(self.path)
         finally:
-            for image in opened_images:
-                image.close()
+            if temp_pdf_path is not None:
+                with suppress(FileNotFoundError):
+                    temp_pdf_path.unlink()
             if self._temp_dir is not None:
                 self._temp_dir.cleanup()
                 self._temp_dir = None
             self._page_paths.clear()
+
+    def discard(self) -> None:
+        """Clean buffered page files without publishing a PDF artifact."""
+        if self._temp_dir is not None:
+            self._temp_dir.cleanup()
+            self._temp_dir = None
+        self._page_paths.clear()

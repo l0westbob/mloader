@@ -7,6 +7,8 @@ from typing import Literal
 
 ApiOutputFormat = Literal["cbz", "pdf"]
 EffectiveOutputFormat = Literal["raw", "cbz", "pdf"]
+CoverFormat = Literal["png", "jpg", "webp"]
+COVER_FORMATS: tuple[CoverFormat, ...] = ("png", "jpg", "webp")
 MAX_CHAPTER_ID = 2_147_483_647
 
 
@@ -19,6 +21,7 @@ class DiscoveryRequest:
     id_length: int | None
     languages: tuple[str, ...]
     browser_fallback: bool
+    capture_api_dir: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -38,11 +41,13 @@ class DownloadRequest:
     chapter_subdir: bool
     meta: bool
     cover: bool
+    cover_format: CoverFormat
     resume: bool
     manifest_reset: bool
     chapters: frozenset[int]
     chapter_ids: frozenset[int]
     titles: frozenset[int]
+    run_report_path: str | None = None
 
     @property
     def max_chapter(self) -> int:

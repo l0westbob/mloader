@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import types
 import sys
+from pathlib import Path
 from typing import Any, ClassVar
 
 import pytest
@@ -14,21 +15,33 @@ from click.testing import CliRunner
 from mloader.cli.exit_codes import EXTERNAL_FAILURE, VALIDATION_ERROR
 from mloader.cli import title_discovery
 from mloader.cli import main as cli_main
+from mloader.config import AUTH_PARAMS
 from mloader.domain.requests import DownloadSummary
-from mloader.errors import SubscriptionRequiredError
+from mloader.errors import APIResponseError, SubscriptionRequiredError
 from mloader.response_pb2 import Response  # type: ignore
 
 
 class DummyResponse:
     """Minimal response test double for scraper requests."""
 
-    def __init__(self, text: str = "", content: bytes | None = None) -> None:
+    def __init__(
+        self,
+        text: str = "",
+        content: bytes | None = None,
+        *,
+        status_code: int = 200,
+    ) -> None:
         """Store response body for extraction tests."""
         self.text = text
         self.content = content if content is not None else text.encode("utf-8")
+        self.status_code = status_code
 
     def raise_for_status(self) -> None:
         """Simulate successful response status."""
+        if self.status_code >= 400:
+            response = requests.Response()
+            response.status_code = self.status_code
+            raise requests.HTTPError(f"{self.status_code} error", response=response)
 
 
 class DummySession:
@@ -37,7 +50,8 @@ class DummySession:
     def __init__(self, payloads: dict[str, str | bytes]) -> None:
         """Store URL-to-payload mapping for request simulations."""
         self.payloads = payloads
-        self.calls: list[tuple[str, tuple[float, float]]] = []
+        self.calls: list[tuple[str, dict[str, str] | None, tuple[float, float]]] = []
+        self.headers: dict[str, str] = {}
 
     def __enter__(self) -> DummySession:
         """Support context manager protocol."""
@@ -47,9 +61,14 @@ class DummySession:
         """Support context manager protocol."""
         _ = args
 
-    def get(self, url: str, timeout: tuple[float, float]) -> DummyResponse:
+    def get(
+        self,
+        url: str,
+        params: dict[str, str] | None = None,
+        timeout: tuple[float, float] = (5.0, 30.0),
+    ) -> DummyResponse:
         """Record request and return mapped HTML payload."""
-        self.calls.append((url, timeout))
+        self.calls.append((url, params, timeout))
         payload = self.payloads[url]
         if isinstance(payload, bytes):
             return DummyResponse(content=payload)
@@ -74,6 +93,7 @@ class DummyLoader:
         capture_api_dir: str | None,
         resume: bool,
         manifest_reset: bool,
+        cover_format: str = "png",
     ) -> None:
         """Store initializer payload for assertions."""
         type(self).init_args = {
@@ -82,6 +102,7 @@ class DummyLoader:
             "split": split,
             "meta": meta,
             "cover": cover,
+            "cover_format": cover_format,
             "destination": destination,
             "output_format": output_format,
             "capture_api_dir": capture_api_dir,
@@ -219,6 +240,29 @@ def test_extract_title_ids_from_api_payload_filters_languages() -> None:
     assert result == {100001, 100003}
 
 
+def test_extract_title_ids_from_api_payload_rejects_unknown_payload() -> None:
+    """Verify title-index parsing reports schema drift for undecodable payloads."""
+    with pytest.raises(APIResponseError, match="schema drift") as error:
+        title_discovery.extract_title_ids_from_api_payload(b"not-protobuf")
+
+    assert error.value.kind == "unknown"
+
+
+def test_extract_title_ids_from_api_payload_rejects_success_without_title_index() -> None:
+    """Verify success envelopes without all_titles_view are reported as schema drift."""
+    parsed = Response()
+    parsed.success.title_detail_view.title.title_id = 100001
+    parsed.success.title_detail_view.title.name = "Other payload"
+
+    with pytest.raises(APIResponseError, match="without all_titles_view") as error:
+        title_discovery.extract_title_ids_from_api_payload(
+            parsed.SerializeToString(),
+            id_length=None,
+        )
+
+    assert error.value.kind == "unknown"
+
+
 def test_collect_title_ids_from_api_returns_sorted_unique_ids(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -234,7 +278,147 @@ def test_collect_title_ids_from_api_returns_sorted_unique_ids(
     )
 
     assert result == [100001, 100002, 100003]
-    assert dummy_session.calls == [("https://api.example/allV2", (5.0, 30.0))]
+    assert dummy_session.calls == [("https://api.example/allV2", AUTH_PARAMS, (5.0, 30.0))]
+    assert dummy_session.headers["User-Agent"] == "okhttp/4.12.0"
+    assert "Host" not in dummy_session.headers
+
+
+def test_collect_title_ids_from_api_captures_title_index_payload(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Verify capture mode stores title-index payloads during --all discovery."""
+    payload = _build_all_titles_payload([100001])
+    dummy_session = DummySession({"https://api.example/allV2": payload})
+    monkeypatch.setattr(title_discovery.requests, "Session", lambda: dummy_session)
+
+    result = title_discovery.collect_title_ids_from_api(
+        "https://api.example/allV2",
+        id_length=6,
+        allowed_languages={0},
+        capture_api_dir=str(tmp_path),
+    )
+
+    assert result == [100001]
+    metadata = json.loads(next(tmp_path.glob("*.meta.json")).read_text(encoding="utf-8"))
+    assert metadata["endpoint"] == "title_index"
+    assert metadata["payload_classification"] == "success"
+    assert metadata["params"]["allowed_languages"] == [0]
+
+
+def test_collect_title_ids_from_api_retries_transient_http_errors(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify API scraper retries temporary upstream errors before succeeding."""
+    payload = _build_all_titles_payload([100002, 100001])
+
+    class FlakySession:
+        """Session test double failing once with HTTP 502 then succeeding."""
+
+        def __init__(self) -> None:
+            self.calls: list[tuple[str, dict[str, str] | None, tuple[float, float]]] = []
+            self._attempt = 0
+            self.headers: dict[str, str] = {}
+
+        def __enter__(self) -> FlakySession:
+            return self
+
+        def __exit__(self, *args: object) -> None:
+            _ = args
+
+        def get(
+            self,
+            url: str,
+            params: dict[str, str] | None = None,
+            timeout: tuple[float, float] = (5.0, 30.0),
+        ) -> DummyResponse:
+            self.calls.append((url, params, timeout))
+            self._attempt += 1
+            if self._attempt == 1:
+                return DummyResponse(status_code=502)
+            return DummyResponse(content=payload)
+
+    flaky_session = FlakySession()
+    monkeypatch.setattr(title_discovery.requests, "Session", lambda: flaky_session)
+    monkeypatch.setattr(title_discovery.time, "sleep", lambda _seconds: None)
+
+    result = title_discovery.collect_title_ids_from_api(
+        "https://api.example/allV2",
+        id_length=6,
+        allowed_languages=None,
+    )
+
+    assert result == [100001, 100002]
+    assert len(flaky_session.calls) == 2
+
+
+def test_collect_title_ids_from_api_does_not_retry_non_transient_http_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify non-transient HTTP errors surface immediately."""
+    dummy_session = DummySession({"https://api.example/allV2": b""})
+
+    def _get(
+        _url: str,
+        params: dict[str, str] | None = None,
+        timeout: tuple[float, float] = (5.0, 30.0),
+    ) -> DummyResponse:
+        del params
+        del timeout
+        return DummyResponse(status_code=404)
+
+    dummy_session.get = _get  # type: ignore[method-assign]
+    monkeypatch.setattr(title_discovery.requests, "Session", lambda: dummy_session)
+
+    with pytest.raises(requests.HTTPError, match="404 error"):
+        title_discovery.collect_title_ids_from_api(
+            "https://api.example/allV2",
+            id_length=6,
+            allowed_languages=None,
+        )
+
+
+def test_collect_title_ids_from_api_retries_request_errors_until_exhausted(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify repeated network errors are retried and then surfaced."""
+
+    class FailingSession:
+        """Session test double raising request errors on every attempt."""
+
+        def __init__(self) -> None:
+            self.calls = 0
+            self.headers: dict[str, str] = {}
+
+        def __enter__(self) -> FailingSession:
+            return self
+
+        def __exit__(self, *args: object) -> None:
+            _ = args
+
+        def get(
+            self,
+            _url: str,
+            params: dict[str, str] | None = None,
+            timeout: tuple[float, float] = (5.0, 30.0),
+        ) -> DummyResponse:
+            del params
+            del timeout
+            self.calls += 1
+            raise requests.RequestException("network down")
+
+    failing_session = FailingSession()
+    monkeypatch.setattr(title_discovery.requests, "Session", lambda: failing_session)
+    monkeypatch.setattr(title_discovery.time, "sleep", lambda _seconds: None)
+
+    with pytest.raises(requests.RequestException, match="network down"):
+        title_discovery.collect_title_ids_from_api(
+            "https://api.example/allV2",
+            id_length=6,
+            allowed_languages=None,
+        )
+
+    assert failing_session.calls == title_discovery.API_MAX_ATTEMPTS
 
 
 def test_collect_title_ids_returns_sorted_unique_ids(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -253,8 +437,8 @@ def test_collect_title_ids_returns_sorted_unique_ids(monkeypatch: pytest.MonkeyP
 
     assert result == [100001, 100002, 100003]
     assert dummy_session.calls == [
-        ("https://a.example", (5.0, 30.0)),
-        ("https://b.example", (5.0, 30.0)),
+        ("https://a.example", None, (5.0, 30.0)),
+        ("https://b.example", None, (5.0, 30.0)),
     ]
 
 
@@ -760,3 +944,29 @@ def test_cli_can_use_static_scrape_when_api_fetch_fails(monkeypatch: pytest.Monk
     assert "API title-index fetch failed: api down" in result.output
     assert DummyLoader.download_args is not None
     assert DummyLoader.download_args["title_ids"] == {100050}
+
+
+def test_cli_can_use_static_scrape_when_api_payload_is_unusable(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify static scrape fallback can recover after API payload/schema errors."""
+
+    def _raise_api_error(*_args: object, **_kwargs: object) -> list[int]:
+        raise APIResponseError("schema drift", kind="unknown")
+
+    DummyLoader.download_args = None
+    monkeypatch.setattr(cli_main.title_discovery, "collect_title_ids_from_api", _raise_api_error)
+    monkeypatch.setattr(
+        cli_main.title_discovery,
+        "collect_title_ids",
+        lambda *_args, **_kwargs: [100051],
+    )
+    monkeypatch.setattr(cli_main, "MangaLoader", DummyLoader)
+
+    runner = CliRunner()
+    result = runner.invoke(cli_main.main, ["--all"])
+
+    assert result.exit_code == 0
+    assert "API title-index payload unusable: schema drift" in result.output
+    assert DummyLoader.download_args is not None
+    assert DummyLoader.download_args["title_ids"] == {100051}

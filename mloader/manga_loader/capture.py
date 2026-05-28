@@ -12,6 +12,7 @@ from typing import Mapping
 
 from google.protobuf.json_format import MessageToDict
 
+from mloader.manga_loader.api_response import classify_api_response_payload
 from mloader.response_pb2 import Response  # type: ignore
 
 _FILENAME_SANITIZER = re.compile(r"[^a-zA-Z0-9_.-]+")
@@ -80,6 +81,15 @@ class APIPayloadCapture:
             "payload_size_bytes": len(response_content),
             "raw_payload_file": raw_payload_path.name,
         }
+        classification = classify_api_response_payload(response_content)
+        metadata["payload_classification"] = classification.kind
+        if classification.error is not None:
+            metadata["api_error"] = {
+                "title": classification.error.title,
+                "body": classification.error.body,
+                "code": classification.error.code,
+                "language": classification.error.language,
+            }
 
         try:
             parsed_response = Response.FromString(response_content)

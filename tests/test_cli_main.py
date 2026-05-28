@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import logging
+from pathlib import Path
 from typing import Any, ClassVar
 
 import pytest
@@ -41,6 +43,7 @@ class DummyLoader:
         capture_api_dir: str | None,
         resume: bool,
         manifest_reset: bool,
+        cover_format: str = "png",
     ) -> None:
         """Record initialization arguments for assertions."""
         type(self).init_args = {
@@ -49,6 +52,7 @@ class DummyLoader:
             "split": split,
             "meta": meta,
             "cover": cover,
+            "cover_format": cover_format,
             "destination": destination,
             "output_format": output_format,
             "capture_api_dir": capture_api_dir,
@@ -335,6 +339,62 @@ def test_cli_forwards_cover_flag(monkeypatch: pytest.MonkeyPatch) -> None:
     assert result.exit_code == 0
     assert DummyLoader.init_args is not None
     assert DummyLoader.init_args["cover"] is True
+    assert DummyLoader.init_args["cover_format"] == "png"
+
+
+def test_cli_forwards_cover_format_when_cover_is_enabled(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify --cover-format selects title-cover image format."""
+    monkeypatch.setattr(cli_main, "MangaLoader", DummyLoader)
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli_main.main,
+        ["--chapter-id", CHAPTER_ID, "--cover", "--cover-format", "webp"],
+    )
+
+    assert result.exit_code == 0
+    assert DummyLoader.init_args is not None
+    assert DummyLoader.init_args["cover"] is True
+    assert DummyLoader.init_args["cover_format"] == "webp"
+
+
+def test_cli_cover_format_implies_cover(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify explicit --cover-format enables title-cover download mode."""
+    monkeypatch.setattr(cli_main, "MangaLoader", DummyLoader)
+
+    runner = CliRunner()
+    result = runner.invoke(cli_main.main, ["--chapter-id", CHAPTER_ID, "--cover-format", "jpg"])
+
+    assert result.exit_code == 0
+    assert DummyLoader.init_args is not None
+    assert DummyLoader.init_args["cover"] is True
+    assert DummyLoader.init_args["cover_format"] == "jpg"
+
+
+def test_cli_rejects_invalid_cover_format() -> None:
+    """Verify unsupported cover formats fail during CLI validation."""
+    runner = CliRunner()
+    result = runner.invoke(cli_main.main, ["--chapter-id", CHAPTER_ID, "--cover-format", "bmp"])
+
+    assert result.exit_code == 2
+    assert "Invalid value for '--cover-format'" in result.output
+
+
+def test_cli_cover_defaults_to_disabled_with_png_format(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify cover download remains disabled by default."""
+    monkeypatch.setattr(cli_main, "MangaLoader", DummyLoader)
+
+    runner = CliRunner()
+    result = runner.invoke(cli_main.main, ["--chapter-id", CHAPTER_ID])
+
+    assert result.exit_code == 0
+    assert DummyLoader.init_args is not None
+    assert DummyLoader.init_args["cover"] is False
+    assert DummyLoader.init_args["cover_format"] == "png"
 
 
 def test_cli_forwards_resume_and_manifest_reset_options(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -490,6 +550,107 @@ def test_cli_json_mode_returns_structured_success_payload(
         "failed": 0,
         "failed_chapter_ids": [],
     }
+
+
+def test_cli_writes_run_report_when_requested(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Verify optional run reports capture cron-friendly run metadata."""
+    monkeypatch.setattr(cli_main, "MangaLoader", DummyLoader)
+    report_path = tmp_path / "run-report.json"
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli_main.main,
+        ["--chapter-id", CHAPTER_ID, "--run-report", str(report_path)],
+    )
+
+    assert result.exit_code == 0
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    assert report["status"] == "ok"
+    assert report["exit_code"] == 0
+    assert report["selected_args"]["target_chapter_ids"] == 1
+    assert report["selected_args"]["cover"] is False
+    assert report["selected_args"]["cover_format"] == "png"
+    assert report["summary"]["downloaded"] == 1
+    assert report["subscription_access_failures"] == 0
+    assert report["exporter_safety"]["version"] == "pdf-streaming-and-atomic-cbz-v1"
+
+
+def test_cli_writes_error_run_report_when_download_fails(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Verify failed runs include error text in optional run reports."""
+    monkeypatch.setattr(cli_main, "MangaLoader", FailingLoader)
+    report_path = tmp_path / "run-report.json"
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli_main.main,
+        ["--chapter-id", CHAPTER_ID, "--run-report", str(report_path)],
+    )
+
+    assert result.exit_code == INTERNAL_BUG
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    assert report["status"] == "error"
+    assert report["exit_code"] == INTERNAL_BUG
+    assert "Download failed: boom" == report["error"]
+
+
+def test_run_report_write_errors_are_logged(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Verify report write failures do not mask the original CLI outcome."""
+    request = cli_main.workflows.build_download_request(
+        out_dir="/tmp/downloads",
+        raw=False,
+        output_format="cbz",
+        capture_api_dir=None,
+        quality="high",
+        split=False,
+        begin=0,
+        end=None,
+        last=False,
+        chapter_title=False,
+        chapter_subdir=False,
+        meta=False,
+        cover=False,
+        cover_format="png",
+        resume=True,
+        manifest_reset=False,
+        chapters=None,
+        chapter_ids={int(CHAPTER_ID)},
+        titles=None,
+        run_report_path="/tmp/report.json",
+    )
+
+    def _raise_write_error(self: Path, *_args: object, **_kwargs: object) -> int:
+        del self
+        raise OSError("disk full")
+
+    monkeypatch.setattr(cli_main.Path, "write_text", _raise_write_error)
+    caplog.set_level(logging.WARNING)
+
+    cli_main._write_run_report_if_requested(
+        request,
+        run_id="run-1",
+        started_at=cli_main.datetime.now(cli_main.timezone.utc),
+        status="ok",
+        exit_code=0,
+        discovery=None,
+        summary=DownloadSummary(
+            downloaded=1,
+            skipped_manifest=0,
+            failed=0,
+            failed_chapter_ids=(),
+        ),
+        error_message=None,
+    )
+
+    assert "Failed to write run report" in caplog.text
 
 
 def test_cli_json_mode_returns_structured_error_payload(

@@ -12,13 +12,16 @@ from mloader.manga_loader.capture_verify import (
     CaptureVerificationError,
     _as_dict,
     _as_list,
+    _build_api_error_signature,
     _build_schema_signature,
     _load_metadata,
     _verify_manga_viewer_payload,
+    _verify_title_index_payload,
     _verify_title_detail_payload,
     verify_capture_schema_against_baseline,
     verify_capture_schema,
 )
+from mloader.manga_loader.api_response import ApiPayloadClassification
 from mloader.response_pb2 import Response  # type: ignore
 
 FIXTURE_CAPTURE_DIR = Path(__file__).parent / "fixtures" / "api_captures" / "baseline"
@@ -40,12 +43,128 @@ def _update_payload_metadata(meta_path: Path, payload: bytes) -> None:
     meta_path.write_text(json.dumps(metadata, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
+def _varint(value: int) -> bytes:
+    """Encode a protobuf varint for local error-envelope fixtures."""
+    parts: list[int] = []
+    while True:
+        byte = value & 0x7F
+        value >>= 7
+        if value:
+            parts.append(byte | 0x80)
+            continue
+        parts.append(byte)
+        return bytes(parts)
+
+
+def _length_delimited_field(field_number: int, value: bytes) -> bytes:
+    """Encode one length-delimited protobuf field."""
+    return _varint((field_number << 3) | 2) + _varint(len(value)) + value
+
+
+def _varint_field(field_number: int, value: int) -> bytes:
+    """Encode one varint protobuf field."""
+    return _varint(field_number << 3) + _varint(value)
+
+
+def _string_field(field_number: int, value: str) -> bytes:
+    """Encode one protobuf string field."""
+    return _length_delimited_field(field_number, value.encode("utf-8"))
+
+
+def _api_error_payload() -> bytes:
+    """Build a minimal MangaPlus application-error envelope."""
+    localized_error = (
+        _string_field(1, "Invalid Parameter")
+        + _string_field(
+            2,
+            "There are issues connecting to Manga+. Please try again later.(10511)",
+        )
+        + _varint_field(6, 0)
+    )
+    error_result = _length_delimited_field(2, localized_error)
+    return _length_delimited_field(2, error_result)
+
+
 def test_verify_capture_schema_with_real_fixture_set() -> None:
     """Verify baseline fixture set passes schema verification."""
     summary = verify_capture_schema(FIXTURE_CAPTURE_DIR)
 
     assert summary.total_records == 3
     assert summary.endpoint_counts == {"manga_viewer": 2, "title_detailV3": 1}
+
+
+def test_verify_capture_schema_accepts_api_error_envelope(tmp_path: Path) -> None:
+    """Verify captured MangaPlus application errors are first-class fixtures."""
+    payload = _api_error_payload()
+    payload_path = tmp_path / "0001_title_index_all.pb"
+    payload_path.write_bytes(payload)
+    metadata = {
+        "endpoint": "title_index",
+        "identifier": "all",
+        "url": "https://jumpg-webapi.tokyo-cdn.com/api/title_list/allV2",
+        "params": {"id_length": 6},
+        "raw_payload_file": payload_path.name,
+        "payload_size_bytes": len(payload),
+        "payload_sha256": sha256(payload).hexdigest(),
+        "payload_classification": "api_error",
+        "api_error": {
+            "title": "Invalid Parameter",
+            "body": "There are issues connecting to Manga+. Please try again later.(10511)",
+            "code": "10511",
+            "language": 0,
+        },
+    }
+    (tmp_path / "0001_title_index_all.meta.json").write_text(
+        json.dumps(metadata, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+
+    summary = verify_capture_schema(tmp_path)
+
+    assert summary.total_records == 1
+    assert summary.endpoint_counts == {"title_index": 1}
+
+
+def test_verify_capture_schema_accepts_title_index_success_payload(tmp_path: Path) -> None:
+    """Verify title-index success captures are validated and counted."""
+    parsed = Response()
+    group = parsed.success.all_titles_view.title_groups.add()
+    group.group_name = "weekly"
+    title = group.titles.add()
+    title.title_id = 100001
+    title.name = "Demo"
+    payload = parsed.SerializeToString()
+
+    payload_path = tmp_path / "0001_title_index_all.pb"
+    payload_path.write_bytes(payload)
+    metadata = {
+        "endpoint": "title_index",
+        "identifier": "all",
+        "url": "https://jumpg-webapi.tokyo-cdn.com/api/title_list/allV2",
+        "params": {"id_length": 6},
+        "raw_payload_file": payload_path.name,
+        "payload_size_bytes": len(payload),
+        "payload_sha256": sha256(payload).hexdigest(),
+    }
+    (tmp_path / "0001_title_index_all.meta.json").write_text(
+        json.dumps(metadata, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+
+    summary = verify_capture_schema(tmp_path)
+
+    assert summary.total_records == 1
+    assert summary.endpoint_counts == {"title_index": 1}
+
+
+def test_build_api_error_signature_requires_error_details() -> None:
+    """Verify malformed internal classifications fail with a clear message."""
+    with pytest.raises(CaptureVerificationError, match="Expected API error details"):
+        _build_api_error_signature(
+            endpoint="title_index",
+            metadata={"params": {}},
+            classification=ApiPayloadClassification(kind="api_error"),
+        )
 
 
 def test_verify_capture_schema_against_baseline_with_real_fixture_set() -> None:
@@ -140,8 +259,10 @@ def test_verify_capture_schema_fails_for_manga_viewer_missing_pages(tmp_path: Pa
         verify_capture_schema(tmp_path)
 
 
-def test_verify_capture_schema_fails_for_title_detail_missing_groups(tmp_path: Path) -> None:
-    """Verify verifier rejects title_detail payloads with no chapter groups."""
+def test_verify_capture_schema_fails_for_title_detail_missing_chapter_lists(
+    tmp_path: Path,
+) -> None:
+    """Verify verifier rejects title_detail payloads with no grouped or flat chapters."""
     _copy_fixture_set(tmp_path)
 
     payload_path = tmp_path / "0001_title_detailV3_100010.pb"
@@ -248,6 +369,40 @@ def test_verify_title_detail_payload_rejects_empty_chapter_groups() -> None:
         _verify_title_detail_payload(parsed, "sample")
 
 
+def test_verify_title_detail_payload_accepts_flat_mobile_chapter_list() -> None:
+    """Verify title-detail verifier accepts the mobile flat chapter list shape."""
+    parsed = Response()
+    parsed.success.title_detail_view.title.title_id = 100312
+    parsed.success.title_detail_view.title.name = "T"
+    parsed.success.title_detail_view.chapter_list.add().chapter_id = 1024959
+
+    _verify_title_detail_payload(parsed, "sample")
+
+
+def test_verify_title_index_payload_rejects_missing_title_index() -> None:
+    """Verify title-index verifier rejects missing all_titles_view branch."""
+    parsed = Response()
+    parsed.success.manga_viewer.title_id = 100312
+    with pytest.raises(CaptureVerificationError, match="Missing success.all_titles_view"):
+        _verify_title_index_payload(parsed, "sample")
+
+
+def test_verify_title_index_payload_rejects_empty_groups() -> None:
+    """Verify title-index verifier requires at least one group."""
+    parsed = Response()
+    parsed.success.all_titles_view.SetInParent()
+    with pytest.raises(CaptureVerificationError, match="No title_groups records"):
+        _verify_title_index_payload(parsed, "sample")
+
+
+def test_verify_title_index_payload_rejects_groups_without_titles() -> None:
+    """Verify title-index verifier requires at least one title entry."""
+    parsed = Response()
+    parsed.success.all_titles_view.title_groups.add().group_name = "empty"
+    with pytest.raises(CaptureVerificationError, match="No title records found"):
+        _verify_title_index_payload(parsed, "sample")
+
+
 def test_verify_manga_viewer_payload_rejects_missing_viewer() -> None:
     """Verify manga-viewer payload verifier rejects missing payload branch."""
     parsed = Response()
@@ -330,10 +485,46 @@ def test_build_schema_signature_rejects_empty_pages_list(
         )
 
 
-def test_build_schema_signature_rejects_empty_title_detail_group_list(
+def test_build_schema_signature_rejects_empty_title_index_groups(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Verify schema signature rejects title_detail payloads with no groups."""
+    """Verify schema signature rejects title-index payloads with no groups."""
+    monkeypatch.setattr(
+        "mloader.manga_loader.capture_verify.MessageToDict",
+        lambda *_args, **_kwargs: {"success": {"all_titles_view": {"title_groups": []}}},
+    )
+
+    with pytest.raises(CaptureVerificationError, match="Expected at least one group"):
+        _build_schema_signature(
+            endpoint="title_index",
+            metadata={"params": {}, "url": "https://example.invalid/api/title_list/allV2"},
+            parsed=Response(),
+        )
+
+
+def test_build_schema_signature_rejects_title_index_groups_without_titles(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify schema signature rejects title-index groups with no titles."""
+    monkeypatch.setattr(
+        "mloader.manga_loader.capture_verify.MessageToDict",
+        lambda *_args, **_kwargs: {
+            "success": {"all_titles_view": {"title_groups": [{"titles": []}]}}
+        },
+    )
+
+    with pytest.raises(CaptureVerificationError, match="Expected at least one title"):
+        _build_schema_signature(
+            endpoint="title_index",
+            metadata={"params": {}, "url": "https://example.invalid/api/title_list/allV2"},
+            parsed=Response(),
+        )
+
+
+def test_build_schema_signature_rejects_empty_title_detail_chapter_lists(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify schema signature rejects title_detail payloads with no chapters."""
     monkeypatch.setattr(
         "mloader.manga_loader.capture_verify.MessageToDict",
         lambda *_args, **_kwargs: {
@@ -341,7 +532,7 @@ def test_build_schema_signature_rejects_empty_title_detail_group_list(
         },
     )
 
-    with pytest.raises(CaptureVerificationError, match="Expected at least one group"):
+    with pytest.raises(CaptureVerificationError, match="Expected at least one chapter group"):
         _build_schema_signature(
             endpoint="title_detailV3",
             metadata={"params": {}, "url": "https://example.invalid"},
@@ -373,3 +564,31 @@ def test_build_schema_signature_rejects_empty_first_chapter_list(
             metadata={"params": {}, "url": "https://example.invalid"},
             parsed=Response(),
         )
+
+
+def test_build_schema_signature_accepts_flat_title_detail_chapter_list(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify schema signature accepts mobile title_detail flat chapter lists."""
+    monkeypatch.setattr(
+        "mloader.manga_loader.capture_verify.MessageToDict",
+        lambda *_args, **_kwargs: {
+            "success": {
+                "title_detail_view": {
+                    "title": {},
+                    "chapter_list": [{"chapter_id": 1024959, "name": "#001"}],
+                }
+            }
+        },
+    )
+
+    signature = json.loads(
+        _build_schema_signature(
+            endpoint="title_detailV3",
+            metadata={"params": {}, "url": "https://example.invalid"},
+            parsed=Response(),
+        )
+    )
+
+    assert signature["chapter_source"] == "chapter_list"
+    assert signature["chapter_keys"] == ["chapter_id", "name"]

@@ -3,11 +3,19 @@
 from __future__ import annotations
 
 import re
+import time
 from typing import Sequence
 
 import requests
 
+from mloader.config import AUTH_PARAMS, MOBILE_API_HEADERS
 from mloader.constants import Language
+from mloader.errors import APIResponseError
+from mloader.manga_loader.api_response import (
+    classify_api_response_payload,
+    format_api_payload_problem,
+)
+from mloader.manga_loader.capture import APIPayloadCapture
 from mloader.response_pb2 import Response  # type: ignore
 
 DEFAULT_LIST_PAGES: tuple[str, str, str] = (
@@ -15,7 +23,7 @@ DEFAULT_LIST_PAGES: tuple[str, str, str] = (
     "https://mangaplus.shueisha.co.jp/manga_list/completed",
     "https://mangaplus.shueisha.co.jp/manga_list/one_shot",
 )
-DEFAULT_TITLE_INDEX_ENDPOINT = "https://jumpg-webapi.tokyo-cdn.com/api/title_list/allV2"
+DEFAULT_TITLE_INDEX_ENDPOINT = "https://jumpg-api.tokyo-cdn.com/api/title_list/allV2"
 # Match both '/titles/123' and escaped '\/titles\/123' shapes.
 TITLE_ID_PATTERN = re.compile(r"\\?/titles\\?/(?P<title_id>\d+)(?:\\?/|$|[?#\"'])")
 LANGUAGE_FILTER_CODES: dict[str, set[int]] = {
@@ -23,6 +31,9 @@ LANGUAGE_FILTER_CODES: dict[str, set[int]] = {
 }
 LANGUAGE_FILTER_CODES["vietnamese"].add(8)
 LANGUAGE_FILTER_CHOICES = tuple(LANGUAGE_FILTER_CODES)
+API_RETRY_STATUS_CODES: set[int] = {429, 500, 502, 503, 504}
+API_MAX_ATTEMPTS = 3
+API_RETRY_BACKOFF_SECONDS = 2.0
 
 
 def extract_title_ids(html: str, id_length: int | None = 6) -> set[int]:
@@ -52,7 +63,22 @@ def extract_title_ids_from_api_payload_with_language_filter(
     allowed_languages: set[int] | None,
 ) -> set[int]:
     """Extract unique title IDs with an optional language-code filter."""
+    classification = classify_api_response_payload(payload)
+    if classification.kind != "success":
+        raise APIResponseError(
+            format_api_payload_problem(classification, context="title_index"),
+            kind=classification.kind if classification.kind != "success" else "unknown",
+            code=classification.error.code if classification.error else None,
+        )
+
     parsed = Response.FromString(payload)
+    if not parsed.success.HasField("all_titles_view"):
+        raise APIResponseError(
+            "MangaPlus title-index API returned a success payload without all_titles_view; "
+            "this may indicate API schema drift.",
+            kind="unknown",
+        )
+
     title_ids: set[int] = set()
     for title_group in parsed.success.all_titles_view.title_groups:
         for title in title_group.titles:
@@ -73,17 +99,58 @@ def collect_title_ids_from_api(
     id_length: int | None,
     allowed_languages: set[int] | None,
     request_timeout: tuple[float, float] = (5.0, 30.0),
+    capture_api_dir: str | None = None,
 ) -> list[int]:
-    """Fetch web title-index payload and return sorted unique title IDs."""
+    """Fetch mobile title-index payload and return sorted unique title IDs."""
     with requests.Session() as session:
-        response = session.get(title_index_endpoint, timeout=request_timeout)
-        response.raise_for_status()
-        title_ids = extract_title_ids_from_api_payload_with_language_filter(
-            response.content,
-            id_length=id_length,
-            allowed_languages=allowed_languages,
-        )
-    return sorted(title_ids)
+        session.headers.update(MOBILE_API_HEADERS)
+        last_error: requests.RequestException | None = None
+        payload_capture = APIPayloadCapture(capture_api_dir) if capture_api_dir else None
+        for attempt in range(1, API_MAX_ATTEMPTS + 1):
+            try:
+                response = session.get(
+                    title_index_endpoint,
+                    params=AUTH_PARAMS,
+                    timeout=request_timeout,
+                )
+                response.raise_for_status()
+                if payload_capture is not None:
+                    payload_capture.capture(
+                        endpoint="title_index",
+                        identifier="all",
+                        url=title_index_endpoint,
+                        params={
+                            **AUTH_PARAMS,
+                            "allowed_languages": sorted(allowed_languages)
+                            if allowed_languages is not None
+                            else "all",
+                            "id_length": id_length if id_length is not None else "any",
+                        },
+                        response_content=response.content,
+                    )
+                title_ids = extract_title_ids_from_api_payload_with_language_filter(
+                    response.content,
+                    id_length=id_length,
+                    allowed_languages=allowed_languages,
+                )
+                return sorted(title_ids)
+            except requests.HTTPError as error:
+                status_code = error.response.status_code if error.response is not None else None
+                if status_code in API_RETRY_STATUS_CODES and attempt < API_MAX_ATTEMPTS:
+                    time.sleep(API_RETRY_BACKOFF_SECONDS * attempt)
+                    last_error = error
+                    continue
+                raise
+            except requests.RequestException as error:
+                if attempt < API_MAX_ATTEMPTS:
+                    time.sleep(API_RETRY_BACKOFF_SECONDS * attempt)
+                    last_error = error
+                    continue
+                raise
+
+    if last_error is not None:  # pragma: no cover - final retry raises in-loop
+        raise last_error
+    return []  # pragma: no cover - API_MAX_ATTEMPTS is always positive
 
 
 def parse_language_filters(languages: Sequence[str]) -> set[int] | None:

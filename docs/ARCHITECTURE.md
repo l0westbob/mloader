@@ -2,6 +2,18 @@
 
 `mloader` is intentionally split into small units that can be extended independently.
 
+## Current status
+
+The application is treated as a stable maintained MVP, not a broken rewrite target. Existing CLI
+flags, Docker cron behavior, output layouts, manifests, exit codes, and user-facing filenames are
+compatibility surfaces. Architecture work should therefore be incremental, reversible, and guarded by
+tests before internals are replaced.
+
+The repository/default auth settings are free-tier development credentials. They are useful for
+free-access chapters, fixtures, smoke checks, and controlled subscription/access failure paths, but
+they cannot validate full-catalog subscription downloads. Full-catalog cron usage depends on
+user-provided subscription-capable auth settings.
+
 ## Runtime flow
 
 1. `mloader/cli/main.py` parses CLI options and translates them into immutable request models.
@@ -22,8 +34,11 @@
 ## Loader mixins
 
 - `api.py`: API URL/params and protobuf response parsing.
+- `api_response.py`: typed classification for success payloads, MangaPlus error envelopes, empty
+  responses, and unknown/schema-drift payloads.
 - `capture.py`: optional API payload capture (raw protobuf + metadata + parsed JSON).
-- `capture_verify.py`: verification of capture payloads against required runtime fields and optional baseline drift checks.
+- `capture_verify.py`: verification of success and error-envelope captures against required runtime
+  fields and optional baseline drift checks.
 - `normalization.py`: maps input title/chapter IDs into normalized work units.
 - `downloader.py`: chapter/page orchestration and metadata export.
 - `manifest.py`: persistent per-title chapter state tracking for resumable runs.
@@ -37,11 +52,14 @@ All exporters inherit from `ExporterBase`:
 - `add_image(image_data, index)`
 - `skip_image(index)`
 - `close()`
+- `discard()` for failed runs that must clean temporary buffers without publishing artifacts
 
 Current implementations:
 - `RawExporter`
-- `CBZExporter`
-- `PDFExporter`
+- `CBZExporter` writes to a temporary archive in the target directory and atomically replaces the
+  final `.cbz` only after the ZIP closes successfully.
+- `PDFExporter` keeps page data on disk and streams `img2pdf` output to a temporary PDF before
+  atomically replacing the final `.pdf`.
 
 New formats should follow the same contract to remain compatible with `DownloadMixin`.
 
@@ -58,4 +76,5 @@ Double-page naming note:
 ## Future roadmap
 
 - Add integration tests that replay captured payload sets against download planning.
-- Add optional schema drift checks for captured response envelopes.
+- Continue extracting thin DTOs and explicit services behind the existing `MangaLoader` facade once
+  the capture/replay suite covers the affected behavior.

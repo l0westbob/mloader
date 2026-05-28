@@ -43,6 +43,7 @@ class DummyLoader:
         capture_api_dir: str | None,
         resume: bool,
         manifest_reset: bool,
+        cover_format: str = "png",
     ) -> None:
         """Capture initializer values for assertions."""
         type(self).init_args = {
@@ -56,6 +57,7 @@ class DummyLoader:
             "capture_api_dir": capture_api_dir,
             "resume": resume,
             "manifest_reset": manifest_reset,
+            "cover_format": cover_format,
         }
 
     def download(self, **kwargs: Any) -> DownloadSummary:
@@ -118,6 +120,7 @@ class NoneReturningLoader:
         capture_api_dir: str | None,
         resume: bool,
         manifest_reset: bool,
+        cover_format: str = "png",
     ) -> None:
         """Accept standard loader constructor arguments and ignore payload."""
         del (
@@ -131,6 +134,7 @@ class NoneReturningLoader:
             capture_api_dir,
             resume,
             manifest_reset,
+            cover_format,
         )
 
     def download(self, **kwargs: Any) -> None:
@@ -155,6 +159,7 @@ def _build_request(*, raw: bool = False, output_format: str = "cbz") -> Download
         chapter_subdir=False,
         meta=True,
         cover=False,
+        cover_format="png",
         resume=True,
         manifest_reset=False,
         chapters=frozenset({10, 11}),
@@ -194,6 +199,37 @@ def test_verify_discovery_flags_accepts_all_mode() -> None:
     )
 
     assert message is None
+
+
+def test_discover_title_ids_requires_usable_api_payload_for_language_filters() -> None:
+    """Verify language-filter discovery stops on API payload/schema errors."""
+
+    class PayloadErrorGateway:
+        def parse_language_filters(self, _languages: tuple[str, ...]) -> set[int]:
+            return {0}
+
+        def collect_title_ids_from_api(self, *_args: Any, **_kwargs: Any) -> list[int]:
+            raise APIResponseError("schema drift", kind="unknown")
+
+        def collect_title_ids(self, *_args: Any, **_kwargs: Any) -> list[int]:
+            raise AssertionError("static fallback must not run with language filters")
+
+        def collect_title_ids_with_browser(self, *_args: Any, **_kwargs: Any) -> list[int]:
+            raise AssertionError("browser fallback must not run with language filters")
+
+    request = workflows.build_discovery_request(
+        pages=("https://example.com",),
+        title_index_endpoint="https://api.example/allV2",
+        id_length=6,
+        languages=("english",),
+        browser_fallback=True,
+    )
+
+    with pytest.raises(workflows.DiscoveryError, match="API response was unusable"):
+        workflows.discover_title_ids(
+            request,
+            gateway=PayloadErrorGateway(),
+        )
 
 
 def test_resolve_exporter_prefers_raw_over_requested_format() -> None:
@@ -262,6 +298,7 @@ def test_execute_download_wires_loader_and_download_targets() -> None:
     assert DummyLoader.init_args["resume"] is True
     assert DummyLoader.init_args["manifest_reset"] is False
     assert DummyLoader.init_args["cover"] is False
+    assert DummyLoader.init_args["cover_format"] == "png"
     assert DummyLoader.init_args["quality"] == "high"
     assert DummyLoader.download_args["title_ids"] == frozenset({100001})
     assert DummyLoader.download_args["chapter_numbers"] == frozenset({10, 11})
@@ -294,6 +331,7 @@ def test_execute_download_omits_empty_target_filters() -> None:
         chapter_subdir=False,
         meta=False,
         cover=False,
+        cover_format="png",
         resume=True,
         manifest_reset=False,
         chapters=frozenset(),
@@ -409,6 +447,7 @@ def test_build_request_helpers_create_immutable_domain_models() -> None:
         chapter_subdir=False,
         meta=False,
         cover=True,
+        cover_format="WEBP",
         resume=False,
         manifest_reset=True,
         chapters={5, 5},
@@ -428,10 +467,37 @@ def test_build_request_helpers_create_immutable_domain_models() -> None:
     assert download_request.chapter_ids == frozenset({1024959})
     assert download_request.titles == frozenset({100010})
     assert download_request.cover is True
+    assert download_request.cover_format == "webp"
     assert download_request.resume is False
     assert download_request.manifest_reset is True
     assert discovery_request.title_index_endpoint == "https://api.example/allV2"
     assert discovery_request.languages == ("english",)
+
+
+def test_build_download_request_rejects_unsupported_cover_format() -> None:
+    """Verify application request construction validates cover format values."""
+    with pytest.raises(ValueError, match="Unsupported cover format: bmp"):
+        workflows.build_download_request(
+            out_dir="/tmp/downloads",
+            raw=False,
+            output_format="cbz",
+            capture_api_dir=None,
+            quality="high",
+            split=False,
+            begin=0,
+            end=None,
+            last=False,
+            chapter_title=False,
+            chapter_subdir=False,
+            meta=False,
+            cover=True,
+            cover_format="bmp",
+            resume=True,
+            manifest_reset=False,
+            chapters=None,
+            chapter_ids=None,
+            titles=None,
+        )
 
 
 def test_to_chapter_id_debug_map_includes_expected_keys() -> None:
@@ -448,6 +514,9 @@ def test_to_chapter_id_debug_map_includes_expected_keys() -> None:
         "raw": False,
         "format": "cbz",
         "cover": False,
+        "cover_format": "png",
         "resume": True,
         "manifest_reset": False,
+        "capture_api": True,
+        "run_report": False,
     }

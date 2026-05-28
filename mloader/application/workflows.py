@@ -9,8 +9,10 @@ import requests
 
 from mloader.domain.requests import (
     ApiOutputFormat,
-    DownloadSummary,
+    COVER_FORMATS,
+    CoverFormat,
     DownloadRequest,
+    DownloadSummary,
     DiscoveryRequest,
     EffectiveOutputFormat,
 )
@@ -54,6 +56,7 @@ class TitleDiscoveryGateway(Protocol):
         id_length: int | None,
         allowed_languages: set[int] | None,
         request_timeout: tuple[float, float] = (5.0, 30.0),
+        capture_api_dir: str | None = None,
     ) -> list[int]:
         """Collect title IDs from the allV2 API endpoint."""
 
@@ -94,6 +97,7 @@ def discover_title_ids(
             request.title_index_endpoint,
             id_length=request.id_length,
             allowed_languages=allowed_languages,
+            capture_api_dir=request.capture_api_dir,
         )
     except requests.RequestException as exc:
         if allowed_languages is not None:
@@ -102,6 +106,13 @@ def discover_title_ids(
                 f"{exc}"
             ) from exc
         notices.append(f"API title-index fetch failed: {exc}")
+    except APIResponseError as exc:
+        if allowed_languages is not None:
+            raise DiscoveryError(
+                "Language filtering requires API title-index access, but the API response "
+                f"was unusable: {exc}"
+            ) from exc
+        notices.append(f"API title-index payload unusable: {exc}")
 
     if not title_ids and allowed_languages is None:
         try:
@@ -194,6 +205,7 @@ def execute_download(
         capture_api_dir=request.capture_api_dir,
         resume=request.resume,
         manifest_reset=request.manifest_reset,
+        cover_format=request.cover_format,
     )
     try:
         summary = loader.download(
@@ -258,14 +270,20 @@ def build_download_request(
     chapter_subdir: bool,
     meta: bool,
     cover: bool,
+    cover_format: str,
     resume: bool,
     manifest_reset: bool,
     chapters: Collection[int] | None,
     chapter_ids: Collection[int] | None,
     titles: Collection[int] | None,
+    run_report_path: str | None = None,
 ) -> DownloadRequest:
     """Create a typed download request from CLI-normalized values."""
     api_output_format: ApiOutputFormat = "pdf" if output_format == "pdf" else "cbz"
+    normalized_cover_format = cover_format.lower()
+    if normalized_cover_format not in COVER_FORMATS:
+        raise ValueError(f"Unsupported cover format: {cover_format}")
+    typed_cover_format = cast(CoverFormat, normalized_cover_format)
     return DownloadRequest(
         out_dir=out_dir,
         raw=raw,
@@ -280,11 +298,13 @@ def build_download_request(
         chapter_subdir=chapter_subdir,
         meta=meta,
         cover=cover,
+        cover_format=typed_cover_format,
         resume=resume,
         manifest_reset=manifest_reset,
         chapters=frozenset(chapters or set()),
         chapter_ids=frozenset(chapter_ids or set()),
         titles=frozenset(titles or set()),
+        run_report_path=run_report_path,
     )
 
 
@@ -295,6 +315,7 @@ def build_discovery_request(
     id_length: int | None,
     languages: tuple[str, ...],
     browser_fallback: bool,
+    capture_api_dir: str | None = None,
 ) -> DiscoveryRequest:
     """Create a typed discovery request from CLI-normalized values."""
     return DiscoveryRequest(
@@ -303,6 +324,7 @@ def build_discovery_request(
         id_length=id_length,
         languages=languages,
         browser_fallback=browser_fallback,
+        capture_api_dir=capture_api_dir,
     )
 
 
@@ -319,6 +341,9 @@ def to_chapter_id_debug_map(
         "raw": request.raw,
         "format": request.output_format,
         "cover": request.cover,
+        "cover_format": request.cover_format,
         "resume": request.resume,
         "manifest_reset": request.manifest_reset,
+        "capture_api": request.capture_api_dir is not None,
+        "run_report": request.run_report_path is not None,
     }

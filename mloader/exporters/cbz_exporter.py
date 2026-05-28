@@ -5,7 +5,6 @@ from __future__ import annotations
 from contextlib import suppress
 from html import escape
 import zipfile
-from io import BytesIO
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 from typing import Optional, Union
@@ -55,10 +54,18 @@ class CBZExporter(ExporterBase):
         self.path = base_path.joinpath(self.chapter_name).with_suffix(".cbz")
 
         self.skip_all_images = self.path.exists()
+        self._temp_path: Path | None = None
         if not self.skip_all_images:
-            self.archive_buffer = BytesIO()
+            with NamedTemporaryFile(
+                "wb",
+                delete=False,
+                dir=self.path.parent,
+                prefix=f".{self.path.stem}.",
+                suffix=".tmp",
+            ) as tmp:
+                self._temp_path = Path(tmp.name)
             self.archive = zipfile.ZipFile(
-                self.archive_buffer,
+                self._temp_path,
                 mode="w",
                 compression=compression,
             )
@@ -95,20 +102,36 @@ class CBZExporter(ExporterBase):
         self.archive.writestr(xml_path, self._generate_comicinfo_xml())
 
     def close(self) -> None:
-        """Persist the in-memory archive to disk with ComicInfo metadata."""
+        """Atomically persist the disk-backed archive with ComicInfo metadata."""
         if self.skip_all_images:
             return
 
+        replaced = False
         try:
-            self._write_comicinfo_xml_entry()
+            try:
+                self._write_comicinfo_xml_entry()
+            finally:
+                with suppress(Exception):
+                    self.archive.close()
+            if self._temp_path is None:
+                return
+            self._temp_path.replace(self.path)
+            replaced = True
+            self.skip_all_images = True
         finally:
-            with suppress(Exception):
-                self.archive.close()
+            if not replaced and self._temp_path is not None:
+                with suppress(FileNotFoundError):
+                    self._temp_path.unlink()
+            self._temp_path = None
 
-        data = self.archive_buffer.getvalue()
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        with NamedTemporaryFile("wb", delete=False, dir=self.path.parent) as tmp:
-            tmp.write(data)
-            temp_path = Path(tmp.name)
+    def discard(self) -> None:
+        """Clean a partially written temporary archive without publishing it."""
+        if self.skip_all_images:
+            return
 
-        temp_path.replace(self.path)
+        with suppress(Exception):
+            self.archive.close()
+        if self._temp_path is not None:
+            with suppress(FileNotFoundError):
+                self._temp_path.unlink()
+        self._temp_path = None

@@ -9,7 +9,7 @@ from typing import Collection, Literal, Mapping, cast
 
 from PIL import Image
 
-from mloader.domain.requests import DownloadSummary
+from mloader.domain.requests import CoverFormat, DownloadSummary
 from mloader.errors import SubscriptionRequiredError
 from mloader.manga_loader.download_services import DownloadServices
 from mloader.manga_loader.manifest import TitleDownloadManifest
@@ -44,6 +44,7 @@ class DownloadMixin:
 
     meta: bool
     cover: bool
+    cover_format: CoverFormat
     destination: str
     output_format: Literal["raw", "cbz", "pdf"]
     exporter: ExporterFactoryLike
@@ -222,7 +223,9 @@ class DownloadMixin:
         viewer = self._load_pages(chapter_id)
         if not self._has_last_page(viewer):
             raise SubscriptionRequiredError(
-                "A MAX subscription is required to download this chapter."
+                "A MAX subscription is required to download this chapter. "
+                "The repository default/free-tier API key can only access free chapters; "
+                "provide subscription-capable auth settings for full-catalog downloads."
             )
 
         last_page = viewer.pages[-1].last_page
@@ -252,8 +255,14 @@ class DownloadMixin:
             raise RuntimeError(
                 f"MangaPlus API returned no downloadable pages for chapter {chapter_id}."
             )
-        self._process_chapter_pages(pages, viewer.chapter_name, exporter)
-        exporter.close()
+        try:
+            self._process_chapter_pages(pages, viewer.chapter_name, exporter)
+            exporter.close()
+        except Exception:
+            discard = getattr(exporter, "discard", None)
+            if callable(discard):
+                discard()
+            raise
 
         if manifest is not None:
             exporter_path = getattr(exporter, "path", None)
@@ -340,7 +349,7 @@ class DownloadMixin:
         title_dump: TitleDumpLike,
         export_dir: str | Path,
     ) -> None:
-        """Download and store one title cover image as ``cover.png``."""
+        """Download and store one title cover image using the selected cover format."""
         cover_url = self._resolve_cover_image_url(title_dump)
         if cover_url is None:
             log.warning(
@@ -350,15 +359,24 @@ class DownloadMixin:
 
         export_dir_path = Path(export_dir)
         export_dir_path.mkdir(parents=True, exist_ok=True)
-        cover_path = export_dir_path / "cover.png"
+        cover_path = export_dir_path / f"cover.{self.cover_format}"
         if cover_path.exists():
             log.info("    Cover for title '%s' already exists.", title_dump.title.name)
             return
 
         image_blob = self._download_image(cover_url)
         with Image.open(BytesIO(image_blob)) as image:
-            converted = image.convert("RGBA")
-            converted.save(cover_path, format="PNG")
+            if self.cover_format == "png":
+                converted = image.convert("RGBA")
+                converted.save(cover_path, format="PNG")
+            elif self.cover_format == "jpg":
+                converted = image.convert("RGB")
+                converted.save(cover_path, format="JPEG", quality=95)
+            elif self.cover_format == "webp":
+                converted = image.convert("RGBA")
+                converted.save(cover_path, format="WEBP", quality=90)
+            else:
+                raise ValueError(f"Unsupported cover format: {self.cover_format}")
         log.info("    Cover for title '%s' exported.", title_dump.title.name)
 
     def _extract_chapter_data(self, title_dump: TitleDumpLike) -> dict[int, ChapterMetadata]:

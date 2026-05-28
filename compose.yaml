@@ -5,15 +5,15 @@ services:
       context: .
       dockerfile: docker/Dockerfile
     environment:
-      APP_VER: 97
-      OS: ios
-      OS_VER: 18.1
+      APP_VER: 237
+      OS: android
+      OS_VER: 35
       SECRET: e75b23a6296a2575a49b5449119a72d8
       MLOADER_EXTRACT_OUT_DIR: /downloads
       MLOADER_CRON_SCHEDULE: "0 3 * * 1"
-      MLOADER_CRON_ARGS: "--all --language english --format pdf"
-      MLOADER_RUN_ON_START: "false"
+      MLOADER_CRON_ARGS: "--all --language english --format pdf --out /downloads --cover"
+      MLOADER_RUN_ON_START: "true"
     volumes:
-      - ./mloader_downloads:/downloads
+      - /mnt/data/MangaPlus:/downloads
     entrypoint: ["/usr/local/bin/start-cron.sh"]
     restart: unless-stopped

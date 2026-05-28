@@ -76,9 +76,19 @@ _EXAMPLE_SPECS: tuple[tuple[str, str, str], ...] = (
         "Stores one cover image per title as cover.png.",
     ),
     (
+        "Download title cover image as WEBP",
+        "{prog} --title 100312 --cover-format webp",
+        "Stores one cover image per title as cover.webp.",
+    ),
+    (
         "Capture API payloads for regression analysis",
         "{prog} --title 100312 --capture-api ./capture/new-run",
         "Stores protobuf payloads and metadata for future schema checks.",
+    ),
+    (
+        "Write a cron-friendly run report",
+        "{prog} --title 100312 --run-report ./reports/latest-run.json",
+        "Stores selected args, timings, summary counters, and exporter safety metadata.",
     ),
     (
         "Verify capture schema compatibility",
@@ -117,7 +127,7 @@ _EXAMPLE_SPECS: tuple[tuple[str, str, str], ...] = (
     ),
     (
         "Use custom API title-index endpoint",
-        "{prog} --all --title-index-endpoint https://jumpg-webapi.tokyo-cdn.com/api/title_list/allV2",
+        "{prog} --all --title-index-endpoint https://jumpg-api.tokyo-cdn.com/api/title_list/allV2",
         "Overrides API endpoint used for title discovery.",
     ),
     (
