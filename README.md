@@ -354,6 +354,22 @@ mloader --verify-capture-schema ./capture --verify-capture-baseline ./tests/fixt
 
 `docker/Dockerfile` installs `mloader` from the local repository files.
 
+Release images are published to GitHub Container Registry:
+
+```bash
+docker pull ghcr.io/l0westbob/mloader:latest
+docker pull ghcr.io/l0westbob/mloader:2.1.0
+```
+
+The image workflow publishes on `main`, `v*` tags, and manual dispatch. If GHCR creates
+the package as private after the first push, make it public once in the package settings.
+
+To use the published image in Compose, replace the local `build:` block with:
+
+```yaml
+image: ghcr.io/l0westbob/mloader:2.1.0
+```
+
 The default `compose.yaml` now runs a long-lived cron daemon inside the container and executes `mloader` weekly.
 The container preserves explicit `--out /downloads` behavior, uses a lock directory to avoid
 overlapping cron runs, and logs clear start/end markers with exit codes.
