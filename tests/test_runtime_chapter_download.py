@@ -7,6 +7,7 @@ from typing import Any
 import pytest
 
 from mloader.domain.manga import MangaPage
+from mloader.domain.manga import TitleTag
 from mloader.errors import SubscriptionRequiredError
 from mloader.manga_loader.chapter_download import ChapterDownloader
 from mloader.manga_loader.filename_policy import FilenamePolicy
@@ -148,7 +149,7 @@ def test_process_chapter_creates_exporter_and_closes() -> None:
             return instance
 
     processed: list[tuple[tuple[MangaPage, ...], str, ExporterLike]] = []
-    current_chapter = _chapter(10, "#1", "Sub/Raw")
+    current_chapter = _chapter(10, "#1", "Sub/Raw", start_timestamp=1747407600)
     viewer = _viewer(
         chapter_id=10,
         chapter_name="#1",
@@ -156,7 +157,12 @@ def test_process_chapter_creates_exporter_and_closes() -> None:
         pages=(_manga_page("u1"),),
     )
 
-    title_detail = _title_detail(name="My Manga")
+    title_detail = _title_detail(
+        name="My Manga",
+        overview="Summary",
+        tags=(TitleTag(name="Action", slug="action"),),
+        web_url="https://example.invalid/title",
+    )
     ChapterDownloader.process_chapter(
         viewer=viewer,
         title=title_detail.title,
@@ -173,7 +179,11 @@ def test_process_chapter_creates_exporter_and_closes() -> None:
     )
 
     assert captured["title"] is title_detail.title
+    assert captured["title"].overview == "Summary"
+    assert captured["title"].tags[0].name == "Action"
+    assert captured["title"].web_url == "https://example.invalid/title"
     assert captured["chapter"].sub_title == "Sub Raw"
+    assert captured["chapter"].start_timestamp == 1747407600
     assert current_chapter.sub_title == "Sub/Raw"
     assert captured["next_chapter"] is None
     assert processed[0][1] == "#1"

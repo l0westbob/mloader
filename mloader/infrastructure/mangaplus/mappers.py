@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from typing import Any
 
 from mloader.domain.manga import (
@@ -12,6 +13,7 @@ from mloader.domain.manga import (
     MangaViewer,
     Title,
     TitleDetail,
+    TitleTag,
     ViewerPage,
 )
 
@@ -43,6 +45,14 @@ def title_from_proto(title: Any) -> Title:
     )
 
 
+def title_tag_from_proto(tag: Any) -> TitleTag:
+    """Map a protobuf title tag object into a domain tag."""
+    return TitleTag(
+        name=str(getattr(tag, "name", "")),
+        slug=str(getattr(tag, "slug", "")),
+    )
+
+
 def chapter_group_from_proto(group: Any) -> ChapterGroup:
     """Map a protobuf chapter group into a domain chapter group."""
     return ChapterGroup(
@@ -60,6 +70,16 @@ def chapter_group_from_proto(group: Any) -> ChapterGroup:
 
 def title_detail_from_proto(title_detail: Any) -> TitleDetail:
     """Map a protobuf title-detail view into a domain title detail."""
+    overview = str(getattr(title_detail, "overview", ""))
+    tags = tuple(title_tag_from_proto(tag) for tag in getattr(title_detail, "tags", ()))
+    sns = getattr(title_detail, "sns", None)
+    web_url = str(getattr(sns, "url", "")) if sns is not None else ""
+    title = replace(
+        title_from_proto(title_detail.title),
+        overview=overview,
+        tags=tags,
+        web_url=web_url,
+    )
     chapter_groups = tuple(
         chapter_group_from_proto(group) for group in getattr(title_detail, "chapter_list_group", ())
     )
@@ -77,9 +97,9 @@ def title_detail_from_proto(title_detail: Any) -> TitleDetail:
             )
 
     return TitleDetail(
-        title=title_from_proto(title_detail.title),
+        title=title,
         title_image_url=str(getattr(title_detail, "title_image_url", "")),
-        overview=str(getattr(title_detail, "overview", "")),
+        overview=overview,
         non_appearance_info=str(getattr(title_detail, "non_appearance_info", "")),
         number_of_views=int(getattr(title_detail, "number_of_views", 0)),
         chapter_groups=chapter_groups,

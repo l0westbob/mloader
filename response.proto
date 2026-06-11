@@ -165,6 +165,11 @@ message Title {
     int32 language = 7;
 }
 
+message TitleTag {
+    string name = 1;
+    string slug = 2;
+}
+
 message TitleDetailView {
     Title title = 1;
     string title_image_url = 2;
@@ -185,6 +190,7 @@ message TitleDetailView {
     bool chapters_descending = 17;
     uint32 number_of_views = 18;
     repeated ChapterGroup chapter_list_group = 28;
+    repeated TitleTag tags = 31;
     repeated Chapter chapter_list = 38;
 }
 

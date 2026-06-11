@@ -44,6 +44,11 @@ def test_parse_title_detail_response() -> None:
     title_detail.title.title_id = 100312
     title_detail.title.name = "Test"
     title_detail.title.author = "Author"
+    title_detail.overview = "Summary & more"
+    title_detail.sns.url = "https://jumpg-webapi.tokyo-cdn.com/www/sns_share?title_id=100312"
+    tag = title_detail.tags.add()
+    tag.name = "Sci-Fi / Fantasy"
+    tag.slug = "sci-fi-fantasy"
     group = title_detail.chapter_list_group.add()
     chapter = group.first_chapter_list.add()
     chapter.title_id = 100312
@@ -56,6 +61,10 @@ def test_parse_title_detail_response() -> None:
     assert result.title.title_id == 100312
     assert result.title.name == "Test"
     assert result.title.author == "Author"
+    assert result.title.overview == "Summary & more"
+    assert result.title.web_url == "https://jumpg-webapi.tokyo-cdn.com/www/sns_share?title_id=100312"
+    assert result.title.tags[0].name == "Sci-Fi / Fantasy"
+    assert result.title.tags[0].slug == "sci-fi-fantasy"
     assert result.chapter_groups[0].first_chapters[0].chapter_id == 1024959
 
 
