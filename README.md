@@ -177,6 +177,18 @@ You can download individual chapters or full title (but only available chapters)
 
 Chapters can be saved in different formats (check the `--help` output for the available formats).
 
+By default, `mloader` writes each chapter as a CBZ archive. CBZ archives contain page images plus
+a root-level `ComicInfo.xml` metadata file for comic library apps such as Komga. When MangaPlus
+provides the data, `ComicInfo.xml` includes:
+
+- series and chapter title, chapter number, language, publisher, manga reading direction, and
+  digital format
+- author in the ComicInfo `Writer` field
+- title summary, MangaPlus tags as both `Genre` and `Tags`, and the MangaPlus web/share URL
+- chapter release date (`Year`, `Month`, `Day`) and page count
+
+If MangaPlus does not provide tags, CBZ metadata falls back to `Genre` = `Manga`.
+
 Typical MangaPlus IDs are multi-digit integers (title IDs are commonly 6 digits), for example:
 
 ```bash
@@ -319,6 +331,7 @@ Output mode behavior:
 - `--json`: emits machine-readable JSON payloads for successful command completion and controlled command failures.
 - `--quiet`: suppresses intro and informational command output.
 - `--verbose`: enables debug-level logging.
+- `--format cbz`: writes a root-level `ComicInfo.xml` with available MangaPlus metadata.
 
 Download run summaries include:
 - downloaded chapter count
