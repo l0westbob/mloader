@@ -128,11 +128,14 @@ def test_cbz_exporter_creates_archive_with_images(tmp_path: Path) -> None:
 
     with zipfile.ZipFile(exporter.path, "r") as archive:
         names = set(archive.namelist())
-        comicinfo = archive.read(Path(exporter.chapter_name, "ComicInfo.xml").as_posix()).decode(
-            "utf-8"
-        )
+        comicinfo = archive.read("ComicInfo.xml").decode("utf-8")
 
-    assert any(name.endswith(".jpg") for name in names)
+    assert names == {
+        exporter.format_page_name(0),
+        exporter.format_page_name(1),
+        "ComicInfo.xml",
+    }
+    assert all("/" not in name for name in names)
     assert "<ComicInfo>" in comicinfo
     assert "<LanguageISO>en</LanguageISO>" in comicinfo
 
@@ -149,9 +152,7 @@ def test_cbz_exporter_comicinfo_escapes_metadata(tmp_path: Path) -> None:
     exporter.close()
 
     with zipfile.ZipFile(exporter.path, "r") as archive:
-        comicinfo = archive.read(Path(exporter.chapter_name, "ComicInfo.xml").as_posix()).decode(
-            "utf-8"
-        )
+        comicinfo = archive.read("ComicInfo.xml").decode("utf-8")
 
     assert "<Series>a &amp; b</Series>" in comicinfo
     assert "<Writer>x &lt; y</Writer>" in comicinfo
@@ -170,7 +171,7 @@ def test_cbz_exporter_comicinfo_write_is_idempotent(tmp_path: Path) -> None:
     with zipfile.ZipFile(exporter.path, "r") as archive:
         names = archive.namelist()
 
-    assert names.count(Path(exporter.chapter_name, "ComicInfo.xml").as_posix()) == 1
+    assert names.count("ComicInfo.xml") == 1
 
 
 def test_cbz_exporter_skips_when_archive_exists(tmp_path: Path) -> None:

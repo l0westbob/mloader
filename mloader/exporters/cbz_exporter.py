@@ -73,8 +73,7 @@ class CBZExporter(ExporterBase):
         """Write one image into the CBZ archive."""
         if self.skip_all_images:
             return
-        image_path = Path(self.chapter_name, self.format_page_name(index))
-        self.archive.writestr(image_path.as_posix(), image_data)
+        self.archive.writestr(self.format_page_name(index), image_data)
 
     def skip_image(self, index: PageIndex) -> bool:
         """Return whether image writes should be skipped."""
@@ -92,8 +91,8 @@ class CBZExporter(ExporterBase):
         )
 
     def _write_comicinfo_xml_entry(self) -> None:
-        """Write ComicInfo.xml into the chapter directory inside the CBZ archive."""
-        xml_path = Path(self.chapter_name, "ComicInfo.xml").as_posix()
+        """Write ComicInfo.xml at the root of the CBZ archive."""
+        xml_path = "ComicInfo.xml"
         with suppress(Exception):
             if xml_path in self.archive.namelist():
                 return
