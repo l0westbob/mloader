@@ -52,7 +52,9 @@ def test_title_detail_mapper_preserves_comicinfo_metadata() -> None:
     assert mapped.overview == "Summary <with> detail"
     assert mapped.title.author == "Writer & Artist"
     assert mapped.title.overview == "Summary <with> detail"
-    assert mapped.title.web_url == "https://jumpg-webapi.tokyo-cdn.com/www/sns_share?title_id=100312"
+    assert (
+        mapped.title.web_url == "https://jumpg-webapi.tokyo-cdn.com/www/sns_share?title_id=100312"
+    )
     assert [(tag.name, tag.slug) for tag in mapped.title.tags] == [
         ("Action & Adventure", "action-adventure"),
         ("Sci-Fi / Fantasy", "sci-fi-fantasy"),

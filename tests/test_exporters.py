@@ -36,7 +36,9 @@ def _title(
     )
 
 
-def _chapter(name: str = "#1", sub_title: str = "start", start_timestamp: int = 0) -> SimpleNamespace:
+def _chapter(
+    name: str = "#1", sub_title: str = "start", start_timestamp: int = 0
+) -> SimpleNamespace:
     """Build a minimal chapter object for exporter tests."""
     return SimpleNamespace(name=name, sub_title=sub_title, start_timestamp=start_timestamp)
 

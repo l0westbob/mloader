@@ -62,7 +62,9 @@ def test_parse_title_detail_response() -> None:
     assert result.title.name == "Test"
     assert result.title.author == "Author"
     assert result.title.overview == "Summary & more"
-    assert result.title.web_url == "https://jumpg-webapi.tokyo-cdn.com/www/sns_share?title_id=100312"
+    assert (
+        result.title.web_url == "https://jumpg-webapi.tokyo-cdn.com/www/sns_share?title_id=100312"
+    )
     assert result.title.tags[0].name == "Sci-Fi / Fantasy"
     assert result.title.tags[0].slug == "sci-fi-fantasy"
     assert result.chapter_groups[0].first_chapters[0].chapter_id == 1024959

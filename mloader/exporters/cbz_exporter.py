@@ -126,9 +126,7 @@ class CBZExporter(ExporterBase):
     def _tag_names(self) -> tuple[str, ...]:
         """Return non-empty MangaPlus tag display names in API order."""
         return tuple(
-            tag_name
-            for tag in self.tags
-            if (tag_name := str(getattr(tag, "name", "") or ""))
+            tag_name for tag in self.tags if (tag_name := str(getattr(tag, "name", "") or ""))
         )
 
     def _write_comicinfo_xml_entry(self) -> None:
