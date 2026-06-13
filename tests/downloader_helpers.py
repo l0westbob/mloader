@@ -9,6 +9,7 @@ from pathlib import Path
 from mloader.constants import PageType
 from mloader.domain.manga import Chapter, ChapterGroup, LastPage, MangaPage, MangaViewer, Title
 from mloader.domain.manga import TitleDetail, ViewerPage
+from mloader.domain.manga import TitleTag
 from mloader.domain.planning import DownloadPlan, TitleDownloadPlan
 from mloader.domain.requests import CoverFormat, EffectiveOutputFormat
 from mloader.manga_loader.download_execution import (
@@ -224,6 +225,7 @@ def chapter(
     *,
     title_id: int = 10,
     thumbnail_url: str = "",
+    start_timestamp: int = 0,
 ) -> Chapter:
     """Build a minimal chapter DTO."""
     return Chapter(
@@ -232,6 +234,7 @@ def chapter(
         name=name,
         sub_title=sub_title,
         thumbnail_url=thumbnail_url,
+        start_timestamp=start_timestamp,
     )
 
 
@@ -256,6 +259,8 @@ def title_detail(
     non_appearance_info: str = "n/a",
     number_of_views: int = 0,
     overview: str = "overview",
+    tags: tuple[TitleTag, ...] = (),
+    web_url: str = "",
 ) -> TitleDetail:
     """Build a title-detail DTO for downloader tests."""
     return TitleDetail(
@@ -266,6 +271,9 @@ def title_detail(
             portrait_image_url=portrait_image_url,
             landscape_image_url=landscape_image_url,
             language=0,
+            overview=overview,
+            tags=tags,
+            web_url=web_url,
         ),
         title_image_url=title_image_url,
         overview=overview,

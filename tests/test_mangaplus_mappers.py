@@ -27,6 +27,40 @@ def test_title_detail_mapper_matches_fixture_chapter_planning() -> None:
     assert {chapter.chapter_id for chapter in mapped.chapters} == set(existing_chapter_data)
 
 
+def test_title_detail_mapper_preserves_comicinfo_metadata() -> None:
+    """Verify title-detail metadata needed for ComicInfo is mapped onto titles."""
+    response = Response()
+    title_detail = response.success.title_detail_view
+    title_detail.title.title_id = 100312
+    title_detail.title.name = "Test"
+    title_detail.title.author = "Writer & Artist"
+    title_detail.overview = "Summary <with> detail"
+    title_detail.sns.url = "https://jumpg-webapi.tokyo-cdn.com/www/sns_share?title_id=100312"
+    first_tag = title_detail.tags.add()
+    first_tag.name = "Action & Adventure"
+    first_tag.slug = "action-adventure"
+    second_tag = title_detail.tags.add()
+    second_tag.name = "Sci-Fi / Fantasy"
+    second_tag.slug = "sci-fi-fantasy"
+    chapter = title_detail.chapter_list.add()
+    chapter.title_id = 100312
+    chapter.chapter_id = 1024959
+    chapter.name = "#001"
+
+    mapped = mappers.title_detail_from_proto(title_detail)
+
+    assert mapped.overview == "Summary <with> detail"
+    assert mapped.title.author == "Writer & Artist"
+    assert mapped.title.overview == "Summary <with> detail"
+    assert (
+        mapped.title.web_url == "https://jumpg-webapi.tokyo-cdn.com/www/sns_share?title_id=100312"
+    )
+    assert [(tag.name, tag.slug) for tag in mapped.title.tags] == [
+        ("Action & Adventure", "action-adventure"),
+        ("Sci-Fi / Fantasy", "sci-fi-fantasy"),
+    ]
+
+
 def test_manga_viewer_mapper_matches_fixture_viewer_payload() -> None:
     """Verify manga-viewer DTOs preserve fixture chapter and page identities."""
     raw_payload = (FIXTURE_CAPTURE_DIR / "0002_manga_viewer_1000311.pb").read_bytes()

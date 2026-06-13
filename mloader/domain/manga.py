@@ -21,6 +21,14 @@ class Chapter:
 
 
 @dataclass(frozen=True, slots=True)
+class TitleTag:
+    """Domain representation of one MangaPlus title tag."""
+
+    name: str
+    slug: str
+
+
+@dataclass(frozen=True, slots=True)
 class Title:
     """Domain representation of one MangaPlus title."""
 
@@ -30,6 +38,9 @@ class Title:
     portrait_image_url: str
     landscape_image_url: str
     language: int
+    overview: str = ""
+    tags: tuple[TitleTag, ...] = ()
+    web_url: str = ""
 
 
 @dataclass(frozen=True, slots=True)

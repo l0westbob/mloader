@@ -12,6 +12,7 @@
 -   [Installation](#-installation)
 -   [Development](#-development)
 -   [Testing](#-testing)
+-   [Docker](#-docker)
 -   [Usage](#-usage)
 -   [Command line interface](#%EF%B8%8F-command-line-interface)
 -   [Extending mloader](#-extending-mloader)
@@ -24,7 +25,7 @@ The recommended installation method is using `uv`:
 uv tool install mloader-ng
 ```
 
-After installation, the `mloader` command will be available. Check the [command line](%EF%B8%8F-command-line-interface) section for supported commands.
+After installation, the `mloader` command will be available. Check the [command line](#%EF%B8%8F-command-line-interface) section for supported commands.
 
 If you prefer `pip`, `pip install mloader-ng` still works.
 
@@ -107,6 +108,65 @@ Subscription-limited/full-catalog checks should be run only with your own subscr
 settings. With the repository default/free-tier auth, subscription-only chapters are expected to fail
 as controlled external access failures.
 
+## 🐳 Docker
+
+`docker/Dockerfile` installs `mloader` from the local repository files.
+
+Release images are published to GitHub Container Registry at
+[`ghcr.io/l0westbob/mloader`](https://github.com/l0westbob/mloader/pkgs/container/mloader).
+The `latest` tag points at the newest image published from `main`.
+
+```bash
+docker pull ghcr.io/l0westbob/mloader:latest
+docker pull ghcr.io/l0westbob/mloader:2.1.1
+```
+
+The image workflow publishes on `main`, `v*` tags, and manual dispatch. If GHCR creates
+the package as private after the first push, make it public once in the package settings.
+
+To use the published image in Compose, replace the local `build:` block with:
+
+```yaml
+image: ghcr.io/l0westbob/mloader:2.1.1
+```
+
+The default `compose.yaml` now runs a long-lived cron daemon inside the container and executes `mloader` weekly.
+The container preserves explicit `--out /downloads` behavior, uses a lock directory to avoid
+overlapping cron runs, and logs clear start/end markers with exit codes.
+
+Default schedule and arguments:
+
+```bash
+MLOADER_CRON_SCHEDULE="0 3 * * 1"
+MLOADER_CRON_ARGS="--all --language english --format pdf --out /downloads --cover"
+```
+
+This means: every Monday at 03:00 container time.
+
+For full-catalog Docker runs, replace the free-tier repository auth settings with your own
+subscription-capable settings. Otherwise subscription-only chapters will be reported as controlled
+external access failures.
+
+Useful runtime knobs in `compose.yaml`:
+
+- `MLOADER_CRON_SCHEDULE`: standard 5-field cron expression.
+- `MLOADER_CRON_ARGS`: arguments passed to `mloader` for scheduled runs.
+- `MLOADER_RUN_ON_START`: `"true"` to run one job immediately on container startup.
+- `MLOADER_RUN_REPORT_PATH`: optional JSON report path for weekly unattended runs.
+- `MLOADER_CRON_LOCK_DIR`: lock directory used to skip overlapping schedule ticks.
+
+Run in background:
+
+```bash
+docker compose up -d --build
+```
+
+Check scheduler logs:
+
+```bash
+docker compose logs -f mloader
+```
+
 ## 📙 Usage
 
 Copy the url of the chapter or title you want to download and pass it to `mloader`.
@@ -116,6 +176,18 @@ Use `--title` with `--chapter` to target chapter numbers, or `--chapter-id` for 
 You can download individual chapters or full title (but only available chapters).
 
 Chapters can be saved in different formats (check the `--help` output for the available formats).
+
+By default, `mloader` writes each chapter as a CBZ archive. CBZ archives contain page images plus
+a root-level `ComicInfo.xml` metadata file for comic library apps such as Komga. When MangaPlus
+provides the data, `ComicInfo.xml` includes:
+
+- series and chapter title, chapter number, language, publisher, manga reading direction, and
+  digital format
+- author in the ComicInfo `Writer` field
+- title summary, MangaPlus tags as both `Genre` and `Tags`, and the MangaPlus web/share URL
+- chapter release date (`Year`, `Month`, `Day`) and page count
+
+If MangaPlus does not provide tags, CBZ metadata falls back to `Genre` = `Manga`.
 
 Typical MangaPlus IDs are multi-digit integers (title IDs are commonly 6 digits), for example:
 
@@ -259,6 +331,7 @@ Output mode behavior:
 - `--json`: emits machine-readable JSON payloads for successful command completion and controlled command failures.
 - `--quiet`: suppresses intro and informational command output.
 - `--verbose`: enables debug-level logging.
+- `--format cbz`: writes a root-level `ComicInfo.xml` with available MangaPlus metadata.
 
 Download run summaries include:
 - downloaded chapter count
@@ -348,65 +421,6 @@ Compare a new capture run against your committed baseline:
 
 ```bash
 mloader --verify-capture-schema ./capture --verify-capture-baseline ./tests/fixtures/api_captures/baseline
-```
-
-## 🐳 Docker
-
-`docker/Dockerfile` installs `mloader` from the local repository files.
-
-Release images are published to GitHub Container Registry at
-[`ghcr.io/l0westbob/mloader`](https://github.com/l0westbob/mloader/pkgs/container/mloader).
-The `latest` tag points at the newest image published from `main`.
-
-```bash
-docker pull ghcr.io/l0westbob/mloader:latest
-docker pull ghcr.io/l0westbob/mloader:2.1.1
-```
-
-The image workflow publishes on `main`, `v*` tags, and manual dispatch. If GHCR creates
-the package as private after the first push, make it public once in the package settings.
-
-To use the published image in Compose, replace the local `build:` block with:
-
-```yaml
-image: ghcr.io/l0westbob/mloader:2.1.1
-```
-
-The default `compose.yaml` now runs a long-lived cron daemon inside the container and executes `mloader` weekly.
-The container preserves explicit `--out /downloads` behavior, uses a lock directory to avoid
-overlapping cron runs, and logs clear start/end markers with exit codes.
-
-Default schedule and arguments:
-
-```bash
-MLOADER_CRON_SCHEDULE="0 3 * * 1"
-MLOADER_CRON_ARGS="--all --language english --format pdf --out /downloads --cover"
-```
-
-This means: every Monday at 03:00 container time.
-
-For full-catalog Docker runs, replace the free-tier repository auth settings with your own
-subscription-capable settings. Otherwise subscription-only chapters will be reported as controlled
-external access failures.
-
-Useful runtime knobs in `compose.yaml`:
-
-- `MLOADER_CRON_SCHEDULE`: standard 5-field cron expression.
-- `MLOADER_CRON_ARGS`: arguments passed to `mloader` for scheduled runs.
-- `MLOADER_RUN_ON_START`: `"true"` to run one job immediately on container startup.
-- `MLOADER_RUN_REPORT_PATH`: optional JSON report path for weekly unattended runs.
-- `MLOADER_CRON_LOCK_DIR`: lock directory used to skip overlapping schedule ticks.
-
-Run in background:
-
-```bash
-docker compose up -d --build
-```
-
-Check scheduler logs:
-
-```bash
-docker compose logs -f mloader
 ```
 
 ## 🧩 Extending mloader

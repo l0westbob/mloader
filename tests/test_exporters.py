@@ -11,7 +11,7 @@ from PIL import Image
 import pytest
 
 from mloader.constants import Language
-from mloader.domain.manga import Chapter, Title
+from mloader.domain.manga import Chapter, Title, TitleTag
 from mloader.exporters.cbz_exporter import CBZExporter
 from mloader.exporters.pdf_exporter import PDFExporter
 from mloader.exporters.raw_exporter import RawExporter
@@ -21,14 +21,26 @@ def _title(
     name: str = "demo title",
     language: int = Language.ENGLISH.value,
     author: str = "author",
+    overview: str = "",
+    tags: tuple[TitleTag, ...] = (),
+    web_url: str = "",
 ) -> SimpleNamespace:
     """Build a minimal title object for exporter tests."""
-    return SimpleNamespace(name=name, language=language, author=author)
+    return SimpleNamespace(
+        name=name,
+        language=language,
+        author=author,
+        overview=overview,
+        tags=tags,
+        web_url=web_url,
+    )
 
 
-def _chapter(name: str = "#1", sub_title: str = "start") -> SimpleNamespace:
+def _chapter(
+    name: str = "#1", sub_title: str = "start", start_timestamp: int = 0
+) -> SimpleNamespace:
     """Build a minimal chapter object for exporter tests."""
-    return SimpleNamespace(name=name, sub_title=sub_title)
+    return SimpleNamespace(name=name, sub_title=sub_title, start_timestamp=start_timestamp)
 
 
 def _domain_title() -> Title:
@@ -128,34 +140,69 @@ def test_cbz_exporter_creates_archive_with_images(tmp_path: Path) -> None:
 
     with zipfile.ZipFile(exporter.path, "r") as archive:
         names = set(archive.namelist())
-        comicinfo = archive.read(Path(exporter.chapter_name, "ComicInfo.xml").as_posix()).decode(
-            "utf-8"
-        )
+        comicinfo = archive.read("ComicInfo.xml").decode("utf-8")
 
-    assert any(name.endswith(".jpg") for name in names)
+    assert names == {
+        exporter.format_page_name(0),
+        exporter.format_page_name(1),
+        "ComicInfo.xml",
+    }
+    assert all("/" not in name for name in names)
     assert "<ComicInfo>" in comicinfo
     assert "<LanguageISO>en</LanguageISO>" in comicinfo
+    assert "<PageCount>2</PageCount>" in comicinfo
+    assert "<Format>Digital</Format>" in comicinfo
 
 
 def test_cbz_exporter_comicinfo_escapes_metadata(tmp_path: Path) -> None:
     """Verify ComicInfo.xml escapes special characters from metadata."""
     exporter = CBZExporter(
         destination=str(tmp_path),
-        title=_title(name="a & b", author="x < y"),
-        chapter=_chapter(name="#7", sub_title='title "quoted"'),
+        title=_title(
+            name="a & b",
+            author="x < y",
+            overview="summary <quoted> & strong",
+            tags=(TitleTag(name="Action & Adventure", slug="action"),),
+            web_url="https://example.invalid/a?b=1&c=2",
+        ),
+        chapter=_chapter(name="#7", sub_title='title "quoted"', start_timestamp=1747407600),
     )
 
     exporter.add_image(b"img", 0)
     exporter.close()
 
     with zipfile.ZipFile(exporter.path, "r") as archive:
-        comicinfo = archive.read(Path(exporter.chapter_name, "ComicInfo.xml").as_posix()).decode(
-            "utf-8"
-        )
+        comicinfo = archive.read("ComicInfo.xml").decode("utf-8")
 
     assert "<Series>a &amp; b</Series>" in comicinfo
     assert "<Writer>x &lt; y</Writer>" in comicinfo
     assert "<Title>title &quot;quoted&quot;</Title>" in comicinfo
+    assert "<Summary>summary &lt;quoted&gt; &amp; strong</Summary>" in comicinfo
+    assert "<Genre>Action &amp; Adventure</Genre>" in comicinfo
+    assert "<Tags>Action &amp; Adventure</Tags>" in comicinfo
+    assert "<Web>https://example.invalid/a?b=1&amp;c=2</Web>" in comicinfo
+    assert "<Year>2025</Year>" in comicinfo
+    assert "<Month>5</Month>" in comicinfo
+    assert "<Day>16</Day>" in comicinfo
+
+
+def test_cbz_exporter_omits_missing_optional_comicinfo_metadata(tmp_path: Path) -> None:
+    """Verify empty MangaPlus metadata does not produce empty ComicInfo elements."""
+    exporter = CBZExporter(destination=str(tmp_path), title=_title(), chapter=_chapter())
+
+    exporter.add_image(b"img", 0)
+    exporter.close()
+
+    with zipfile.ZipFile(exporter.path, "r") as archive:
+        comicinfo = archive.read("ComicInfo.xml").decode("utf-8")
+
+    assert "<Summary>" not in comicinfo
+    assert "<Tags>" not in comicinfo
+    assert "<Web>" not in comicinfo
+    assert "<Year>" not in comicinfo
+    assert "<Month>" not in comicinfo
+    assert "<Day>" not in comicinfo
+    assert "<Genre>Manga</Genre>" in comicinfo
 
 
 def test_cbz_exporter_comicinfo_write_is_idempotent(tmp_path: Path) -> None:
@@ -170,7 +217,7 @@ def test_cbz_exporter_comicinfo_write_is_idempotent(tmp_path: Path) -> None:
     with zipfile.ZipFile(exporter.path, "r") as archive:
         names = archive.namelist()
 
-    assert names.count(Path(exporter.chapter_name, "ComicInfo.xml").as_posix()) == 1
+    assert names.count("ComicInfo.xml") == 1
 
 
 def test_cbz_exporter_skips_when_archive_exists(tmp_path: Path) -> None:
