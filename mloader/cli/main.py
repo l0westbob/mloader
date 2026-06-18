@@ -20,7 +20,7 @@ from mloader.cli.presenter import CliPresenter
 from mloader.cli.runtime_options import SUPPORTED_AUTH_OS_VALUES, resolve_log_level
 from mloader.cli.validators import validate_ids, validate_urls
 from mloader.config import AUTH_SETTINGS
-from mloader.domain.requests import COVER_FORMATS
+from mloader.domain.requests import COVER_FORMATS, FilenameStyle
 from mloader.exporters import CBZExporter, PDFExporter, RawExporter
 from mloader.manga_loader.init import MangaLoader
 from mloader.infrastructure.mangaplus import title_discovery
@@ -332,7 +332,7 @@ def main(
     last: bool,
     chapter_title: bool,
     chapter_subdir: bool,
-    filename_style: str,
+    filename_style: FilenameStyle,
     rename_existing_filenames: bool,
     meta: bool,
     cover: bool,

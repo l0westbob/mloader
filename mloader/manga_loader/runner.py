@@ -7,7 +7,7 @@ from typing import Literal
 
 from mloader.domain.manga import MangaViewer, TitleDetail
 from mloader.domain.planning import DownloadPlan, build_download_plan
-from mloader.domain.requests import CoverFormat, DownloadSummary
+from mloader.domain.requests import CoverFormat, DownloadSummary, FilenameStyle
 from mloader.infrastructure.mangaplus.capture import APIPayloadCapture
 from mloader.infrastructure.mangaplus.gateway import MangaPlusGateway
 from mloader.manga_loader.download_execution import (
@@ -39,7 +39,7 @@ class DownloadRunner:
         resume: bool,
         manifest_reset: bool,
         services: DownloadServices,
-        filename_style: str = "legacy",
+        filename_style: FilenameStyle = "legacy",
         rename_existing_filenames: bool = False,
     ) -> None:
         """Initialize gateway, capture, and execution service dependencies."""

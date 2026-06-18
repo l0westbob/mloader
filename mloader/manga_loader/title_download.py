@@ -113,7 +113,6 @@ class TitleDownloader:
             if options.meta:
                 context.dump_title_metadata(planned_title_detail, chapter_data, export_path)
 
-            existing_files = context.get_existing_files(export_path)
             if context.options.rename_existing_filenames:
                 _rename_existing_filenames_to_style(
                     export_path=export_path,
@@ -122,6 +121,8 @@ class TitleDownloader:
                     chapter_data=chapter_data,
                     filename_style=context.options.filename_style,
                 )
+
+            existing_files = context.get_existing_files(export_path)
             chapters_to_download = context.filter_chapters_to_download(
                 chapter_data,
                 planned_title_detail,

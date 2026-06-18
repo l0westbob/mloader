@@ -7,7 +7,12 @@ from typing import ClassVar
 
 import requests
 
-from mloader.domain.requests import CoverFormat, DownloadSummary, EffectiveOutputFormat
+from mloader.domain.requests import (
+    CoverFormat,
+    DownloadSummary,
+    EffectiveOutputFormat,
+    FilenameStyle,
+)
 from mloader.errors import APIResponseError, DownloadInterruptedError, SubscriptionRequiredError
 from mloader.types import ChapterLike, ExporterFactoryLike, ExporterLike, PageIndex, TitleLike
 
@@ -126,7 +131,7 @@ class RecordingDownloadRuntime:
         destination: str = "mloader_downloads",
         output_format: EffectiveOutputFormat = "cbz",
         capture_api_dir: str | None = None,
-        filename_style: str = "legacy",
+        filename_style: FilenameStyle = "legacy",
         rename_existing_filenames: bool = False,
         resume: bool = True,
         manifest_reset: bool = False,

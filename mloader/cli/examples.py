@@ -66,6 +66,16 @@ _EXAMPLE_SPECS: tuple[tuple[str, str, str], ...] = (
         "Lower quality and split behavior can reduce transfer size.",
     ),
     (
+        "Use legacy or new chapter filename style",
+        "{prog} --title 100312 --filename-style new",
+        "Include language tags in chapter filenames using the new style.",
+    ),
+    (
+        "Rename previously downloaded legacy filenames",
+        "{prog} --title 100312 --filename-style new --rename-existing-filenames",
+        "Convert existing chapter files to the selected filename style.",
+    ),
+    (
         "Export title metadata JSON",
         "{prog} --title 100312 --meta",
         "Writes title metadata and per-chapter metadata into output directory.",

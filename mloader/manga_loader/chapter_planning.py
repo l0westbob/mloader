@@ -49,9 +49,22 @@ class ChapterPlanner:
         return title_detail.find_chapter(chapter_id)
 
     @staticmethod
-    def build_expected_filename(title_name: str, chapter_obj: ChapterLike, sub_title: str) -> str:
+    def build_expected_filename(
+        title_name: str,
+        chapter_obj: ChapterLike,
+        sub_title: str,
+        title_language: int = 0,
+        *,
+        filename_style: FilenameStyle = "legacy",
+    ) -> str:
         """Build normalized filename stem expected for chapter-level outputs."""
-        return FilenamePolicy.build_expected_filename(title_name, chapter_obj, sub_title)
+        return FilenamePolicy.build_expected_filename(
+            title_name,
+            chapter_obj,
+            sub_title,
+            title_language,
+            filename_style=filename_style,
+        )
 
     @staticmethod
     def build_expected_filename_with_style(

@@ -366,7 +366,7 @@ This section is generated from CLI metadata. Update it with `uv run python scrip
 | `--raw`, `-r` | Save raw images | `false` | `MLOADER_RAW` |
 | `--format`, `-f` | Save as CBZ or PDF | `cbz` | `MLOADER_OUTPUT_FORMAT` |
 | `--filename-style` | Filename style for chapter-level outputs (legacy excludes language tags) | `legacy` | `MLOADER_FILENAME_STYLE` |
-| `--rename-existing-filenames` | Rename existing legacy chapter filenames to the selected style | `false` | `-` |
+| `--rename-existing-filenames` | Rename existing legacy chapter filenames to the selected filename style | `false` | `-` |
 | `--capture-api` | Dump raw API payload captures (protobuf + metadata) to this directory | `-` | `MLOADER_CAPTURE_API_DIR` |
 | `--run-report` | Write a JSON run report for unattended cron/systemd runs | `-` | `MLOADER_RUN_REPORT_PATH` |
 | `--quality`, `-q` | Image quality | `super_high` | `MLOADER_QUALITY` |

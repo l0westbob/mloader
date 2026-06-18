@@ -5,7 +5,12 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import Protocol
 
-from mloader.domain.requests import CoverFormat, DownloadSummary, EffectiveOutputFormat
+from mloader.domain.requests import (
+    CoverFormat,
+    DownloadSummary,
+    EffectiveOutputFormat,
+    FilenameStyle,
+)
 from mloader.types import ChapterLike, ExporterFactoryLike, ExporterLike, TitleLike
 
 
@@ -92,7 +97,7 @@ class DownloadRuntimeFactory(Protocol):
         destination: str = "mloader_downloads",
         output_format: EffectiveOutputFormat = "cbz",
         capture_api_dir: str | None = None,
-        filename_style: str = "legacy",
+        filename_style: FilenameStyle = "legacy",
         rename_existing_filenames: bool = False,
         resume: bool = True,
         manifest_reset: bool = False,
