@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from mloader.domain.manga import Chapter, TitleDetail
+from mloader.domain.requests import FilenameStyle
 from mloader.manga_loader.filename_policy import FilenamePolicy
 from mloader.manga_loader.manifest import TitleDownloadManifestLike
 from mloader.types import ChapterLike
@@ -48,9 +49,39 @@ class ChapterPlanner:
         return title_detail.find_chapter(chapter_id)
 
     @staticmethod
-    def build_expected_filename(title_name: str, chapter_obj: ChapterLike, sub_title: str) -> str:
+    def build_expected_filename(
+        title_name: str,
+        chapter_obj: ChapterLike,
+        sub_title: str,
+        title_language: int = 0,
+        *,
+        filename_style: FilenameStyle = "legacy",
+    ) -> str:
         """Build normalized filename stem expected for chapter-level outputs."""
-        return FilenamePolicy.build_expected_filename(title_name, chapter_obj, sub_title)
+        return FilenamePolicy.build_expected_filename(
+            title_name,
+            chapter_obj,
+            sub_title,
+            title_language,
+            filename_style=filename_style,
+        )
+
+    @staticmethod
+    def build_expected_filename_with_style(
+        title_name: str,
+        chapter_obj: ChapterLike,
+        sub_title: str,
+        title_language: int,
+        filename_style: FilenameStyle,
+    ) -> str:
+        """Build normalized chapter stems for a requested filename style."""
+        return FilenamePolicy.build_expected_filename(
+            title_name,
+            chapter_obj,
+            sub_title,
+            title_language,
+            filename_style=filename_style,
+        )
 
     @staticmethod
     def filter_chapters_to_download(
@@ -58,6 +89,7 @@ class ChapterPlanner:
         title_detail: TitleDetail,
         existing_files: Collection[str],
         requested_chapter_ids: Collection[int],
+        filename_style: FilenameStyle = "legacy",
     ) -> list[int]:
         """Return requested chapter IDs that do not yet exist on disk."""
         chapters_to_download: list[int] = []
@@ -71,6 +103,8 @@ class ChapterPlanner:
                 FilenamePolicy.title_directory_name(title_detail.title.name),
                 chapter_obj,
                 metadata.sub_title,
+                filename_style=filename_style,
+                title_language=title_detail.title.language,
             )
             if expected_filename not in existing_files:
                 chapters_to_download.append(metadata.chapter_id)
@@ -110,6 +144,7 @@ class DownloadPlanner:
         title_detail: TitleDetail,
         existing_files: Collection[str],
         requested_chapter_ids: Collection[int],
+        filename_style: FilenameStyle = "legacy",
     ) -> list[int]:
         """Return chapter IDs that are requested and not already exported."""
         return ChapterPlanner.filter_chapters_to_download(
@@ -117,6 +152,7 @@ class DownloadPlanner:
             title_detail,
             existing_files,
             requested_chapter_ids,
+            filename_style=filename_style,
         )
 
     @staticmethod

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from contextlib import suppress
 from collections.abc import Callable, Collection, Mapping
 from dataclasses import dataclass
 from pathlib import Path
@@ -10,6 +11,8 @@ from pathlib import Path
 from mloader.domain.manga import Chapter, TitleDetail
 from mloader.domain.planning import TitleDownloadPlan
 from mloader.manga_loader.chapter_planning import ChapterMetadata
+from mloader.domain.requests import FilenameStyle
+from mloader.manga_loader.chapter_planning import ChapterPlanner
 from mloader.manga_loader.filename_policy import FilenamePolicy
 from mloader.manga_loader.manifest import TitleDownloadManifestLike
 from mloader.manga_loader.manifest_tracking import ManifestTracker
@@ -30,6 +33,9 @@ class TitleProcessingOptions:
     meta: bool
     resume: bool
     manifest_reset: bool
+    filename_style: FilenameStyle
+    output_format: str
+    rename_existing_filenames: bool
 
 
 @dataclass(frozen=True, slots=True)
@@ -45,7 +51,13 @@ class TitleDownloadContext:
     dump_title_metadata: Callable[[TitleDetail, Mapping[int, ChapterMetadata], Path], None]
     get_existing_files: Callable[[Path], list[str]]
     filter_chapters_to_download: Callable[
-        [Mapping[int, ChapterMetadata], TitleDetail, Collection[str], Collection[int]],
+        [
+            Mapping[int, ChapterMetadata],
+            TitleDetail,
+            Collection[str],
+            Collection[int],
+            FilenameStyle,
+        ],
         list[int],
     ]
     exclude_manifest_completed_chapters: Callable[
@@ -101,12 +113,22 @@ class TitleDownloader:
             if options.meta:
                 context.dump_title_metadata(planned_title_detail, chapter_data, export_path)
 
+            if context.options.rename_existing_filenames:
+                _rename_existing_filenames_to_style(
+                    export_path=export_path,
+                    output_format=context.options.output_format,
+                    title_detail=planned_title_detail,
+                    chapter_data=chapter_data,
+                    filename_style=context.options.filename_style,
+                )
+
             existing_files = context.get_existing_files(export_path)
             chapters_to_download = context.filter_chapters_to_download(
                 chapter_data,
                 planned_title_detail,
                 existing_files,
                 chapter_ids,
+                context.options.filename_style,
             )
             if options.resume and manifest is not None:
                 chapters_to_download, skipped_manifest = (
@@ -155,3 +177,46 @@ class TitleDownloader:
         finally:
             context.manifest_tracker.flush(manifest, resume=options.resume)
             context.clear_api_caches_for_title(title.title_id, chapter_ids)
+
+
+def _rename_existing_filenames_to_style(
+    *,
+    output_format: str,
+    export_path: Path,
+    title_detail: TitleDetail,
+    chapter_data: Mapping[int, ChapterMetadata],
+    filename_style: FilenameStyle,
+) -> None:
+    """Rename legacy filenames to requested style in the title output directory."""
+    if output_format not in {"pdf", "cbz"}:
+        return
+
+    title_name = FilenamePolicy.title_directory_name(title_detail.title.name)
+
+    for metadata in chapter_data.values():
+        chapter = title_detail.find_chapter(metadata.chapter_id)
+        if chapter is None:
+            continue
+
+        legacy_stem = ChapterPlanner.build_expected_filename_with_style(
+            title_name,
+            chapter,
+            metadata.sub_title,
+            title_detail.title.language,
+            filename_style="legacy",
+        )
+        target_stem = ChapterPlanner.build_expected_filename_with_style(
+            title_name,
+            chapter,
+            metadata.sub_title,
+            title_detail.title.language,
+            filename_style=filename_style,
+        )
+        if legacy_stem == target_stem:
+            continue
+
+        old_path = export_path / f"{legacy_stem}.{output_format}"
+        new_path = export_path / f"{target_stem}.{output_format}"
+        with suppress(FileNotFoundError, FileExistsError, OSError):
+            if old_path.exists() and not new_path.exists():
+                old_path.replace(new_path)

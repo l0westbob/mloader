@@ -20,7 +20,7 @@ from mloader.cli.presenter import CliPresenter
 from mloader.cli.runtime_options import SUPPORTED_AUTH_OS_VALUES, resolve_log_level
 from mloader.cli.validators import validate_ids, validate_urls
 from mloader.config import AUTH_SETTINGS
-from mloader.domain.requests import COVER_FORMATS
+from mloader.domain.requests import COVER_FORMATS, FilenameStyle
 from mloader.exporters import CBZExporter, PDFExporter, RawExporter
 from mloader.manga_loader.init import MangaLoader
 from mloader.infrastructure.mangaplus import title_discovery
@@ -157,6 +157,21 @@ from mloader.infrastructure.mangaplus import title_discovery
     show_default=True,
     help="Save as CBZ or PDF",
     envvar="MLOADER_OUTPUT_FORMAT",
+)
+@click.option(
+    "--filename-style",
+    type=click.Choice(["legacy", "new"], case_sensitive=False),
+    default="legacy",
+    show_default=True,
+    help="Filename style for chapter-level outputs (legacy excludes language tags)",
+    envvar="MLOADER_FILENAME_STYLE",
+)
+@click.option(
+    "--rename-existing-filenames",
+    is_flag=True,
+    default=False,
+    show_default=True,
+    help="Rename existing legacy chapter filenames to the selected filename style",
 )
 @click.option(
     "--capture-api",
@@ -317,6 +332,8 @@ def main(
     last: bool,
     chapter_title: bool,
     chapter_subdir: bool,
+    filename_style: FilenameStyle,
+    rename_existing_filenames: bool,
     meta: bool,
     cover: bool,
     cover_format: str,
@@ -388,6 +405,8 @@ def main(
         last=last,
         chapter_title=chapter_title,
         chapter_subdir=chapter_subdir,
+        filename_style=filename_style,
+        rename_existing_filenames=rename_existing_filenames,
         meta=meta,
         cover=cover,
         cover_format=cover_format,

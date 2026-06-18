@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from mloader.domain.requests import CoverFormat, DownloadSummary
+from mloader.domain.requests import CoverFormat, DownloadSummary, FilenameStyle
 from mloader.infrastructure.mangaplus.settings import (
     DEFAULT_API_BASE_URL,
     DEFAULT_REQUEST_TIMEOUT,
@@ -33,6 +33,8 @@ class MangaLoader:
         request_timeout: tuple[float, float] = DEFAULT_REQUEST_TIMEOUT,
         retries: int = DEFAULT_RETRIES,
         capture_api_dir: str | None = None,
+        filename_style: FilenameStyle = "legacy",
+        rename_existing_filenames: bool = False,
         resume: bool = True,
         manifest_reset: bool = False,
         services: DownloadServices | None = None,
@@ -53,6 +55,8 @@ class MangaLoader:
             request_timeout=request_timeout,
             retries=retries,
             capture_api_dir=capture_api_dir,
+            filename_style=filename_style,
+            rename_existing_filenames=rename_existing_filenames,
             resume=resume,
             manifest_reset=manifest_reset,
             services=services or DownloadServices.defaults(),

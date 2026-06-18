@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
@@ -42,6 +43,39 @@ def test_filter_chapters_to_download_skips_existing_files() -> None:
     )
 
     assert result == [102278]
+
+
+def test_filter_chapters_to_download_skips_existing_files_using_new_style() -> None:
+    """Verify new naming style uses language-tagged expected stems for skip checks."""
+    chapter_data = {
+        1024959: ChapterMetadata(
+            thumbnail_url="",
+            chapter_id=1024959,
+            sub_title="Chapter One",
+        ),
+    }
+    chapter = _chapter(1024959, "#1024959", "Chapter One")
+    base_title_detail = _title_detail(chapters=[chapter])
+    title_detail = replace(
+        base_title_detail,
+        title=replace(base_title_detail.title, language=8),
+    )
+    # A legacy-style file should not match new-style filtering and therefore should download.
+    existing = [
+        ChapterPlanner.build_expected_filename_with_style(
+            "My Manga", chapter, "Chapter One", 8, filename_style="legacy"
+        )
+    ]
+
+    result = DownloadPlanner.filter_chapters_to_download(
+        chapter_data,
+        title_detail,
+        existing_files=existing,
+        requested_chapter_ids={1024959},
+        filename_style="new",
+    )
+
+    assert result == [1024959]
 
 
 def test_chapter_output_extension_delegates_to_download_planner() -> None:

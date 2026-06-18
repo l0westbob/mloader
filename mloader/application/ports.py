@@ -5,7 +5,12 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import Protocol
 
-from mloader.domain.requests import CoverFormat, DownloadSummary, EffectiveOutputFormat
+from mloader.domain.requests import (
+    CoverFormat,
+    DownloadSummary,
+    EffectiveOutputFormat,
+    FilenameStyle,
+)
 from mloader.types import ChapterLike, ExporterFactoryLike, ExporterLike, TitleLike
 
 
@@ -21,6 +26,7 @@ class ExporterClass(Protocol):
         next_chapter: ChapterLike | None = None,
         add_chapter_title: bool = False,
         add_chapter_subdir: bool = False,
+        add_language_to_chapter_name: bool = True,
     ) -> ExporterLike:
         """Create an exporter instance for one chapter."""
 
@@ -91,6 +97,8 @@ class DownloadRuntimeFactory(Protocol):
         destination: str = "mloader_downloads",
         output_format: EffectiveOutputFormat = "cbz",
         capture_api_dir: str | None = None,
+        filename_style: FilenameStyle = "legacy",
+        rename_existing_filenames: bool = False,
         resume: bool = True,
         manifest_reset: bool = False,
         cover_format: CoverFormat = "png",

@@ -11,6 +11,7 @@ from mloader.domain.requests import (
     CoverFormat,
     DownloadRequest,
     DiscoveryRequest,
+    FilenameStyle,
 )
 
 
@@ -30,6 +31,8 @@ def build_download_request(
     meta: bool,
     cover: bool,
     cover_format: str,
+    filename_style: FilenameStyle = "legacy",
+    rename_existing_filenames: bool = False,
     resume: bool,
     manifest_reset: bool,
     chapters: Collection[int] | None,
@@ -58,6 +61,8 @@ def build_download_request(
         meta=meta,
         cover=cover,
         cover_format=typed_cover_format,
+        filename_style=filename_style,
+        rename_existing_filenames=rename_existing_filenames,
         resume=resume,
         manifest_reset=manifest_reset,
         chapters=frozenset(chapters or set()),

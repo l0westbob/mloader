@@ -9,7 +9,7 @@ from click.core import ParameterSource
 
 from mloader.application import discovery as discovery_use_cases
 from mloader.application import requests as app_requests
-from mloader.domain.requests import DownloadRequest, DiscoveryRequest
+from mloader.domain.requests import DownloadRequest, DiscoveryRequest, FilenameStyle
 
 
 def parameter_was_provided(ctx: click.Context, parameter_name: str) -> bool:
@@ -34,6 +34,8 @@ def build_download_request(
     meta: bool,
     cover: bool,
     cover_format: str,
+    filename_style: FilenameStyle = "legacy",
+    rename_existing_filenames: bool = False,
     resume: bool,
     manifest_reset: bool,
     chapters: Collection[int] | None,
@@ -58,6 +60,8 @@ def build_download_request(
         meta=meta,
         cover=cover_enabled,
         cover_format=cover_format,
+        filename_style=filename_style,
+        rename_existing_filenames=rename_existing_filenames,
         resume=resume,
         manifest_reset=manifest_reset,
         chapters=chapters,

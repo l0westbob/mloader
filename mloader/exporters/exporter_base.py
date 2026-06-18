@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import ClassVar
 
 from mloader.constants import Language
+from mloader.manga_loader.filename_policy import FilenamePolicy
 from mloader.types import ChapterLike, PageIndex, TitleLike
 from mloader.utils import escape_path, is_oneshot, is_windows
 
@@ -14,22 +15,6 @@ from mloader.utils import escape_path, is_oneshot, is_windows
 def _is_extra(chapter_name: str) -> bool:
     """Return ``True`` when a chapter name represents an extra chapter."""
     return chapter_name.strip("#").lower() == "ex"
-
-
-def _format_language_tag(language: int) -> str:
-    """Build a stable language tag for chapter names, including unknown codes."""
-    if language == 8:  # Legacy Vietnamese code observed in older payloads.
-        return " [VIETNAMESE]"
-
-    try:
-        parsed_language = Language(language)
-    except ValueError:
-        return f" [LANG-{language}]"
-
-    if parsed_language == Language.ENGLISH:
-        return ""
-
-    return f" [{parsed_language.name}]"
 
 
 def _iso_language_code(language: int) -> str:
@@ -63,6 +48,7 @@ class ExporterBase(metaclass=ABCMeta):
         next_chapter: ChapterLike | None = None,
         add_chapter_title: bool = False,
         add_chapter_subdir: bool = False,
+        add_language_to_chapter_name: bool = True,
     ) -> None:
         """Initialize exporter state and derive chapter naming parts."""
         self.destination = destination
@@ -73,6 +59,7 @@ class ExporterBase(metaclass=ABCMeta):
 
         self.add_chapter_title = add_chapter_title
         self.add_chapter_subdir = add_chapter_subdir
+        self.add_language_to_chapter_name = add_language_to_chapter_name
         self.series_name = title.name
         self.title_name = escape_path(title.name).title()
         self.chapter = chapter
@@ -102,7 +89,11 @@ class ExporterBase(metaclass=ABCMeta):
         """Build the filename prefix used by chapter and page outputs."""
         _ = next_chapter_name
         safe_chapter_name = escape_path(chapter_name)
-        lang = _format_language_tag(language)
+        lang = (
+            FilenamePolicy.format_language_tag(language)
+            if self.add_language_to_chapter_name
+            else ""
+        )
         return f"{title_name}{lang} - {safe_chapter_name}"
 
     def _format_chapter_suffix(self) -> str:

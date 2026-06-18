@@ -7,6 +7,7 @@ from typing import Literal
 
 ApiOutputFormat = Literal["cbz", "pdf"]
 EffectiveOutputFormat = Literal["raw", "cbz", "pdf"]
+FilenameStyle = Literal["legacy", "new"]
 CoverFormat = Literal["png", "jpg", "webp"]
 COVER_FORMATS: tuple[CoverFormat, ...] = ("png", "jpg", "webp")
 MAX_CHAPTER_ID = 2_147_483_647
@@ -47,6 +48,8 @@ class DownloadRequest:
     chapters: frozenset[int]
     chapter_ids: frozenset[int]
     titles: frozenset[int]
+    filename_style: FilenameStyle = "legacy"
+    rename_existing_filenames: bool = False
     run_report_path: str | None = None
 
     @property

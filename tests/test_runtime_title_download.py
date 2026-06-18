@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
 import pytest
 
 from mloader.manga_loader.chapter_planning import ChapterMetadata
+from mloader.manga_loader.filename_policy import FilenamePolicy
+from mloader.manga_loader import title_download as title_download_module
 from mloader.manga_loader.manifest_tracking import ManifestTracker
 from tests.downloader_helpers import (
     dummy_downloader,
@@ -318,6 +321,147 @@ def test_process_title_records_failed_chapter_report(
     assert report.failed_chapter_ids == [2]
     assert marked_failed == [2]
     assert flush_calls >= 2
+
+
+def test_process_title_renames_legacy_files_when_requested(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Verify existing legacy chapter files are renamed before filtering."""
+    title_id = 10
+    chapter_id = 1
+    chapter = _chapter(chapter_id, "#1", "Sub")
+    title_dump = _title_detail(
+        title_id=title_id,
+        name="My Manga",
+        chapters=[chapter],
+    )
+    title_dump = replace(title_dump, title=replace(title_dump.title, language=8))
+    title_name = FilenamePolicy.title_directory_name("My Manga")
+    legacy_file = FilenamePolicy.build_expected_filename(
+        title_name,
+        chapter,
+        "Sub",
+        8,
+        filename_style="legacy",
+    )
+    expected_file = FilenamePolicy.build_expected_filename(
+        title_name,
+        chapter,
+        "Sub",
+        8,
+        filename_style="new",
+    )
+    export_path = tmp_path / title_name
+    export_path.mkdir(parents=True)
+    (export_path / f"{legacy_file}.pdf").write_text("already-downloaded")
+
+    downloader = full_downloader(destination=str(tmp_path))
+    downloader.context = replace(
+        downloader.context,
+        filename_style="new",
+        rename_existing_filenames=True,
+    )
+    processed: list[int] = []
+
+    monkeypatch.setattr(downloader, "_get_title_details", lambda _tid: title_dump, raising=False)
+    monkeypatch.setattr(
+        downloader,
+        "_extract_chapter_data",
+        lambda _dump: {chapter_id: ChapterMetadata("", chapter_id, "Sub")},
+        raising=False,
+    )
+    monkeypatch.setattr(
+        downloader,
+        "_process_chapter",
+        lambda *args, **kwargs: processed.append(chapter_id),
+    )
+
+    title_plan = _title_plan(title_id=title_id, chapter_ids={chapter_id})
+    title_plan = replace(title_plan, title_detail=title_dump)
+
+    downloader._process_title(
+        1,
+        1,
+        title_plan,
+        report=_run_report(),
+    )
+
+    assert processed == []
+    assert not (export_path / f"{legacy_file}.pdf").exists()
+    assert (export_path / f"{expected_file}.pdf").exists()
+
+
+def test_rename_existing_filenames_skips_unsupported_output_format() -> None:
+    """Verify filename migration is skipped for image output formats."""
+    title_detail = _title_detail(name="My Manga", chapters=[_chapter(1, "#1")])
+    title_name = FilenamePolicy.title_directory_name("My Manga")
+    expected_file = FilenamePolicy.build_expected_filename(
+        title_name,
+        _chapter(1, "#1"),
+        "Sub",
+        0,
+        filename_style="new",
+    )
+
+    export_path = Path("/tmp") / title_name
+    export_path.mkdir(exist_ok=True)
+    title_download_module._rename_existing_filenames_to_style(
+        output_format="raw",
+        export_path=export_path,
+        title_detail=title_detail,
+        chapter_data={1: ChapterMetadata("", 1, "Sub")},
+        filename_style="new",
+    )
+
+    assert not (export_path / f"{expected_file}.raw").exists()
+
+
+def test_rename_existing_filenames_handles_missing_chapter_data() -> None:
+    """Verify migration ignores stale metadata entries with missing chapter IDs."""
+    title_detail = _title_detail(name="My Manga", chapters=[])
+    export_path = Path("/tmp") / "My Manga"
+    export_path.mkdir(exist_ok=True)
+    original_files = set(export_path.glob("*"))
+
+    title_download_module._rename_existing_filenames_to_style(
+        output_format="pdf",
+        export_path=export_path,
+        title_detail=title_detail,
+        chapter_data={1: ChapterMetadata("", 1, "Sub")},
+        filename_style="new",
+    )
+
+    assert set(export_path.glob("*")) == original_files
+
+
+def test_rename_existing_filenames_skips_when_style_is_unchanged() -> None:
+    """Verify migration skips entries when the legacy and target filename styles are equal."""
+    title = _title_detail(name="My Manga", chapters=[_chapter(1, "#1", "")])
+    title = replace(title, title=replace(title.title, language=8))
+    title_name = FilenamePolicy.title_directory_name("My Manga")
+    legacy_file = FilenamePolicy.build_expected_filename(
+        title_name,
+        _chapter(1, "#1", ""),
+        "",
+        8,
+        filename_style="legacy",
+    )
+
+    export_path = Path("/tmp") / title_name
+    export_path.mkdir(exist_ok=True)
+    expected_path = export_path / f"{legacy_file}.pdf"
+    expected_path.write_text("already-downloaded")
+
+    title_download_module._rename_existing_filenames_to_style(
+        output_format="pdf",
+        export_path=export_path,
+        title_detail=title,
+        chapter_data={1: ChapterMetadata("", 1, "")},
+        filename_style="legacy",
+    )
+
+    assert expected_path.exists()
 
 
 def test_process_title_on_keyboard_interrupt_marks_manifest_and_raises(

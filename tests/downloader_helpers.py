@@ -11,7 +11,7 @@ from mloader.domain.manga import Chapter, ChapterGroup, LastPage, MangaPage, Man
 from mloader.domain.manga import TitleDetail, ViewerPage
 from mloader.domain.manga import TitleTag
 from mloader.domain.planning import DownloadPlan, TitleDownloadPlan
-from mloader.domain.requests import CoverFormat, EffectiveOutputFormat
+from mloader.domain.requests import CoverFormat, EffectiveOutputFormat, FilenameStyle
 from mloader.manga_loader.download_execution import (
     DownloadExecutionContext,
     DownloadExecutionService,
@@ -128,6 +128,8 @@ class NullExporterFactory:
 def _build_execution_service(
     *,
     destination: str,
+    filename_style: FilenameStyle = "legacy",
+    rename_existing_filenames: bool = False,
     output_format: EffectiveOutputFormat = "pdf",
     meta: bool = False,
     cover: bool = False,
@@ -151,6 +153,8 @@ def _build_execution_service(
             meta=meta,
             resume=resume,
             manifest_reset=manifest_reset,
+            filename_style=filename_style,
+            rename_existing_filenames=rename_existing_filenames,
             cover_format=cover_format,
             services=services or DownloadServices.defaults(),
             prepare_download_plan=lambda *_args: DownloadPlan(title_plans=()),
@@ -165,6 +169,8 @@ def _build_execution_service(
 def dummy_downloader(
     destination: str = "/tmp/out",
     *,
+    filename_style: FilenameStyle = "legacy",
+    rename_existing_filenames: bool = False,
     output_format: EffectiveOutputFormat = "pdf",
     meta: bool = False,
     cover: bool = False,
@@ -177,6 +183,8 @@ def dummy_downloader(
     """Build an execution-service harness overriding page-image side effects."""
     return _build_execution_service(
         destination=destination,
+        filename_style=filename_style,
+        rename_existing_filenames=rename_existing_filenames,
         output_format=output_format,
         meta=meta,
         cover=cover,
@@ -195,6 +203,8 @@ def dummy_downloader(
 def full_downloader(
     destination: str = "/tmp/out",
     *,
+    filename_style: FilenameStyle = "legacy",
+    rename_existing_filenames: bool = False,
     output_format: EffectiveOutputFormat = "pdf",
     meta: bool = False,
     cover: bool = False,
@@ -207,6 +217,8 @@ def full_downloader(
     """Build an execution-service harness using real internals where practical."""
     return _build_execution_service(
         destination=destination,
+        filename_style=filename_style,
+        rename_existing_filenames=rename_existing_filenames,
         output_format=output_format,
         meta=meta,
         cover=cover,

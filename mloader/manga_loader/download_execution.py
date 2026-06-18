@@ -14,7 +14,7 @@ from mloader.domain.planning import (
     TitleDownloadPlan,
     title_detail_with_selected_chapters,
 )
-from mloader.domain.requests import CoverFormat, DownloadSummary
+from mloader.domain.requests import CoverFormat, DownloadSummary, FilenameStyle
 from mloader.errors import DownloadInterruptedError
 from mloader.manga_loader.chapter_planning import ChapterMetadata
 from mloader.manga_loader.download_services import DownloadServices
@@ -57,6 +57,8 @@ class DownloadExecutionContext:
     meta: bool
     resume: bool
     manifest_reset: bool
+    filename_style: FilenameStyle
+    rename_existing_filenames: bool
     cover_format: CoverFormat
     services: DownloadServices
     prepare_download_plan: PrepareDownloadPlan
@@ -153,6 +155,9 @@ class DownloadExecutionService:
                     meta=self.context.meta,
                     resume=self.context.resume,
                     manifest_reset=self.context.manifest_reset,
+                    output_format=self.context.output_format,
+                    filename_style=self.context.filename_style,
+                    rename_existing_filenames=self.context.rename_existing_filenames,
                 ),
                 manifest_tracker=services.manifest_tracker,
                 manifest_factory=self.context.manifest_factory,
@@ -283,6 +288,7 @@ class DownloadExecutionService:
         title_detail: TitleDetail,
         existing_files: Collection[str],
         requested_chapter_ids: Collection[int],
+        filename_style: FilenameStyle,
     ) -> list[int]:
         """Return chapter IDs that are requested and not already exported."""
         return self.context.services.download_planner.filter_chapters_to_download(
@@ -290,6 +296,7 @@ class DownloadExecutionService:
             title_detail,
             existing_files,
             requested_chapter_ids,
+            filename_style=filename_style,
         )
 
     def _exclude_manifest_completed_chapters(

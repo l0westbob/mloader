@@ -8,7 +8,7 @@ services:
       APP_VER: 237
       OS: android
       OS_VER: 35
-      SECRET: e75b23a6296a2575a49b5449119a72d8
+      SECRET: b66ce3fdbc129d49e31da0738ff5943b
       MLOADER_EXTRACT_OUT_DIR: /downloads
       MLOADER_CRON_SCHEDULE: "0 3 * * 1"
       MLOADER_CRON_ARGS: "--all --language english --format pdf --out /downloads --cover"

@@ -7,7 +7,12 @@ from typing import ClassVar
 
 import requests
 
-from mloader.domain.requests import CoverFormat, DownloadSummary, EffectiveOutputFormat
+from mloader.domain.requests import (
+    CoverFormat,
+    DownloadSummary,
+    EffectiveOutputFormat,
+    FilenameStyle,
+)
 from mloader.errors import APIResponseError, DownloadInterruptedError, SubscriptionRequiredError
 from mloader.types import ChapterLike, ExporterFactoryLike, ExporterLike, PageIndex, TitleLike
 
@@ -57,6 +62,7 @@ class RecordingExporter(ExporterLike):
         next_chapter: ChapterLike | None = None,
         add_chapter_title: bool = False,
         add_chapter_subdir: bool = False,
+        add_language_to_chapter_name: bool = True,
     ) -> None:
         """Record exporter constructor arguments."""
         payload: dict[str, object] = {
@@ -66,6 +72,7 @@ class RecordingExporter(ExporterLike):
             "next_chapter": next_chapter,
             "add_chapter_title": add_chapter_title,
             "add_chapter_subdir": add_chapter_subdir,
+            "add_language_to_chapter_name": add_language_to_chapter_name,
         }
         type(self).init_args = payload
         type(self).calls.append(payload)
@@ -124,6 +131,8 @@ class RecordingDownloadRuntime:
         destination: str = "mloader_downloads",
         output_format: EffectiveOutputFormat = "cbz",
         capture_api_dir: str | None = None,
+        filename_style: FilenameStyle = "legacy",
+        rename_existing_filenames: bool = False,
         resume: bool = True,
         manifest_reset: bool = False,
         cover_format: CoverFormat = "png",
@@ -139,6 +148,8 @@ class RecordingDownloadRuntime:
             "destination": destination,
             "output_format": output_format,
             "capture_api_dir": capture_api_dir,
+            "filename_style": filename_style,
+            "rename_existing_filenames": rename_existing_filenames,
             "resume": resume,
             "manifest_reset": manifest_reset,
         }

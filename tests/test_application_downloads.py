@@ -149,6 +149,7 @@ def test_execute_download_wires_loader_and_download_targets() -> None:
             "next_chapter": next_chapter,
             "add_chapter_title": True,
             "add_chapter_subdir": False,
+            "add_language_to_chapter_name": False,
         }
     ]
     assert ApplicationRecordingDownloadRuntime.download_args["title_ids"] == frozenset({100001})
