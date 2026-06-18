@@ -26,6 +26,7 @@ class CBZExporter(ExporterBase):
         next_chapter: ChapterLike | None = None,
         add_chapter_title: bool = False,
         add_chapter_subdir: bool = False,
+        add_language_to_chapter_name: bool = True,
         compression: int = zipfile.ZIP_DEFLATED,
     ) -> None:
         """Initialize archive path and optional in-memory zip buffer."""
@@ -36,6 +37,7 @@ class CBZExporter(ExporterBase):
             next_chapter=next_chapter,
             add_chapter_title=add_chapter_title,
             add_chapter_subdir=add_chapter_subdir,
+            add_language_to_chapter_name=add_language_to_chapter_name,
         )
         base_path = Path(self.destination, self.title_name)
         base_path.mkdir(parents=True, exist_ok=True)

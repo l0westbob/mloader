@@ -36,6 +36,8 @@ class DownloadRunner:
         request_timeout: tuple[float, float],
         retries: int,
         capture_api_dir: str | None,
+        filename_style: str = "legacy",
+        rename_existing_filenames: bool = False,
         resume: bool,
         manifest_reset: bool,
         services: DownloadServices,
@@ -50,6 +52,8 @@ class DownloadRunner:
         self.quality = quality
         self.split = split
         self.request_timeout = request_timeout
+        self.filename_style = filename_style
+        self.rename_existing_filenames = rename_existing_filenames
         self.resume = resume
         self.manifest_reset = manifest_reset
         self.services = services
@@ -100,6 +104,8 @@ class DownloadRunner:
                 cover=self.cover,
                 meta=self.meta,
                 resume=self.resume,
+                filename_style=self.filename_style,
+                rename_existing_filenames=self.rename_existing_filenames,
                 manifest_reset=self.manifest_reset,
                 cover_format=self.cover_format,
                 services=self.services,

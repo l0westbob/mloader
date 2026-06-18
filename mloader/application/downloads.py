@@ -48,6 +48,7 @@ def build_exporter_factory(
             next_chapter=next_chapter,
             add_chapter_title=request.chapter_title,
             add_chapter_subdir=request.chapter_subdir,
+            add_language_to_chapter_name=request.filename_style == "new",
         )
 
     return create_exporter
@@ -79,6 +80,8 @@ def execute_download(
         destination=request.out_dir,
         output_format=effective_output_format,
         capture_api_dir=request.capture_api_dir,
+        filename_style=request.filename_style,
+        rename_existing_filenames=request.rename_existing_filenames,
         resume=request.resume,
         manifest_reset=request.manifest_reset,
         cover_format=request.cover_format,

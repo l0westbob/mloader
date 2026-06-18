@@ -1,6 +1,6 @@
 # Mangaplus Downloader
 
-![Version](https://img.shields.io/badge/version-v2.1.1-brightgreen.svg)
+![Version](https://img.shields.io/badge/version-v2.1.2-brightgreen.svg)
 ![Python](https://img.shields.io/badge/python-v3.14+-blue.svg)
 ![Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen.svg)
 ![License](https://img.shields.io/badge/license-GPLv3-blue.svg)
@@ -118,7 +118,7 @@ The `latest` tag points at the newest image published from `main`.
 
 ```bash
 docker pull ghcr.io/l0westbob/mloader:latest
-docker pull ghcr.io/l0westbob/mloader:2.1.1
+docker pull ghcr.io/l0westbob/mloader:2.1.2
 ```
 
 The image workflow publishes on `main`, `v*` tags, and manual dispatch. If GHCR creates
@@ -127,7 +127,7 @@ the package as private after the first push, make it public once in the package 
 To use the published image in Compose, replace the local `build:` block with:
 
 ```yaml
-image: ghcr.io/l0westbob/mloader:2.1.1
+image: ghcr.io/l0westbob/mloader:2.1.2
 ```
 
 The default `compose.yaml` now runs a long-lived cron daemon inside the container and executes `mloader` weekly.
@@ -365,6 +365,8 @@ This section is generated from CLI metadata. Update it with `uv run python scrip
 | `--browser-fallback`, `--no-browser-fallback` | Use Playwright-rendered scraping when static page fetch yields no title IDs | `true` | `-` |
 | `--raw`, `-r` | Save raw images | `false` | `MLOADER_RAW` |
 | `--format`, `-f` | Save as CBZ or PDF | `cbz` | `MLOADER_OUTPUT_FORMAT` |
+| `--filename-style` | Filename style for chapter-level outputs (legacy excludes language tags) | `legacy` | `MLOADER_FILENAME_STYLE` |
+| `--rename-existing-filenames` | Rename existing legacy chapter filenames to the selected style | `false` | `-` |
 | `--capture-api` | Dump raw API payload captures (protobuf + metadata) to this directory | `-` | `MLOADER_CAPTURE_API_DIR` |
 | `--run-report` | Write a JSON run report for unattended cron/systemd runs | `-` | `MLOADER_RUN_REPORT_PATH` |
 | `--quality`, `-q` | Image quality | `super_high` | `MLOADER_QUALITY` |

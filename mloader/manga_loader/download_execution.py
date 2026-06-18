@@ -57,6 +57,8 @@ class DownloadExecutionContext:
     meta: bool
     resume: bool
     manifest_reset: bool
+    filename_style: str
+    rename_existing_filenames: bool
     cover_format: CoverFormat
     services: DownloadServices
     prepare_download_plan: PrepareDownloadPlan
@@ -153,6 +155,9 @@ class DownloadExecutionService:
                     meta=self.context.meta,
                     resume=self.context.resume,
                     manifest_reset=self.context.manifest_reset,
+                    output_format=self.context.output_format,
+                    filename_style=self.context.filename_style,
+                    rename_existing_filenames=self.context.rename_existing_filenames,
                 ),
                 manifest_tracker=services.manifest_tracker,
                 manifest_factory=self.context.manifest_factory,
@@ -286,11 +291,12 @@ class DownloadExecutionService:
     ) -> list[int]:
         """Return chapter IDs that are requested and not already exported."""
         return self.context.services.download_planner.filter_chapters_to_download(
-            chapter_data,
-            title_detail,
-            existing_files,
-            requested_chapter_ids,
-        )
+                chapter_data,
+                title_detail,
+                existing_files,
+                requested_chapter_ids,
+                filename_style=self.context.filename_style,
+            )
 
     def _exclude_manifest_completed_chapters(
         self,

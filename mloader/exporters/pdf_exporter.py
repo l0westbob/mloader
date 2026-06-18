@@ -27,6 +27,7 @@ class PDFExporter(ExporterBase):
         next_chapter: ChapterLike | None = None,
         add_chapter_title: bool = False,
         add_chapter_subdir: bool = False,
+        add_language_to_chapter_name: bool = True,
     ) -> None:
         """Initialize PDF path and disk-backed page buffering state."""
         super().__init__(
@@ -36,6 +37,7 @@ class PDFExporter(ExporterBase):
             next_chapter=next_chapter,
             add_chapter_title=add_chapter_title,
             add_chapter_subdir=add_chapter_subdir,
+            add_language_to_chapter_name=add_language_to_chapter_name,
         )
         base_path = Path(self.destination, self.title_name)
         base_path.mkdir(parents=True, exist_ok=True)
