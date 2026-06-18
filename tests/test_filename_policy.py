@@ -21,3 +21,31 @@ def test_filename_policy_preserves_chapter_stem_contract() -> None:
         )
         == "Dr Stone - 002 - Z 2 Fantasy vs Science"
     )
+
+
+def test_build_expected_filename_legacy_style_without_language_tag() -> None:
+    """Verify legacy mode keeps the old filename stem shape with no language tag."""
+    assert (
+        FilenamePolicy.build_expected_filename(
+            "Dr Stone",
+            _chapter(1000311, "#002"),
+            "Z=2 Fantasy vs. Science?",
+            8,
+            filename_style="legacy",
+        )
+        == "Dr Stone - 002 - Z 2 Fantasy vs Science"
+    )
+
+
+def test_build_expected_filename_new_style_appends_language_tag() -> None:
+    """Verify new mode appends the language tag in title-level chapter filenames."""
+    assert (
+        FilenamePolicy.build_expected_filename(
+            "Dr Stone",
+            _chapter(1000311, "#002"),
+            "Z=2 Fantasy vs. Science?",
+            8,
+            filename_style="new",
+        )
+        == "Dr Stone [VIETNAMESE] - 002 - Z 2 Fantasy vs Science"
+    )

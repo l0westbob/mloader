@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
 import pytest
 
 from mloader.manga_loader.chapter_planning import ChapterMetadata
+from mloader.manga_loader.filename_policy import FilenamePolicy
 from mloader.manga_loader.manifest_tracking import ManifestTracker
 from tests.downloader_helpers import (
     dummy_downloader,
@@ -318,6 +320,72 @@ def test_process_title_records_failed_chapter_report(
     assert report.failed_chapter_ids == [2]
     assert marked_failed == [2]
     assert flush_calls >= 2
+
+
+def test_process_title_renames_legacy_files_when_requested(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Verify existing legacy chapter files are renamed before filtering."""
+    title_id = 10
+    chapter_id = 1
+    chapter = _chapter(chapter_id, "#1", "Sub")
+    title_dump = _title_detail(
+        title_id=title_id,
+        name="My Manga",
+        chapters=[chapter],
+    )
+    title_dump = replace(title_dump, title=replace(title_dump.title, language=8))
+    title_name = FilenamePolicy.title_directory_name("My Manga")
+    legacy_file = FilenamePolicy.build_expected_filename(
+        title_name,
+        chapter,
+        "Sub",
+        8,
+        filename_style="legacy",
+    )
+    expected_file = FilenamePolicy.build_expected_filename(
+        title_name,
+        chapter,
+        "Sub",
+        8,
+        filename_style="new",
+    )
+    export_path = tmp_path / title_name
+    export_path.mkdir(parents=True)
+    (export_path / f"{legacy_file}.pdf").write_text("already-downloaded")
+
+    downloader = full_downloader(destination=str(tmp_path))
+    downloader.context = replace(
+        downloader.context,
+        filename_style="new",
+        rename_existing_filenames=True,
+    )
+    processed: list[int] = []
+
+    monkeypatch.setattr(downloader, "_get_title_details", lambda _tid: title_dump, raising=False)
+    monkeypatch.setattr(
+        downloader,
+        "_extract_chapter_data",
+        lambda _dump: {chapter_id: ChapterMetadata("", chapter_id, "Sub")},
+        raising=False,
+    )
+    monkeypatch.setattr(
+        downloader,
+        "_process_chapter",
+        lambda *args, **kwargs: processed.append(chapter_id),
+    )
+
+    downloader._process_title(
+        1,
+        1,
+        _title_plan(title_id=title_id, chapter_ids={chapter_id}),
+        report=_run_report(),
+    )
+
+    assert processed == []
+    assert not (export_path / f"{legacy_file}.pdf").exists()
+    assert (export_path / f"{expected_file}.pdf").exists()
 
 
 def test_process_title_on_keyboard_interrupt_marks_manifest_and_raises(
