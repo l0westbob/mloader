@@ -435,6 +435,35 @@ def test_rename_existing_filenames_handles_missing_chapter_data() -> None:
     assert set(export_path.glob("*")) == original_files
 
 
+def test_rename_existing_filenames_skips_when_style_is_unchanged() -> None:
+    """Verify migration skips entries when the legacy and target filename styles are equal."""
+    title = _title_detail(name="My Manga", chapters=[_chapter(1, "#1", "")])
+    title = replace(title, title=replace(title.title, language=8))
+    title_name = FilenamePolicy.title_directory_name("My Manga")
+    legacy_file = FilenamePolicy.build_expected_filename(
+        title_name,
+        _chapter(1, "#1", ""),
+        "",
+        8,
+        filename_style="legacy",
+    )
+
+    export_path = Path("/tmp") / title_name
+    export_path.mkdir(exist_ok=True)
+    expected_path = export_path / f"{legacy_file}.pdf"
+    expected_path.write_text("already-downloaded")
+
+    title_download_module._rename_existing_filenames_to_style(
+        output_format="pdf",
+        export_path=export_path,
+        title_detail=title,
+        chapter_data={1: ChapterMetadata("", 1, "")},
+        filename_style="legacy",
+    )
+
+    assert expected_path.exists()
+
+
 def test_process_title_on_keyboard_interrupt_marks_manifest_and_raises(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
