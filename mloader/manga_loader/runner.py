@@ -36,11 +36,11 @@ class DownloadRunner:
         request_timeout: tuple[float, float],
         retries: int,
         capture_api_dir: str | None,
-        filename_style: str = "legacy",
-        rename_existing_filenames: bool = False,
         resume: bool,
         manifest_reset: bool,
         services: DownloadServices,
+        filename_style: str = "legacy",
+        rename_existing_filenames: bool = False,
     ) -> None:
         """Initialize gateway, capture, and execution service dependencies."""
         self.meta = meta
