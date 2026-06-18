@@ -79,3 +79,16 @@
 - Ignore-by-default paths are explicit and practical.
 - Recommendations are concise (table + short bullets).
 - Open follow-ups list any uncertain areas for human confirmation.
+
+## Full quality gate (run before push / before opening PR)
+
+Run this complete sequence to mirror CI parity:
+
+1. `uv run ty check mloader scripts tests`
+2. `uv run ruff check .`
+3. `uv run ruff format --check .`
+4. `uv run pytest --cov=mloader --cov-report=term-missing --cov-fail-under=100`
+5. `uv run mloader --verify-capture-schema tests/fixtures/api_captures/baseline --verify-capture-baseline tests/fixtures/api_captures/baseline`
+6. `uv run python scripts/sync_readme_cli_reference.py --check`
+7. `uv run pytest -q tests/test_readme_cli_options.py tests/test_cli_readme_reference.py`
+8. `uv run python scripts/verify_readme_examples.py`
